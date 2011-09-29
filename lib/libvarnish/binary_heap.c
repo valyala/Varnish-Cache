@@ -563,7 +563,7 @@ foo_insert(struct binheap *bh, unsigned n)
 }
 
 static void
-foo_delete(struct binheap *bp, struct foo *fp)
+foo_delete(struct binheap *bh, struct foo *fp)
 {
 	unsigned key, n;
 
@@ -580,7 +580,7 @@ foo_delete(struct binheap *bp, struct foo *fp)
 }
 
 static void
-foo_reorder(struct binheap *bh, const struct foo *fp)
+foo_reorder(struct binheap *bh, struct foo *fp)
 {
         unsigned key, n;
 
@@ -666,7 +666,7 @@ main(int argc, char **argv)
                         foo_delete(bh, fp);
                         ++u;
                 }
-                assert(u >= N);
+                assert(u <= N);
                 fprintf(stderr, "%u removes OK\n", u);
 	}
 	return (0);
