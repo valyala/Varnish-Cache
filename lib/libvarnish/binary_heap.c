@@ -527,59 +527,71 @@ foo_check(const struct foo *fp)
 }
 
 static void
-foo_check_existense(const struct foo *fp, unsigned n)
+foo_check_existense(const struct foo *fp)
 {
         foo_check(fp);
         assert(fp->idx != BINHEAP_NOIDX);
-        assert(fp->n == n);
 }
 
 static void
-foo_check_after_insert(const struct foo *fp, unsigned key, unsigned n)
-{
-	foo_check_existense(fp, n);
-	assert(fp->key == key);
-}
-
-static void
-foo_check_after_delete(const struct foo *fp, unsigned key, unsigned n)
-{
-	foo_check(fp);
-	assert(fp->idx == BINHEAP_NOIDX);
-	assert(fp->key == key);
-	assert(fp->n == n);
-}
-
-static void
-foo_check_root(const struct foo *fp, unsigned key)
+foo_check_root(const struct foo *fp)
 {
 	foo_check(fp);
 	assert(fp->idx == BINHEAP_ROOT_IDX);
-	assert(fp->key <= key);
 }
 
 static struct foo *
-foo_new(unsigned key, unsigned n)
+foo_insert(struct binheap *bh, unsigned n)
 {
         struct foo *fp;
+	unsigned key;
 
         assert(n < N);
         AZ(ff[n]);
         ALLOC_OBJ(fp, FOO_MAGIC);
         XXXAN(fp);
+	key = random() % R;
         fp->idx = BINHEAP_NOIDX;
         fp->key = key;
         fp->n = n;
         ff[n] = fp;
+	binheap_insert(bh, fp);
+	foo_check_existense(fp);
+	assert(fp->key == key);
+	assert(fp->n == n);
         return fp;
 }
 
 static void
-foo_free(struct foo *fp, unsigned key, unsigned n)
+foo_delete(struct binheap *bp, struct foo *fp)
 {
-        foo_check_after_delete(fp, key, n);
+	unsigned key, n;
+
+	foo_check_existense(fp);
+	key = fp->key;
+	n = fp->n;
+	binheap_delete(bh, fp->idx);
+	foo_check(fp);
+	assert(fp->idx == BINHEAP_NOIDX);
+	assert(fp->key == key);
+	assert(fp->n == n);
         ff[fp->n] = NULL;
         FREE_OBJ(fp);
+}
+
+static void
+foo_reorder(struct binheap *bh, const struct foo *fp)
+{
+        unsigned key, n;
+
+        foo_check_existense(fp);
+        key = random() % R;
+	n = fp->n;
+        fp->key = key;
+        binheap_reorder(bh, fp->idx);
+	foo_check_existense(fp);
+	assert(fp->key == key);
+	assert(fp->n == n);
 }
 
 int
@@ -605,32 +617,22 @@ main(int argc, char **argv)
 	while (1) {
 		/* First insert our N elements */
 		for (n = 0; n < N; n++) {
-			key = random() % R;
-			fp = foo_new(key, n);
-
-			binheap_insert(bh, fp);
-			foo_check_after_insert(fp, key, n);
-
+			foo_insert(bh, n);
+			key = ff[n]->key;
 			fp = binheap_root(bh);
-			foo_check_root(fp, key);
+			foo_check_root(fp);
+			assert(fp->key <= key);
 		}
 		fprintf(stderr, "%d inserts OK\n", N);
 
 		/* For M cycles, pick the root, insert new */
 		for (u = 0; u < M; u++) {
 			fp = binheap_root(bh);
-			foo_check_root(fp, key);
-
-			key = fp->key;
+			foo_check_root(fp);
+			assert(fp->key <= key);
 			n = fp->n;
-			binheap_delete(bh, fp->idx);
-			foo_free(fp, key, n);
-
-			key = random() % R;
-			fp = foo_new(key, n);
-
-			binheap_insert(bh, fp);
-			foo_check_after_insert(fp, key, n);
+			foo_delete(bh, fp);
+			foo_insert(bh, n);
 		}
 		fprintf(stderr, "%d replacements OK\n", M);
 
@@ -639,23 +641,12 @@ main(int argc, char **argv)
 			n = random() % N;
 			fp = ff[n];
 			if (fp != NULL) {
-				foo_check_existense(fp, n);
-				key = fp->key;
-				if (fp->key & 1) {
-					binheap_delete(bh, fp->idx);
-					foo_free(fp, key, n);
-				} else {
-					key = random() % R;
-					fp->key = key;
-					binheap_reorder(bh, fp->idx);
-					foo_check_after_insert(fp, key, n);
-				}
-			} else {
-				key = random() % R;
-				fp = foo_new(key, n);
-				binheap_insert(bh, fp);
-				foo_check_after_insert(fp, key, n);
-			}
+				if (fp->key & 1)
+					foo_delete(bh, fp);
+				else
+					foo_reorder(bh, fp);
+			} else
+				foo_insert(bh, n);
 			if (0)
 				chk2(bh);
 		}
@@ -669,14 +660,10 @@ main(int argc, char **argv)
                         if (fp == NULL) {
                                 break;
                         }
-                        foo_check(fp);
-                        assert(fp->idx == BINHEAP_ROOT_IDX);
+                        foo_check_root(fp);
                         assert(fp->key >= key);
-
                         key = fp->key;
-                        n = fp->n;
-                        binheap_delete(bh, fp->idx);
-                        foo_free(fp, key, n);
+                        foo_delete(bh, fp);
                         ++u;
                 }
                 assert(u >= N);
