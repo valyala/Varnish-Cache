@@ -280,11 +280,11 @@ vev_add(struct vev_base *evb, struct vev *e)
 	if (e->timeout != 0.0) {
 		e->__when += TIM_mono() + e->timeout;
 		binheap_insert(evb->binheap, e);
-		assert(e->__binheap_idx > 0);
+		assert(e->__binheap_idx != BINHEAP_NOIDX);
 		DBG(evb, "... bidx = %d\n", e->__binheap_idx);
 	} else {
 		e->__when = 0.0;
-		e->__binheap_idx = 0;
+		e->__binheap_idx = BINHEAP_NOIDX;
 	}
 
 	e->__vevb = evb;
@@ -315,9 +315,9 @@ vev_del(struct vev_base *evb, struct vev *e)
 	assert(evb == e->__vevb);
 	assert(evb->thread == pthread_self());
 
-	if (e->__binheap_idx != 0)
+	if (e->__binheap_idx != BINHEAP_NOIDX)
 		binheap_delete(evb->binheap, e->__binheap_idx);
-	assert(e->__binheap_idx == 0);
+	assert(e->__binheap_idx == BINHEAP_NOIDX);
 
 	if (e->fd >= 0) {
 		DBG(evb, "... pidx = %d\n", e->__poll_idx);
@@ -454,7 +454,7 @@ vev_schedule_one(struct vev_base *evb)
 	e = binheap_root(evb->binheap);
 	if (e != NULL) {
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
-		assert(e->__binheap_idx == 1);
+		assert(e->__binheap_idx == BINHEAP_ROOT_IDX);
 		t = TIM_mono();
 		if (e->__when <= t)
 			return (vev_sched_timeout(evb, e, t));

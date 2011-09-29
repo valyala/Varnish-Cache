@@ -61,8 +61,6 @@
 
 /* Private definitions -----------------------------------------------*/
 
-#define ROOT_IDX		1
-
 #define ROW_WIDTH		(1 << ROW_SHIFT)
 
 /*lint -emacro(572, ROW) shift 0 >> by 16 */
@@ -221,12 +219,12 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 
 	bh->cmp = cmp_f;
 	bh->update = update_f;
-	bh->next = ROOT_IDX;
+	bh->next = BINHEAP_ROOT_IDX;
 	bh->rows = 16;		/* A tiny-ish number */
 	bh->array = calloc(sizeof *bh->array, bh->rows);
 	assert(bh->array != NULL);
 	binheap_addrow(bh);
-	A(bh, ROOT_IDX) = NULL;
+	A(bh, BINHEAP_ROOT_IDX) = NULL;
 	bh->magic = BINHEAP_MAGIC;
 	return (bh);
 }
@@ -269,7 +267,7 @@ binheap_trickleup(const struct binheap *bh, unsigned u)
 	assert(u < bh->next);
 	assert(A(bh, u) != NULL);
 
-	while (u > ROOT_IDX) {
+	while (u > BINHEAP_ROOT_IDX) {
 		assert(u < bh->next);
 		assert(A(bh, u) != NULL);
 		v = parent(bh, u);
@@ -362,7 +360,7 @@ binheap_root(const struct binheap *bh)
 #ifdef PARANOIA
 	chk(bh);
 #endif
-	return (A(bh, ROOT_IDX));
+	return (A(bh, BINHEAP_ROOT_IDX));
 }
 
 /*
@@ -395,7 +393,7 @@ binheap_delete(struct binheap *bh, unsigned idx)
 
 	assert(bh != NULL);
 	assert(bh->magic == BINHEAP_MAGIC);
-	assert(bh->next > ROOT_IDX);
+	assert(bh->next > BINHEAP_ROOT_IDX);
 	assert(idx < bh->next);
 	assert(idx > 0);
 	assert(A(bh, idx) != NULL);
@@ -438,7 +436,7 @@ binheap_reorder(const struct binheap *bh, unsigned idx)
 
 	assert(bh != NULL);
 	assert(bh->magic == BINHEAP_MAGIC);
-	assert(bh->next > ROOT_IDX);
+	assert(bh->next > BINHEAP_ROOT_IDX);
 	assert(idx < bh->next);
 	assert(idx > 0);
 	assert(A(bh, idx) != NULL);
@@ -551,7 +549,7 @@ main(int argc, char **argv)
 			binheap_insert(bh, ff[u]);
 
 			fp = binheap_root(bh);
-			assert(fp->idx == 1);
+			assert(fp->idx == BINHEAP_ROOT_IDX);
 			assert(fp->key <= lr);
 		}
 		fprintf(stderr, "%d inserts OK\n", N);
@@ -559,7 +557,7 @@ main(int argc, char **argv)
 		for (u = 0; u < M; u++) {
 			fp = binheap_root(bh);
 			CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
-			assert(fp->idx == 1);
+			assert(fp->idx == BINHEAP_ROOT_IDX);
 
 			/*
 			 * It cannot possibly be larger than the last
@@ -585,7 +583,7 @@ main(int argc, char **argv)
 		for (u = 0; u < N; u++) {
 			fp = binheap_root(bh);
 			CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
-			assert(fp->idx == 1);
+			assert(fp->idx == BINHEAP_ROOT_IDX);
 			assert(fp->key >= lr);
 			lr = fp->key;
 			binheap_delete(bh, fp->idx);
@@ -598,7 +596,7 @@ main(int argc, char **argv)
 			v = random() % N;
 			if (ff[v] != NULL) {
 				CHECK_OBJ_NOTNULL(ff[v], FOO_MAGIC);
-				assert(ff[v]->idx != 0);
+				assert(ff[v]->idx != BINHEAP_NOIDX);
 				if (ff[v]->key & 1) {
 					binheap_delete(bh, ff[v]->idx);
 					assert(ff[v]->idx == BINHEAP_NOIDX);
@@ -614,7 +612,7 @@ main(int argc, char **argv)
 				ff[v]->key = random() % R;
 				binheap_insert(bh, ff[v]);
 				CHECK_OBJ_NOTNULL(ff[v], FOO_MAGIC);
-				assert(ff[v]->idx != 0);
+				assert(ff[v]->idx != BINHEAP_NOIDX);
 			}
 			if (0)
 				chk2(bh);

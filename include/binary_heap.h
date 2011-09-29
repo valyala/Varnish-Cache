@@ -78,3 +78,4 @@ void *binheap_root(const struct binheap *);
 	 */
 
 #define BINHEAP_NOIDX	0
+#define BINHEAP_ROOT_IDX 1
