@@ -578,10 +578,14 @@ main(int argc, char **argv)
 			binheap_insert(bh, fp);
 		}
 		fprintf(stderr, "%d replacements OK\n", M);
-		/* The remove everything */
+		/* Then remove everything */
 		lr = 0;
-		for (u = 0; u < N; u++) {
+		u = 0;
+		while (1) {
 			fp = binheap_root(bh);
+			if (fp == NULL) {
+				break;
+			}
 			CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
 			assert(fp->idx == BINHEAP_ROOT_IDX);
 			assert(fp->key >= lr);
@@ -589,8 +593,10 @@ main(int argc, char **argv)
 			binheap_delete(bh, fp->idx);
 			ff[fp->n] = NULL;
 			FREE_OBJ(fp);
+			++u;
 		}
-		fprintf(stderr, "%d removes OK\n", N);
+		assert(u >= N);
+		fprintf(stderr, "%u removes OK\n", u);
 
 		for (u = 0; u < M; u++) {
 			v = random() % N;
