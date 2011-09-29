@@ -615,6 +615,7 @@ main(int argc, char **argv)
 			foo_check_root(fp, key);
 		}
 		fprintf(stderr, "%d inserts OK\n", N);
+
 		/* For M cycles, pick the root, insert new */
 		for (u = 0; u < M; u++) {
 			fp = binheap_root(bh);
@@ -632,26 +633,6 @@ main(int argc, char **argv)
 			foo_check_after_insert(fp, key, n);
 		}
 		fprintf(stderr, "%d replacements OK\n", M);
-		/* Then remove everything */
-		key = 0;
-		u = 0;
-		while (1) {
-			fp = binheap_root(bh);
-			if (fp == NULL) {
-				break;
-			}
-			foo_check(fp);
-			assert(fp->idx == BINHEAP_ROOT_IDX);
-			assert(fp->key >= key);
-
-			key = fp->key;
-			n = fp->n;
-			binheap_delete(bh, fp->idx);
-			foo_free(fp, key, n);
-			++u;
-		}
-		assert(u >= N);
-		fprintf(stderr, "%u removes OK\n", u);
 
 		/* Randomly insert, delete and reorder */
 		for (u = 0; u < M; u++) {
@@ -679,6 +660,27 @@ main(int argc, char **argv)
 				chk2(bh);
 		}
 		fprintf(stderr, "%d updates OK\n", M);
+
+                /* Then remove everything */
+                key = 0;
+                u = 0;
+                while (1) {
+                        fp = binheap_root(bh);
+                        if (fp == NULL) {
+                                break;
+                        }
+                        foo_check(fp);
+                        assert(fp->idx == BINHEAP_ROOT_IDX);
+                        assert(fp->key >= key);
+
+                        key = fp->key;
+                        n = fp->n;
+                        binheap_delete(bh, fp->idx);
+                        foo_free(fp, key, n);
+                        ++u;
+                }
+                assert(u >= N);
+                fprintf(stderr, "%u removes OK\n", u);
 	}
 	return (0);
 }
