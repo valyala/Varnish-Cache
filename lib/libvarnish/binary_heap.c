@@ -481,7 +481,7 @@ struct foo {
 #define M 3401		/* Number of operations */
 #define N 1131		/* Number of items */
 #endif
-#define R -1		/* Random modulus */
+#define R RAND_MAX	/* Random modulus */
 
 struct foo *ff[N];
 
@@ -599,6 +599,7 @@ main(int argc, char **argv)
 {
 	struct binheap *bh;
 	unsigned u, v, key, n;
+	unsigned delete_count, insert_count, reorder_count;
 	struct foo *fp;
 
 	if (0) {
@@ -633,28 +634,39 @@ main(int argc, char **argv)
 			n = fp->n;
 			foo_delete(bh, fp);
 			foo_insert(bh, n);
+			key = ff[n]->key;
 		}
 		fprintf(stderr, "%d replacements OK\n", M);
 
 		/* Randomly insert, delete and reorder */
+		delete_count = 0;
+		insert_count = 0;
+		reorder_count = 0;
 		for (u = 0; u < M; u++) {
 			n = random() % N;
 			fp = ff[n];
 			if (fp != NULL) {
-				if (fp->key & 1)
+				if (fp->key & 1) {
 					foo_delete(bh, fp);
-				else
+					++delete_count;
+				} else {
 					foo_reorder(bh, fp);
-			} else
+					++reorder_count;
+				}
+			} else {
 				foo_insert(bh, n);
+				++insert_count;
+			}
 			if (0)
 				chk2(bh);
 		}
-		fprintf(stderr, "%d updates OK\n", M);
+		assert(delete_count >= insert_count);
+		fprintf(stderr, "%u deletes, %u inserts, %u reorders OK\n",
+			delete_count, insert_count, reorder_count);
 
                 /* Then remove everything */
                 key = 0;
-                u = 0;
+		u = 0;
                 while (1) {
                         fp = binheap_root(bh);
                         if (fp == NULL) {
@@ -666,7 +678,7 @@ main(int argc, char **argv)
                         foo_delete(bh, fp);
                         ++u;
                 }
-                assert(u <= N);
+                assert(u == N - (delete_count - insert_count));
                 fprintf(stderr, "%u removes OK\n", u);
 	}
 	return (0);
