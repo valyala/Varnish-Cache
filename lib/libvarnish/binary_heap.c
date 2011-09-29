@@ -495,16 +495,16 @@ cmp(void *priv, void *a, void *b)
 	return (fa->key < fb->key);
 }
 
-void
+static void
 update(void *priv, void *a, unsigned u)
 {
-	struct foo *fa;
+	struct foo *fp;
 
-	CAST_OBJ_NOTNULL(fa, a, FOO_MAGIC);
-	fa->idx = u;
+	CAST_OBJ_NOTNULL(fp, a, FOO_MAGIC);
+	fp->idx = u;
 }
 
-void
+static void
 chk2(struct binheap *bh)
 {
 	unsigned u, v;
@@ -518,11 +518,75 @@ chk2(struct binheap *bh)
 	}
 }
 
+static void
+foo_check(const struct foo *fp)
+{
+	CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
+	assert(fp->n < N);
+	assert(fp == ff[fp->n]);
+}
+
+static void
+foo_check_existense(const struct foo *fp, unsigned n)
+{
+        foo_check(fp);
+        assert(fp->idx != BINHEAP_NOIDX);
+        assert(fp->n == n);
+}
+
+static void
+foo_check_after_insert(const struct foo *fp, unsigned key, unsigned n)
+{
+	foo_check_existense(fp, n);
+	assert(fp->key == key);
+}
+
+static void
+foo_check_after_delete(const struct foo *fp, unsigned key, unsigned n)
+{
+	foo_check(fp);
+	assert(fp->idx == BINHEAP_NOIDX);
+	assert(fp->key == key);
+	assert(fp->n == n);
+}
+
+static void
+foo_check_root(const struct foo *fp, unsigned key)
+{
+	foo_check(fp);
+	assert(fp->idx == BINHEAP_ROOT_IDX);
+	assert(fp->key <= key);
+}
+
+static struct foo *
+foo_new(unsigned key, unsigned n)
+{
+        struct foo *fp;
+
+        assert(n < N);
+        AZ(ff[n]);
+        ALLOC_OBJ(fp, FOO_MAGIC);
+        XXXAN(fp);
+        fp->idx = BINHEAP_NOIDX;
+        fp->key = key;
+        fp->n = n;
+        ff[n] = fp;
+        return fp;
+}
+
+static void
+foo_free(struct foo *fp, unsigned key, unsigned n)
+{
+        foo_check_after_delete(fp, key, n);
+        ff[fp->n] = NULL;
+        FREE_OBJ(fp);
+}
+
 int
 main(int argc, char **argv)
 {
 	struct binheap *bh;
-	unsigned u, v, lr, n;
+	unsigned u, v, key, n;
 	struct foo *fp;
 
 	if (0) {
@@ -540,85 +604,76 @@ main(int argc, char **argv)
 
 	while (1) {
 		/* First insert our N elements */
-		for (u = 0; u < N; u++) {
-			lr = random() % R;
-			ALLOC_OBJ(ff[u], FOO_MAGIC);
-			assert(ff[u] != NULL);
-			ff[u]->key = lr;
-			ff[u]->n = u;
-			binheap_insert(bh, ff[u]);
+		for (n = 0; n < N; n++) {
+			key = random() % R;
+			fp = foo_new(key, n);
+
+			binheap_insert(bh, fp);
+			foo_check_after_insert(fp, key, n);
 
 			fp = binheap_root(bh);
-			assert(fp->idx == BINHEAP_ROOT_IDX);
-			assert(fp->key <= lr);
+			foo_check_root(fp, key);
 		}
 		fprintf(stderr, "%d inserts OK\n", N);
 		/* For M cycles, pick the root, insert new */
 		for (u = 0; u < M; u++) {
 			fp = binheap_root(bh);
-			CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
-			assert(fp->idx == BINHEAP_ROOT_IDX);
+			foo_check_root(fp, key);
 
-			/*
-			 * It cannot possibly be larger than the last
-			 * value we added
-			 */
-			assert(fp->key <= lr);
-			binheap_delete(bh, fp->idx);
-
+			key = fp->key;
 			n = fp->n;
-			ALLOC_OBJ(ff[n], FOO_MAGIC);
-			assert(ff[n] != NULL);
-			FREE_OBJ(fp);
-			fp = ff[n];
-			fp->n = n;
+			binheap_delete(bh, fp->idx);
+			foo_free(fp, key, n);
 
-			lr = random() % R;
-			fp->key = lr;
+			key = random() % R;
+			fp = foo_new(key, n);
+
 			binheap_insert(bh, fp);
+			foo_check_after_insert(fp, key, n);
 		}
 		fprintf(stderr, "%d replacements OK\n", M);
 		/* Then remove everything */
-		lr = 0;
+		key = 0;
 		u = 0;
 		while (1) {
 			fp = binheap_root(bh);
 			if (fp == NULL) {
 				break;
 			}
-			CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
+			foo_check(fp);
 			assert(fp->idx == BINHEAP_ROOT_IDX);
-			assert(fp->key >= lr);
-			lr = fp->key;
+			assert(fp->key >= key);
+
+			key = fp->key;
+			n = fp->n;
 			binheap_delete(bh, fp->idx);
-			ff[fp->n] = NULL;
-			FREE_OBJ(fp);
+			foo_free(fp, key, n);
 			++u;
 		}
 		assert(u >= N);
 		fprintf(stderr, "%u removes OK\n", u);
 
+		/* Randomly insert, delete and reorder */
 		for (u = 0; u < M; u++) {
-			v = random() % N;
-			if (ff[v] != NULL) {
-				CHECK_OBJ_NOTNULL(ff[v], FOO_MAGIC);
-				assert(ff[v]->idx != BINHEAP_NOIDX);
-				if (ff[v]->key & 1) {
-					binheap_delete(bh, ff[v]->idx);
-					assert(ff[v]->idx == BINHEAP_NOIDX);
-					FREE_OBJ(ff[v]);
-					ff[v] = NULL;
+			n = random() % N;
+			fp = ff[n];
+			if (fp != NULL) {
+				foo_check_existense(fp, n);
+				key = fp->key;
+				if (fp->key & 1) {
+					binheap_delete(bh, fp->idx);
+					foo_free(fp, key, n);
 				} else {
-					ff[v]->key = random() % R;
-					binheap_reorder(bh, ff[v]->idx);
+					key = random() % R;
+					fp->key = key;
+					binheap_reorder(bh, fp->idx);
+					foo_check_after_insert(fp, key, n);
 				}
 			} else {
-				ALLOC_OBJ(ff[v], FOO_MAGIC);
-				assert(ff[v] != NULL);
-				ff[v]->key = random() % R;
-				binheap_insert(bh, ff[v]);
-				CHECK_OBJ_NOTNULL(ff[v], FOO_MAGIC);
-				assert(ff[v]->idx != BINHEAP_NOIDX);
+				key = random() % R;
+				fp = foo_new(key, n);
+				binheap_insert(bh, fp);
+				foo_check_after_insert(fp, key, n);
 			}
 			if (0)
 				chk2(bh);
