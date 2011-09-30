@@ -723,7 +723,6 @@ main(int argc, char **argv)
 				foo_insert(bh, n);
 				++insert_count;
 			}
-			check_indexes(bh);
 		}
 		assert(delete_count >= insert_count);
 		check_invariant(bh);
