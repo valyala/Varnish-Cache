@@ -41,8 +41,7 @@
 
 #include "binary_heap.h"
 #include "libvarnish.h"
-#include "miniobj.h" 
-
+#include "miniobj.h"
 
 /* Parameters --------------------------------------------------------*/
 
@@ -185,7 +184,7 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 	rows[0] = row;
 
         bh = (struct binheap *) row;
-	bh->magic = BINHEAP_MAGIC;	
+	bh->magic = BINHEAP_MAGIC;
 	bh->priv = priv;
         bh->cmp = cmp_f;
         bh->update = update_f;
@@ -265,7 +264,6 @@ binheap_trickleup(struct binheap *bh, unsigned u)
 		assert(A(bh, v) == p1);
 		assert(A(bh, u) == p2);
                 u = v;
-		p1 = p2;
         }
         return (u);
 }
@@ -306,7 +304,6 @@ binheap_trickledown(struct binheap *bh, unsigned u)
 		assert(A(bh, v) == p1);
 		assert(A(bh, u) == p2);
                 u = v;
-		p1 = p2;
         }
 	return (u);
 }
@@ -408,13 +405,6 @@ binheap_root(const struct binheap *bh)
         return p;
 }
 
-unsigned
-binheap_root_idx(const struct binheap *bh)
-{
-        CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-        return IDX_INT2EXT(bh, ROOT_IDX(bh));
-}
-
 #ifdef TEST_DRIVER
 
 static void
@@ -499,13 +489,6 @@ foo_check_existense(const struct foo *fp)
 {
         foo_check(fp);
         assert(fp->idx != BINHEAP_NOIDX);
-}
-
-static void
-foo_check_root(const struct foo *fp, unsigned root_idx)
-{
-	foo_check(fp);
-	assert(fp->idx == root_idx);
 }
 
 static void
@@ -602,7 +585,7 @@ main(int argc, char **argv)
 	}
 	fprintf(stderr, "%u parent-child index tests OK", M);
 
-	root_idx = binheap_root_idx(bh);
+	root_idx = IDX_INT2EXT(bh, ROOT_IDX(bh));
         assert(root_idx != BINHEAP_NOIDX);
 	while (1) {
 		/* First insert our N elements */
@@ -610,7 +593,8 @@ main(int argc, char **argv)
 			foo_insert(bh, n);
 			key = ff[n]->key;
 			fp = binheap_root(bh);
-			foo_check_root(fp, root_idx);
+			foo_check(fp);
+			assert(fp->idx == root_idx);
 			assert(fp->key <= key);
 		}
 		binheap_check_invariant(bh);
@@ -619,7 +603,8 @@ main(int argc, char **argv)
 		/* For M cycles, pick the root, insert new */
 		for (u = 0; u < M; u++) {
 			fp = binheap_root(bh);
-			foo_check_root(fp, root_idx);
+			foo_check(fp);
+			assert(fp->idx == root_idx);
 			assert(fp->key <= key);
 			n = fp->n;
 			foo_delete(bh, fp);
@@ -662,7 +647,8 @@ main(int argc, char **argv)
                         if (fp == NULL) {
                                 break;
                         }
-                        foo_check_root(fp, root_idx);
+                        foo_check(fp);
+			assert(fp->idx == root_idx);
                         assert(fp->key >= key);
                         key = fp->key;
                         foo_delete(bh, fp);

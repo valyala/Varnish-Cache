@@ -78,14 +78,6 @@ void *binheap_root(const struct binheap *);
 	 * If the binheap is empty, return NULL.
 	 */
 
-unsigned binheap_root_idx(const struct binheap *);
-	/*
-	 * Return the index of the root item even if the binheap is empty.
-	 * All index values passed to binheap functions must be greater
-	 * or equal to the root index value.
-	 * It is guaranteed that the root index is greater than BINHEAP_NOIDX.
-	 */
-
 #define BINHEAP_NOIDX	0
 	/*
 	 * Update function pass this value as newidx if the given item has been

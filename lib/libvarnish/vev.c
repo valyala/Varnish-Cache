@@ -454,7 +454,7 @@ vev_schedule_one(struct vev_base *evb)
 	e = binheap_root(evb->binheap);
 	if (e != NULL) {
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
-		assert(e->__binheap_idx == BINHEAP_ROOT_IDX);
+		assert(e->__binheap_idx != BINHEAP_NOIDX);
 		t = TIM_mono();
 		if (e->__when <= t)
 			return (vev_sched_timeout(evb, e, t));
