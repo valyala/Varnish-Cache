@@ -70,7 +70,7 @@
 
 struct binheap {
         unsigned                magic;
-#define BINHEAP_MAGIC           0x8bd801f0U     /* from /dev/random */
+#define BINHEAP_MAGIC           0x8bd801f0u     /* from /dev/random */
         void                    *priv;
         binheap_cmp_t           *cmp;
         binheap_update_t        *update;
@@ -113,7 +113,7 @@ parent(const struct binheap *bh, unsigned u)
 static unsigned
 child(const struct binheap *bh, unsigned u)
 {
-	unsigned v, z, page_mask, page_size, page_children;
+	unsigned v, page_mask, page_size, page_children;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	AN(bh->page_shift);
@@ -124,11 +124,10 @@ child(const struct binheap *bh, unsigned u)
         page_children = page_size / 2 + 1;
 	if (v + 2 < page_children)
 		return (u & ~page_mask) + (v + 1) * 2;
-	z = (u >> bh->page_shift) * page_children;
-	/* TODO: verify edge cases */
-	if (z > ((0u - 1) >> bh->page_shift))
+	v += (u >> bh->page_shift) * page_children - page_size + 2;
+	if (v > (UINT_MAX >> bh->page_shift))
 		return u;	/* child index is overflown */
-	return page_size * (z + v + 2 - page_size);
+	return page_size * v;
 }
 
 struct binheap *
@@ -444,6 +443,55 @@ check_invariant(const struct binheap *bh)
         }
 }
 
+#ifdef PARANOIA
+#define paranoia_check_invariant(bh)	check_invariant(bh)
+#else
+#define paranoia_check_invariant(bh)	((void)0)
+#endif
+
+static void
+check_parent_child(const struct binheap *bh, unsigned n_max)
+{
+        unsigned n, u, v, root_idx;
+
+        root_idx = ROOT_IDX(bh);
+        for (n = root_idx; n < n_max; n++) {
+                u = child(bh, n);
+                assert(u >= n);
+                assert(u > root_idx);
+                if (u == n)
+                        continue;       /* child index is too big */
+                v = parent(bh, u);
+                assert(v == n);
+                v = parent(bh, u + 1);
+                assert(v == n);
+
+                u = parent(bh, n);
+                assert(u <= n);
+                if (u == n) {
+                        assert(u == root_idx);
+                        continue;
+                }
+                v = child(bh, u);
+                assert(v == (n & (0u - 2)));
+        }
+}
+
+static void
+check_parent_child_overflow(const struct binheap *bh, unsigned n_max)
+{
+	unsigned n, u, v, root_idx;
+
+	root_idx = ROOT_IDX(bh);
+	for (n = 0; n < n_max; n++) {
+		u = parent(bh, UINT_MAX - n);
+		assert(u < UINT_MAX - n);
+		assert(u >= root_idx);
+		v = child(bh, u);
+		assert(v == ((UINT_MAX - n) & (0u - 2)));
+	}
+}
+
 /* Test driver -------------------------------------------------------*/
 #include <stdio.h>
 
@@ -517,6 +565,7 @@ foo_insert(struct binheap *bh, unsigned n)
         struct foo *fp;
 	unsigned key;
 
+	paranoia_check_invariant(bh);
         assert(n < N);
         AZ(ff[n]);
         ALLOC_OBJ(fp, FOO_MAGIC);
@@ -530,6 +579,7 @@ foo_insert(struct binheap *bh, unsigned n)
 	foo_check_existense(fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
+	paranoia_check_invariant(bh);
 }
 
 static void
@@ -537,6 +587,7 @@ foo_delete(struct binheap *bh, struct foo *fp)
 {
 	unsigned key, n;
 
+	paranoia_check_invariant(bh);
 	foo_check_existense(fp);
 	key = fp->key;
 	n = fp->n;
@@ -547,6 +598,7 @@ foo_delete(struct binheap *bh, struct foo *fp)
 	assert(fp->n == n);
         ff[fp->n] = NULL;
         FREE_OBJ(fp);
+	paranoia_check_invariant(bh);
 }
 
 static void
@@ -562,6 +614,7 @@ foo_reorder(struct binheap *bh, struct foo *fp)
 	foo_check_existense(fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
+	paranoia_check_invariant(bh);
 }
 
 int
@@ -569,7 +622,7 @@ main(int argc, char **argv)
 {
 	struct binheap *bh;
         struct foo *fp;
-	unsigned u, v, key, n, root_idx;
+	unsigned u, n, key, root_idx;
 	unsigned delete_count, insert_count, reorder_count;
 
 	if (0) {
@@ -582,28 +635,10 @@ main(int argc, char **argv)
 	AZ(binheap_root(bh));
 
 	/* test parent() and child() functions */
-	root_idx = ROOT_IDX(bh);
-	for (n = root_idx; n <= M; n++) {
-		u = child(bh, n);
-		assert(u >= n);
-		assert(u > root_idx);
-		if (u == n)
-			continue;	/* child index is too big */
-		v = parent(bh, u);
-		assert(v == n);
-		v = parent(bh, u + 1);
-		assert(v == n);
-
-		u = parent(bh, n);
-		assert(u <= n);
-		if (u == n) {
-			assert(u == root_idx);
-			continue;
-		}
-		v = child(bh, u);
-		assert(v == (n & (0u - 2)));
-	}
+	check_parent_child(bh, M);
 	fprintf(stderr, "%u parent-child index tests OK\n", M);
+	check_parent_child_overflow(bh, M);
+	fprintf(stderr, "%u overflow tests on parent-child OK\n", M);
 
 	root_idx = IDX_INT2EXT(bh, ROOT_IDX(bh));
         assert(root_idx != BINHEAP_NOIDX);
@@ -628,9 +663,7 @@ main(int argc, char **argv)
 			assert(fp->key <= key);
 			n = fp->n;
 			foo_delete(bh, fp);
-			check_invariant(bh);
 			foo_insert(bh, n);
-			check_invariant(bh);
 			key = ff[n]->key;
 		}
 		check_invariant(bh);
