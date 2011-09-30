@@ -546,7 +546,8 @@ foo_update(void *priv, void *a, unsigned u)
 	bh = *((struct binheap **) priv);
 	CAST_OBJ_NOTNULL(fp, a, FOO_MAGIC);
 	++update_calls_count;
-	if ((fp->idx >> bh->page_shift) != (u >> bh->page_shift))
+	if (fp->idx != BINHEAP_NOIDX && u != BINHEAP_NOIDX &&
+		(fp->idx >> bh->page_shift) != (u >> bh->page_shift))
 		++page_faults_count;
 	fp->idx = u;
 }
