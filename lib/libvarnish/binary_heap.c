@@ -514,8 +514,8 @@ struct foo {
 };
 
 #if 1
-#define M 31011091u		/* Number of operations */
-#define N 17313102u		/* Number of items */
+#define M 10000000u		/* Number of operations */
+#define N 10000000u		/* Number of items */
 #else
 #define M 3401u			/* Number of operations */
 #define N 1131u			/* Number of items */
@@ -523,6 +523,7 @@ struct foo {
 #define R ((unsigned) RAND_MAX)	/* Random modulus */
 
 static struct foo *ff[N];
+static unsigned comparisons_count, update_calls_count, page_faults_count;
 
 static int
 foo_cmp(void *priv, void *a, void *b)
@@ -531,10 +532,9 @@ foo_cmp(void *priv, void *a, void *b)
 
 	CAST_OBJ_NOTNULL(fa, a, FOO_MAGIC);
 	CAST_OBJ_NOTNULL(fb, b, FOO_MAGIC);
+	++comparisons_count;
 	return (fa->key < fb->key);
 }
-
-static unsigned update_calls_count, page_faults_count;
 
 static void
 foo_update(void *priv, void *a, unsigned u)
@@ -549,6 +549,16 @@ foo_update(void *priv, void *a, unsigned u)
 		(fp->idx >> bh->page_shift) != (u >> bh->page_shift))
 		++page_faults_count;
 	fp->idx = u;
+}
+
+static void
+check_indexes(const struct binheap *bh)
+{
+	unsigned n;
+
+	for (n = ROOT_IDX(bh); n < bh->next; n++) {
+		assert(((struct foo *)(A(bh, n)))->idx == IDX_INT2EXT(bh, n));
+	}
 }
 
 static void
@@ -627,8 +637,8 @@ foo_reorder(struct binheap *bh, struct foo *fp)
 static void
 print_counters(void)
 {
-	fprintf(stderr, "%u update calls, %u page faults\n",
-		update_calls_count, page_faults_count);
+	fprintf(stderr, "%u comparisons, %u update calls, %u page faults\n",
+		comparisons_count, update_calls_count, page_faults_count);
 	update_calls_count = page_faults_count = 0;
 }
 
@@ -668,6 +678,7 @@ main(int argc, char **argv)
 			assert(fp->key <= key);
 		}
 		check_invariant(bh);
+		check_indexes(bh);
 		fprintf(stderr, "%u inserts OK\n", N);
 		print_counters();
 
@@ -683,6 +694,7 @@ main(int argc, char **argv)
 			key = ff[n]->key;
 		}
 		check_invariant(bh);
+		check_indexes(bh);
 		fprintf(stderr, "%u replacements OK\n", M);
 		print_counters();
 
@@ -708,6 +720,7 @@ main(int argc, char **argv)
 		}
 		assert(delete_count >= insert_count);
 		check_invariant(bh);
+		check_indexes(bh);
 		fprintf(stderr, "%u deletes, %u inserts, %u reorders OK\n",
 			delete_count, insert_count, reorder_count);
 		print_counters();
@@ -730,6 +743,7 @@ main(int argc, char **argv)
                 assert(u == N - (delete_count - insert_count));
 		AZ(binheap_root(bh));
 		check_invariant(bh);
+		check_indexes(bh);
                 fprintf(stderr, "%u removes OK\n", u);
 		print_counters();
 	}
