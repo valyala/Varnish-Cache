@@ -262,7 +262,8 @@ trickledown(struct binheap *bh, unsigned u)
                 v = child(bh, u);
 		assert(v > ROOT_IDX(bh));
                 assert(v >= u);
-		xxxassert(v != u);	/* index overflow */
+		if (v == u)
+			break;		/* index overflow */
                 if (v >= bh->next)
                         break;		/* reached the end of heap */
 		p2 = A(bh, v);
@@ -309,6 +310,8 @@ addrow(struct binheap *bh)
         row = calloc(sizeof(*row), ROW_WIDTH);
         XXXAN(row);
         ROW(bh, bh->length) = row;
+	/* prevent from silent heap overflow */
+	xxxassert(bh->length <= UINT_MAX - ROW_WIDTH);
         bh->length += ROW_WIDTH;
 }
 
@@ -324,6 +327,7 @@ binheap_insert(struct binheap *bh, void *p)
         if (bh->length == bh->next)
         	addrow(bh);
         assert(bh->length > bh->next);
+	assert(bh->next < UINT_MAX);
         u = bh->next++;
         A(bh, u) = p;
         update(bh, p, u);
@@ -388,6 +392,7 @@ binheap_delete(struct binheap *bh, unsigned idx)
 	p = A(bh, u);
         AN(p);
 	update(bh, p, IDX_EXT2INT(bh, BINHEAP_NOIDX));
+	assert(bh->next > 0);
         if (u == --bh->next) {
                 A(bh, u) = NULL;
                 return;
