@@ -336,10 +336,10 @@ binheap_insert(struct binheap *bh, void *p)
 	update(bh, p, v);
 }
 
-static void
+static unsigned
 reorder(struct binheap *bh, void *p, unsigned u)
 {
-        unsigned v, z;
+        unsigned v;
 
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         assert(bh->next >= ROOT_IDX(bh));
@@ -351,19 +351,18 @@ reorder(struct binheap *bh, void *p, unsigned u)
         assert(v >= ROOT_IDX(bh));
         assert(v <= u);
         assert(A(bh, v) == p);
-        z = trickledown(bh, v);
+        u = trickledown(bh, v);
         AN(A(bh, v));
-        assert(z >= v);
-        assert(A(bh, z) == p);
-	if (z != u)
-		update(bh, p, z);
+        assert(u >= v);
+        assert(A(bh, u) == p);
+	return u;
 }
 
 void
 binheap_reorder(struct binheap *bh, unsigned idx)
 {
 	void *p;
-	unsigned u;
+	unsigned u, v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         assert(bh->next >= ROOT_IDX(bh));
@@ -373,7 +372,9 @@ binheap_reorder(struct binheap *bh, unsigned idx)
         assert(u < bh->next);
         p = A(bh, u);
         AN(p);
-	reorder(bh, p, u);
+	v = reorder(bh, p, u);
+	if (u != v)
+		update(bh, p, v);
 }
 
 void
@@ -400,7 +401,8 @@ binheap_delete(struct binheap *bh, unsigned idx)
 	AN(p);
         A(bh, u) = p;
         A(bh, bh->next) = NULL;
-	reorder(bh, p, u);
+	v = reorder(bh, p, u);
+	update(bh, p, v);
 
         /*
          * We keep a hysteresis of one full row before we start to
@@ -443,9 +445,12 @@ check_invariant(const struct binheap *bh)
 }
 
 #ifdef PARANOIA
-#define paranoia_check_invariant(bh)	check_invariant(bh)
+#define paranoia_check(bh)	do { \
+	check_invariant(bh); \
+	check_indexes(bh); \
+} while (0)
 #else
-#define paranoia_check_invariant(bh)	((void)0)
+#define paranoia_check(bh)	((void)0)
 #endif
 
 static void
@@ -582,7 +587,7 @@ foo_insert(struct binheap *bh, unsigned n)
         struct foo *fp;
 	unsigned key;
 
-	paranoia_check_invariant(bh);
+	paranoia_check(bh);
         assert(n < N);
         AZ(ff[n]);
         ALLOC_OBJ(fp, FOO_MAGIC);
@@ -596,7 +601,7 @@ foo_insert(struct binheap *bh, unsigned n)
 	foo_check_existense(fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
-	paranoia_check_invariant(bh);
+	paranoia_check(bh);
 }
 
 static void
@@ -604,7 +609,7 @@ foo_delete(struct binheap *bh, struct foo *fp)
 {
 	unsigned key, n;
 
-	paranoia_check_invariant(bh);
+	paranoia_check(bh);
 	foo_check_existense(fp);
 	key = fp->key;
 	n = fp->n;
@@ -615,7 +620,7 @@ foo_delete(struct binheap *bh, struct foo *fp)
 	assert(fp->n == n);
         ff[fp->n] = NULL;
         FREE_OBJ(fp);
-	paranoia_check_invariant(bh);
+	paranoia_check(bh);
 }
 
 static void
@@ -623,6 +628,7 @@ foo_reorder(struct binheap *bh, struct foo *fp)
 {
         unsigned key, n;
 
+	paranoia_check(bh);
         foo_check_existense(fp);
         key = random() % R;
 	n = fp->n;
@@ -631,7 +637,7 @@ foo_reorder(struct binheap *bh, struct foo *fp)
 	foo_check_existense(fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
-	paranoia_check_invariant(bh);
+	paranoia_check(bh);
 }
 
 static void
@@ -717,6 +723,7 @@ main(int argc, char **argv)
 				foo_insert(bh, n);
 				++insert_count;
 			}
+			check_indexes(bh);
 		}
 		assert(delete_count >= insert_count);
 		check_invariant(bh);
