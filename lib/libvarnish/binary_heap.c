@@ -209,7 +209,6 @@ swap(struct binheap *bh, unsigned u, unsigned v)
         A(bh, u) = p2;
         A(bh, v) = p1;
         update(bh, p2, u);
-        update(bh, p1, v);
 }
 
 static unsigned
@@ -329,18 +328,18 @@ binheap_insert(struct binheap *bh, void *p)
 	assert(bh->next < UINT_MAX);
         u = bh->next++;
         A(bh, u) = p;
-        update(bh, p, u);
         v = trickleup(bh, u);
 	assert(v <= u);
 	assert(v >= ROOT_IDX(bh));
         AN(A(bh, u));
 	assert(A(bh, v) == p);
+	update(bh, p, v);
 }
 
 static void
 reorder(struct binheap *bh, void *p, unsigned u)
 {
-        unsigned v;
+        unsigned v, z;
 
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         assert(bh->next >= ROOT_IDX(bh));
@@ -352,11 +351,12 @@ reorder(struct binheap *bh, void *p, unsigned u)
         assert(v >= ROOT_IDX(bh));
         assert(v <= u);
         assert(A(bh, v) == p);
-
-        u = trickledown(bh, v);
+        z = trickledown(bh, v);
         AN(A(bh, v));
-        assert(u >= v);
-        assert(A(bh, u) == p);
+        assert(z >= v);
+        assert(A(bh, z) == p);
+	if (z != u)
+		update(bh, p, z);
 }
 
 void
@@ -400,7 +400,6 @@ binheap_delete(struct binheap *bh, unsigned idx)
 	AN(p);
         A(bh, u) = p;
         A(bh, bh->next) = NULL;
-        update(bh, p, u);
 	reorder(bh, p, u);
 
         /*
