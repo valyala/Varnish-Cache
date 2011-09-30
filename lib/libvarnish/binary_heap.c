@@ -523,7 +523,7 @@ struct foo {
 #endif
 #define R ((unsigned) RAND_MAX)	/* Random modulus */
 
-struct foo *ff[N];
+static struct foo *ff[N];
 
 static int
 foo_cmp(void *priv, void *a, void *b)
@@ -535,12 +535,19 @@ foo_cmp(void *priv, void *a, void *b)
 	return (fa->key < fb->key);
 }
 
+static unsigned update_calls_count, page_faults_count;
+
 static void
 foo_update(void *priv, void *a, unsigned u)
 {
+	struct binheap *bh;
 	struct foo *fp;
 
+	bh = *((struct binheap **) priv);
 	CAST_OBJ_NOTNULL(fp, a, FOO_MAGIC);
+	++update_calls_count;
+	if ((fp->idx >> bh->page_shift) != (u >> bh->page_shift))
+		++page_faults_count;
 	fp->idx = u;
 }
 
@@ -617,6 +624,14 @@ foo_reorder(struct binheap *bh, struct foo *fp)
 	paranoia_check_invariant(bh);
 }
 
+static void
+print_counters(void)
+{
+	fprintf(stderr, "%u update calls, %u page faults\n",
+		update_calls_count, page_faults_count);
+	update_calls_count = page_faults_count = 0;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -631,7 +646,7 @@ main(int argc, char **argv)
 		printf("Seed %u\n", u);
 		srandom(u);
 	}
-	bh = binheap_new(NULL, foo_cmp, foo_update);
+	bh = binheap_new(&bh, foo_cmp, foo_update);
 	AZ(binheap_root(bh));
 
 	/* test parent() and child() functions */
@@ -654,6 +669,7 @@ main(int argc, char **argv)
 		}
 		check_invariant(bh);
 		fprintf(stderr, "%u inserts OK\n", N);
+		print_counters();
 
 		/* For M cycles, pick the root, insert new */
 		for (u = 0; u < M; u++) {
@@ -668,6 +684,7 @@ main(int argc, char **argv)
 		}
 		check_invariant(bh);
 		fprintf(stderr, "%u replacements OK\n", M);
+		print_counters();
 
 		/* Randomly insert, delete and reorder */
 		delete_count = 0;
@@ -693,6 +710,7 @@ main(int argc, char **argv)
 		check_invariant(bh);
 		fprintf(stderr, "%u deletes, %u inserts, %u reorders OK\n",
 			delete_count, insert_count, reorder_count);
+		print_counters();
 
                 /* Then remove everything */
                 key = 0;
@@ -713,6 +731,7 @@ main(int argc, char **argv)
 		AZ(binheap_root(bh));
 		check_invariant(bh);
                 fprintf(stderr, "%u removes OK\n", u);
+		print_counters();
 	}
 	return (0);
 }
