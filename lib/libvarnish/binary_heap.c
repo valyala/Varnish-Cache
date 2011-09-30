@@ -645,7 +645,7 @@ print_counters(void)
 {
 	fprintf(stderr, "%u comparisons, %u update calls, %u page faults\n",
 		comparisons_count, update_calls_count, page_faults_count);
-	update_calls_count = page_faults_count = 0;
+	comparisons_count = update_calls_count = page_faults_count = 0;
 }
 
 int
