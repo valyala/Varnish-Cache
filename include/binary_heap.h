@@ -28,7 +28,6 @@
  *
  * Binary Heap API (see: http://en.wikipedia.org/wiki/Binary_heap)
  *
- * XXX: doesn't scale back the array of pointers when items are deleted.
  */
 
 /* Public Interface --------------------------------------------------*/
@@ -39,43 +38,56 @@ typedef int binheap_cmp_t(void *priv, void *a, void *b);
 	/*
 	 * Comparison function.
 	 * Should return true if item 'a' should be closer to the root
-	 * than item 'b'
+	 * than item 'b'.
 	 */
 
 typedef void binheap_update_t(void *priv, void *a, unsigned newidx);
 	/*
-	 * Update function (optional)
+	 * Update function.
 	 * When items move in the tree, this function gets called to
 	 * notify the item of its new index.
-	 * Only needed if deleting non-root items.
 	 */
 
 struct binheap *binheap_new(void *priv, binheap_cmp_t, binheap_update_t);
 	/*
-	 * Create Binary tree
+	 * Create Binary tree.
+	 * cmd and update functions are required, priv is optional.
 	 * 'priv' is passed to cmp and update functions.
 	 */
 
 void binheap_insert(struct binheap *, void *);
 	/*
-	 * Insert an item
+	 * Insert an item.
+	 * Item cannot be NULL.
 	 */
 
-void binheap_reorder(const struct binheap *, unsigned idx);
+void binheap_reorder(struct binheap *, unsigned idx);
 	/*
-	 * Move an order after changing its key value.
+	 * Restore binheap invariant after modifying key value for the item
+	 * with the given index.
 	 */
 
 void binheap_delete(struct binheap *, unsigned idx);
 	/*
-	 * Delete an item
-	 * The root item has 'idx' zero
+	 * Remove the item with the given index from binheap.
 	 */
 
 void *binheap_root(const struct binheap *);
 	/*
-	 * Return the root item
+	 * Return the root item.
+	 * If the binheap is empty, return NULL.
+	 */
+
+unsigned binheap_root_idx(const struct binheap *);
+	/*
+	 * Return the index of the root item even if the binheap is empty.
+	 * All index values passed to binheap functions must be greater
+	 * or equal to the root index value.
+	 * It is guaranteed that the root index is greater than BINHEAP_NOIDX.
 	 */
 
 #define BINHEAP_NOIDX	0
-#define BINHEAP_ROOT_IDX 1
+	/*
+	 * Update function pass this value as newidx if the given item has been
+	 * removed from binheap.
+	 */
