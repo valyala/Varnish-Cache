@@ -381,7 +381,7 @@ void
 binheap_delete(struct binheap *bh, unsigned idx)
 {
 	void *p;
-	unsigned u;
+	unsigned u, v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(bh->next > ROOT_IDX(bh));
