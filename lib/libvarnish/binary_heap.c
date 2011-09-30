@@ -583,7 +583,7 @@ main(int argc, char **argv)
 		v = child(bh, u);
 		assert(v == (n & (0u - 2)));
 	}
-	fprintf(stderr, "%u parent-child index tests OK", M);
+	fprintf(stderr, "%u parent-child index tests OK\n", M);
 
 	root_idx = IDX_INT2EXT(bh, ROOT_IDX(bh));
         assert(root_idx != BINHEAP_NOIDX);
