@@ -227,21 +227,20 @@ static unsigned
 trickleup(struct binheap *bh, void *p1, unsigned u)
 {
 	void *p2;
-        unsigned v, root_idx;
+        unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         assert(bh->page_shift > 0);
         assert(bh->page_shift <= ROW_SHIFT);
-	root_idx = ROOT_IDX(bh);
-	assert(u >= root_idx);
+	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
         AN(p1);
 	assert(A(bh, u) == p1);
 
-        while (u != root_idx) {
+        while (u != ROOT_IDX(bh)) {
                 v = parent(bh->page_shift, u);
                 assert(v < u);
-		assert(v >= root_idx);
+		assert(v >= ROOT_IDX(bh));
 		p2 = A(bh, v);
                 AN(p2);
                 if (bh->cmp(bh->priv, p2, p1))
