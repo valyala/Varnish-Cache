@@ -597,7 +597,9 @@ foo_update(void *priv, void *a, unsigned u)
 		assert(*p2 == fp);
 		page_mask = ~((1u << bh->page_shift) * sizeof(void *) - 1);
 		if ((((uintptr_t) p1) & page_mask) !=
-			(((uintptr_t) p2) & page_mask))
+			(((uintptr_t) p2) & page_mask) &&
+			(p2 - bh->original_rows[0] < 0 ||
+				p2 - bh->original_rows[0] >= 2 * (~page_mask + 1)))
 			++page_faults_count;
 	}
 	fp->idx = u;
