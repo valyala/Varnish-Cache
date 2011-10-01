@@ -212,17 +212,17 @@ swap(struct binheap *bh, unsigned u, unsigned v)
 }
 
 static unsigned
-trickleup(struct binheap *bh, unsigned u)
+trickleup(struct binheap *bh, void *p1, unsigned u)
 {
-	void *p1, *p2;
+	void *p2;
         unsigned v, root_idx, page_shift;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	root_idx = ROOT_IDX(bh);
 	assert(u >= root_idx);
         assert(u < bh->next);
-        p1 = A(bh, u);
         AN(p1);
+	assert(A(bh, u) == p1);
 
 	page_shift = bh->page_shift;
 	assert(page_shift > 0);
@@ -244,16 +244,16 @@ trickleup(struct binheap *bh, unsigned u)
 }
 
 static unsigned
-trickledown(struct binheap *bh, unsigned u)
+trickledown(struct binheap *bh, void *p1, unsigned u)
 {
-	void *p1, *p2, *p3;
+	void *p2, *p3;
 	unsigned v, page_shift;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
-	p1 = A(bh, u);
 	AN(p1);
+	assert(A(bh, u) == p1);
 
 	page_shift = bh->page_shift;
 	assert(page_shift > 0);
@@ -330,7 +330,7 @@ binheap_insert(struct binheap *bh, void *p)
 	assert(bh->next < UINT_MAX);
         u = bh->next++;
         A(bh, u) = p;
-        v = trickleup(bh, u);
+        v = trickleup(bh, p, u);
 	assert(v <= u);
 	assert(v >= ROOT_IDX(bh));
         AN(A(bh, u));
@@ -348,12 +348,12 @@ reorder(struct binheap *bh, void *p, unsigned u)
         assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
         AN(p);
-        v = trickleup(bh, u);
+        v = trickleup(bh, p, u);
         AN(A(bh, u));
         assert(v >= ROOT_IDX(bh));
         assert(v <= u);
         assert(A(bh, v) == p);
-        u = trickledown(bh, v);
+        u = trickledown(bh, p, v);
         AN(A(bh, v));
         assert(u >= v);
         assert(A(bh, u) == p);
