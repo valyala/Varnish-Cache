@@ -192,20 +192,18 @@ cmp(const struct binheap *bh, void *p1, void *p2)
 }
 
 static void
-swap(struct binheap *bh, unsigned u, unsigned v)
+swap(struct binheap *bh, void *p1, void *p2, unsigned u, unsigned v)
 {
-        void *p1, *p2;
-
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(u >= ROOT_IDX(bh));
 	assert(v >= ROOT_IDX(bh));
 	assert(u != v);
         assert(u < bh->next);
-	p1 = A(bh, u);
         AN(p1);
+	assert(A(bh, u) == p1);
         assert(v < bh->next);
-	p2 = A(bh, v);
         AN(p2);
+	assert(A(bh, v) == p2);
         A(bh, u) = p2;
         A(bh, v) = p1;
         update(bh, p2, u);
@@ -235,7 +233,7 @@ trickleup(struct binheap *bh, void *p1, unsigned u)
                 AN(p2);
                 if (cmp(bh, p2, p1))
                         break;	/* parent is smaller than the child */
-                swap(bh, u, v);
+                swap(bh, p1, p2, u, v);
 		assert(A(bh, v) == p1);
 		assert(A(bh, u) == p2);
                 u = v;
@@ -279,7 +277,7 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
                 assert(v < bh->next);
                 if (cmp(bh, p1, p2))
                         break;	/* parent is smaller than children */
-                swap(bh, u, v);
+                swap(bh, p1, p2, u, v);
 		assert(A(bh, v) == p1);
 		assert(A(bh, u) == p2);
                 u = v;
