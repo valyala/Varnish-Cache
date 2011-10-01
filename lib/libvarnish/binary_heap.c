@@ -67,6 +67,11 @@
 /*lint -emacro(835, A) 0 left of & */
 #define A(bh, n)		ROW(bh->rows, n)[(n) & (ROW_WIDTH - 1)]
 
+#define R_IDX(page_shift)       ((1u << (page_shift)) - 1)
+#define ROOT_IDX(bh)            R_IDX((bh)->page_shift)
+#define IDX_EXT2INT(bh, idx)    ((idx) + ROOT_IDX(bh) - 1)
+#define IDX_INT2EXT(bh, u)      ((u) - ROOT_IDX(bh) + 1)
+
 struct binheap {
         unsigned                magic;
 #define BINHEAP_MAGIC           0x8bd801f0u     /* from /dev/random */
@@ -81,11 +86,6 @@ struct binheap {
         unsigned                length;
         unsigned                page_shift;
 };
-
-#define R_IDX(page_shift)	((1u << (page_shift)) - 1)
-#define ROOT_IDX(bh)		R_IDX((bh)->page_shift)
-#define IDX_EXT2INT(bh, idx)	((idx) + ROOT_IDX(bh) - 1)
-#define IDX_INT2EXT(bh, u)	((u) - ROOT_IDX(bh) + 1)
 
 static  unsigned
 parent(unsigned page_shift, unsigned u)
