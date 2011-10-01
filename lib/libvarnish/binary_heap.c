@@ -215,7 +215,7 @@ static unsigned
 trickleup(struct binheap *bh, unsigned u)
 {
 	void *p1, *p2;
-        unsigned v, root_idx;
+        unsigned v, root_idx, page_shift;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	root_idx = ROOT_IDX(bh);
@@ -224,8 +224,11 @@ trickleup(struct binheap *bh, unsigned u)
         p1 = A(bh, u);
         AN(p1);
 
+	page_shift = bh->page_shift;
+	assert(page_shift > 0);
+	assert(page_shift <= ROW_SHIFT);
         while (u != root_idx) {
-                v = parent(bh->page_shift, u);
+                v = parent(page_shift, u);
                 assert(v < u);
 		assert(v >= root_idx);
 		p2 = A(bh, v);
@@ -244,7 +247,7 @@ static unsigned
 trickledown(struct binheap *bh, unsigned u)
 {
 	void *p1, *p2, *p3;
-	unsigned v;
+	unsigned v, page_shift;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(u >= ROOT_IDX(bh));
@@ -252,8 +255,11 @@ trickledown(struct binheap *bh, unsigned u)
 	p1 = A(bh, u);
 	AN(p1);
 
+	page_shift = bh->page_shift;
+	assert(page_shift > 0);
+	assert(page_shift <= ROW_SHIFT);
         while (1) {
-                v = child(bh->page_shift, u);
+                v = child(page_shift, u);
 		assert(v > ROOT_IDX(bh));
                 assert(v >= u);
 		if (v == u)
@@ -426,12 +432,13 @@ binheap_root(const struct binheap *bh)
 static void
 check_invariant(const struct binheap *bh)
 {
-        unsigned u, v, root_idx;
+        unsigned u, v, root_idx, page_shift;
         void *p1, *p2;
 
         root_idx = ROOT_IDX(bh);
+	page_shift = bh->page_shift;
         for (u = root_idx + 1; u < bh->next; u++) {
-                v = parent(bh->page_shift, u);
+                v = parent(page_shift, u);
                 assert(v < u);
                 assert(v >= root_idx);
                 p1 = A(bh, u);
