@@ -133,7 +133,8 @@ child(unsigned page_shift, unsigned u)
 }
 
 static void *
-calloc_page_aligned(size_t item_size, size_t items_count, size_t items_per_page, void **original_p)
+calloc_page_aligned(size_t item_size, size_t items_count, size_t items_per_page,
+	void **original_p)
 {
         void *p;
         uintptr_t u, v, page_size;
@@ -156,17 +157,37 @@ calloc_page_aligned(size_t item_size, size_t items_count, size_t items_per_page,
         return (void *) v;
 }
 
+static void
+alloc_row(void ***rows, void ***original_rows, unsigned items_per_page,
+	unsigned u)
+{
+        void *p;
+
+        AN(rows);
+        AN(original_rows);
+        AZ(rows[u]);
+        AZ(original_rows[u]);
+	p = NULL;
+        rows[u] = calloc_page_aligned(sizeof(**rows), ROW_WIDTH, items_per_page,
+		&p);
+        XXXAN(p);
+        AN(rows[u]);
+        /* row should start at page boundary */
+        AZ(((uintptr_t) rows[u]) & (items_per_page * sizeof(**rows) - 1));
+	original_rows[u] = p;
+}
+
 struct binheap *
 binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 {
-	void **row, **original_row, ***rows, ***original_rows, *p;
+	void ***rows, ***original_rows;
         struct binheap *bh;
-        unsigned page_size, page_shift, root_idx;
+        unsigned page_size, page_shift;
 
         AN(cmp_f);
         AN(update_f);
-        page_size = ((unsigned) getpagesize()) / sizeof(*row);
-	xxxassert(page_size * sizeof(*row) == getpagesize());
+        page_size = ((unsigned) getpagesize()) / sizeof(**rows);
+	xxxassert(page_size * sizeof(**rows) == getpagesize());
         page_shift = 0u - 1;
         while (page_size) {
                 page_size >>= 1;
@@ -177,40 +198,29 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
         xxxassert(page_size <= ROW_WIDTH);
 	XXXAZ(ROW_WIDTH % page_size);
 
-	/* allocate the first row and embed binheap structure into it */
-	p = NULL;
-	row = calloc_page_aligned(sizeof(*row), ROW_WIDTH, page_size, &p);
-	XXXAN(row);
-	AN(p);
-	original_row = p;
-	/* row should start at page boundary */
-	AZ(((uintptr_t) row) & (page_size * sizeof(*row) - 1));
-	AZ(row[0]);
-        rows = calloc(sizeof(*bh->rows), 1);
+        rows = calloc(sizeof(*rows), 1);
         XXXAN(rows);
         AZ(rows[0]);
-	rows[0] = row;
-
-	original_rows = calloc(sizeof(*bh->original_rows), 1);
+	original_rows = calloc(sizeof(*original_rows), 1);
 	XXXAN(original_rows);
 	AZ(original_rows[0]);
-	original_rows[0] = original_row;
 
-	root_idx = R_IDX(page_shift);
-        bh = (struct binheap *) row;
+        /* allocate the first row and embed binheap structure into it */
+	alloc_row(rows, original_rows, page_size, 0);
+        bh = (struct binheap *) rows[0];
 	bh->magic = BINHEAP_MAGIC;
 	bh->priv = priv;
         bh->cmp = cmp_f;
         bh->update = update_f;
 	bh->original_rows = original_rows;
         bh->rows = rows;
-	bh->rootp = row + root_idx;
-        bh->next = root_idx;
+	bh->rootp = rows[0] + R_IDX(page_shift);
+        bh->next = R_IDX(page_shift);
         bh->rows_count = 1;
 	bh->length = ROW_WIDTH;
 	bh->page_shift = page_shift;
 	/* make sure the row with embedded binheap has free space for root pointer */
-        xxxassert(sizeof(*bh) <= sizeof(*row) * root_idx);
+        xxxassert(sizeof(*bh) <= sizeof(**rows) * R_IDX(page_shift));
 	assert(bh->rootp == &A(bh, R_IDX(page_shift)));
         return (bh);
 }
@@ -299,8 +309,7 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
 static void
 addrow(struct binheap *bh)
 {
-        unsigned rows_count, page_size;
-        void *p, **row, **original_row;
+        unsigned rows_count;
 
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         AN(bh->rows);
@@ -321,19 +330,8 @@ addrow(struct binheap *bh)
 			++bh->rows_count;
 		}
         }
-        AZ(ROW(bh->rows, bh->length));
-	AZ(ROW(bh->original_rows, bh->length));
-	page_size = (1u << bh->page_shift);
-	p = NULL;
-        row = calloc_page_aligned(sizeof(*row), ROW_WIDTH, page_size, &p);
-        XXXAN(row);
-	AN(p);
-	original_row = p;
-        /* row should start at page boundary */
-        AZ(((uintptr_t) row) & (page_size * sizeof(*row) - 1));
-	AZ(row[0]);
-        ROW(bh->rows, bh->length) = row;
-	ROW(bh->original_rows, bh->length) = original_row;
+	alloc_row(bh->rows, bh->original_rows, (1u << bh->page_shift),
+		bh->length >> ROW_SHIFT);
 	/* prevent from silent heap overflow */
 	xxxassert(bh->length <= UINT_MAX - ROW_WIDTH);
         bh->length += ROW_WIDTH;
