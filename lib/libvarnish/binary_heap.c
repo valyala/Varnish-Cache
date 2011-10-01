@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <stdint.h>
 
 #include "binary_heap.h"
 #include "libvarnish.h"
@@ -64,6 +65,7 @@
 /*lint -emacro(835, ROW) 0 left of >> */
 /*lint -emacro(778, ROW) const >> evaluates to zero */
 #define ROW(b, n)		((b)->rows[(n) >> ROW_SHIFT])
+#define ORIGINAL_ROW(b, n)	((b)->original_rows[(n) >> ROW_SHIFT])
 
 /*lint -emacro(835, A) 0 left of & */
 #define A(b, n)			ROW(b, n)[(n) & (ROW_WIDTH - 1)]
@@ -74,6 +76,7 @@ struct binheap {
         void                    *priv;
         binheap_cmp_t           *cmp;
         binheap_update_t        *update;
+	void			***original_rows;
         void                    ***rows;
 	void			**rootp;	/* fast access to root */
         unsigned                next;
@@ -130,32 +133,69 @@ child(unsigned page_shift, unsigned u)
 	return page_size * v;
 }
 
+static void *
+calloc_page_aligned(size_t item_size, size_t items_count, size_t items_per_page, void **original_p)
+{
+        void *p;
+        uintptr_t u, v, page_size;
+
+        AN(original_p);
+        assert(item_size > 0);
+        assert(items_count > 0);
+        assert(items_per_page > 0);
+        assert(items_per_page < UINTPTR_MAX / items_per_page);
+        page_size = item_size * items_per_page;
+        AZ(page_size & (page_size - 1));
+        p = calloc(item_size, items_count + items_per_page - 1);
+        XXXAN(p);
+        *original_p = p;
+        u = (uintptr_t) p;
+        v = u & (~(page_size - 1));
+        if (v < u)
+                v += page_size;
+	AZ(v & (page_size - 1));
+        return (void *) v;
+}
+
 struct binheap *
 binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 {
-	void **row, ***rows;
+	void **row, **original_row, ***rows, ***original_rows, *p;
         struct binheap *bh;
         unsigned page_size, page_shift, root_idx;
 
         AN(cmp_f);
         AN(update_f);
         page_size = ((unsigned) getpagesize()) / sizeof(*row);
+	xxxassert(page_size * sizeof(*row) == getpagesize());
         page_shift = 0u - 1;
         while (page_size) {
                 page_size >>= 1;
                 ++page_shift;
         }
-        XXXAN(page_shift);
-        xxxassert((1u << page_shift) <= (sizeof(*row) * ROW_WIDTH));
+        xxxassert(page_shift > 0);
+	page_size = 1u << page_shift;
+        xxxassert(page_size <= ROW_WIDTH);
+	XXXAZ(ROW_WIDTH % page_size);
 
 	/* allocate the first row and embed binheap structure into it */
-	row = calloc(sizeof(*row), ROW_WIDTH);
+	p = NULL;
+	row = calloc_page_aligned(sizeof(*row), ROW_WIDTH, page_size, &p);
 	XXXAN(row);
+	AN(p);
+	original_row = p;
+	/* row should start at page boundary */
+	AZ(((uintptr_t) row) & (page_size * sizeof(*row) - 1));
 	AZ(row[0]);
         rows = calloc(sizeof(*bh->rows), 1);
         XXXAN(rows);
         AZ(rows[0]);
 	rows[0] = row;
+
+	original_rows = calloc(sizeof(*bh->original_rows), 1);
+	XXXAN(original_rows);
+	AZ(original_rows[0]);
+	original_rows[0] = original_row;
 
 	root_idx = R_IDX(page_shift);
         bh = (struct binheap *) row;
@@ -163,6 +203,7 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 	bh->priv = priv;
         bh->cmp = cmp_f;
         bh->update = update_f;
+	bh->original_rows = original_rows;
         bh->rows = rows;
 	bh->rootp = row + root_idx;
         bh->next = root_idx;
@@ -288,8 +329,8 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
 static void
 addrow(struct binheap *bh)
 {
-        unsigned rows_count;
-        void **row;
+        unsigned rows_count, page_size;
+        void *p, **row, **original_row;
 
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         AN(bh->rows);
@@ -299,15 +340,30 @@ addrow(struct binheap *bh)
                 rows_count = bh->rows_count * 2;
                 bh->rows = realloc(bh->rows, sizeof(*bh->rows) * rows_count);
                 XXXAN(bh->rows);
+		bh->original_rows = realloc(bh->original_rows,
+			sizeof(*bh->original_rows) * rows_count);
+		XXXAN(bh->original_rows);
 
                 /* NULL out new pointers */
-                while (bh->rows_count < rows_count)
-                        bh->rows[bh->rows_count++] = NULL;
+                while (bh->rows_count < rows_count) {
+                        bh->rows[bh->rows_count] = NULL;
+			bh->original_rows[bh->rows_count] = NULL;
+			++bh->rows_count;
+		}
         }
         AZ(ROW(bh, bh->length));
-        row = calloc(sizeof(*row), ROW_WIDTH);
+	AZ(ORIGINAL_ROW(bh, bh->length));
+	page_size = (1u << bh->page_shift);
+	p = NULL;
+        row = calloc_page_aligned(sizeof(*row), ROW_WIDTH, page_size, &p);
         XXXAN(row);
+	AN(p);
+	original_row = p;
+        /* row should start at page boundary */
+        AZ(((uintptr_t) row) & (page_size * sizeof(*row) - 1));
+	AZ(row[0]);
         ROW(bh, bh->length) = row;
+	ORIGINAL_ROW(bh, bh->length) = original_row;
 	/* prevent from silent heap overflow */
 	xxxassert(bh->length <= UINT_MAX - ROW_WIDTH);
         bh->length += ROW_WIDTH;
@@ -412,8 +468,9 @@ binheap_delete(struct binheap *bh, unsigned idx)
          * row boundaries.
          */
         if (bh->next + 2 * ROW_WIDTH <= bh->length) {
-                free(ROW(bh, bh->length - 1));
+                free(ORIGINAL_ROW(bh, bh->length - 1));
                 ROW(bh, bh->length - 1) = NULL;
+		ORIGINAL_ROW(bh, bh->length - 1) = NULL;
                 bh->length -= ROW_WIDTH;
         }
 }
