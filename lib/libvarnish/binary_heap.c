@@ -92,8 +92,8 @@ parent(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_children;
 
-	assert(page_shift <= ROW_SHIFT);
 	assert(page_shift > 0);
+	assert(page_shift <= ROW_SHIFT);
 	page_mask = (1u << page_shift) - 1;
 	assert(u >= page_mask);
 	if (u == page_mask)
@@ -115,8 +115,8 @@ child(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_children;
 
-	assert(page_shift <= ROW_SHIFT);
 	assert(page_shift > 0);
+	assert(page_shift <= ROW_SHIFT);
 	page_mask = (1u << page_shift) - 1;
 	assert(u >= page_mask);
 	v = u & page_mask;
@@ -492,8 +492,11 @@ check_invariant(const struct binheap *bh)
         unsigned u, v, root_idx, page_shift;
         void *p1, *p2;
 
+	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         root_idx = ROOT_IDX(bh);
 	page_shift = bh->page_shift;
+	assert(page_shift > 0);
+	assert(page_shift < ROW_SHIFT);
         for (u = root_idx + 1; u < bh->next; u++) {
                 v = parent(page_shift, u);
                 assert(v < u);
@@ -623,10 +626,14 @@ foo_update(void *priv, void *a, unsigned u)
 static void
 check_indexes(const struct binheap *bh)
 {
-	unsigned n;
+	struct foo *fp;
+	unsigned n, idx;
 
+	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	for (n = ROOT_IDX(bh); n < bh->next; n++) {
-		assert(((struct foo *)(A(bh, n)))->idx == IDX_INT2EXT(bh, n));
+		fp = A(bh, n);
+		idx = IDX_INT2EXT(bh, n);
+		assert(fp->idx == idx);
 	}
 }
 
