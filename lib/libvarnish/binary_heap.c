@@ -175,6 +175,7 @@ alloc_row(void ***rows, void ***original_rows, unsigned items_per_page,
         /* row should start at page boundary */
         AZ(((uintptr_t) rows[u]) & (items_per_page * sizeof(**rows) - 1));
 	original_rows[u] = p;
+	assert(original_rows[u] <= rows[u]);
 }
 
 struct binheap *
