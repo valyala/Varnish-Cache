@@ -235,20 +235,19 @@ static unsigned
 trickleup(struct binheap *bh, void *p1, unsigned u)
 {
 	void *p2;
-        unsigned v, root_idx, page_shift;
+        unsigned v, root_idx;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-        page_shift = bh->page_shift;
-        assert(page_shift > 0);
-        assert(page_shift <= ROW_SHIFT);
-	root_idx = R_IDX(page_shift);
+        assert(bh->page_shift > 0);
+        assert(bh->page_shift <= ROW_SHIFT);
+	root_idx = ROOT_IDX(bh);
 	assert(u >= root_idx);
         assert(u < bh->next);
         AN(p1);
 	assert(A(bh, u) == p1);
 
         while (u != root_idx) {
-                v = parent(page_shift, u);
+                v = parent(bh->page_shift, u);
                 assert(v < u);
 		assert(v >= root_idx);
 		p2 = A(bh, v);
@@ -267,20 +266,19 @@ static unsigned
 trickledown(struct binheap *bh, void *p1, unsigned u)
 {
 	void *p2, *p3;
-	unsigned v, page_shift;
+	unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-        page_shift = bh->page_shift;
-        assert(page_shift > 0);
-        assert(page_shift <= ROW_SHIFT);
-	assert(u >= R_IDX(page_shift));
+        assert(bh->page_shift > 0);
+        assert(bh->page_shift <= ROW_SHIFT);
+	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
 	AN(p1);
 	assert(A(bh, u) == p1);
 
         while (1) {
-                v = child(page_shift, u);
-		assert(v > R_IDX(page_shift));
+                v = child(bh->page_shift, u);
+		assert(v > ROOT_IDX(bh));
                 assert(v >= u);
 		if (v == u)
 			break;		/* index overflow */
