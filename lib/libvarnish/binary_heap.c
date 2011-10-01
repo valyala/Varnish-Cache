@@ -211,7 +211,7 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 	bh->page_shift = page_shift;
 	/* make sure the row with embedded binheap has free space for root pointer */
         xxxassert(sizeof(*bh) <= sizeof(*row) * root_idx);
-	assert(bh->rootp == &A(bh, ROOT_IDX(bh)));
+	assert(bh->rootp == &A(bh, R_IDX(page_shift)));
         return (bh);
 }
 
@@ -256,15 +256,15 @@ trickleup(struct binheap *bh, void *p1, unsigned u)
         unsigned v, root_idx, page_shift;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	root_idx = ROOT_IDX(bh);
+        page_shift = bh->page_shift;
+        assert(page_shift > 0);
+        assert(page_shift <= ROW_SHIFT);
+	root_idx = R_IDX(page_shift);
 	assert(u >= root_idx);
         assert(u < bh->next);
         AN(p1);
 	assert(A(bh, u) == p1);
 
-	page_shift = bh->page_shift;
-	assert(page_shift > 0);
-	assert(page_shift <= ROW_SHIFT);
         while (u != root_idx) {
                 v = parent(page_shift, u);
                 assert(v < u);
@@ -288,17 +288,17 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
 	unsigned v, page_shift;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	assert(u >= ROOT_IDX(bh));
+        page_shift = bh->page_shift;
+        assert(page_shift > 0);
+        assert(page_shift <= ROW_SHIFT);
+	assert(u >= R_IDX(page_shift));
         assert(u < bh->next);
 	AN(p1);
 	assert(A(bh, u) == p1);
 
-	page_shift = bh->page_shift;
-	assert(page_shift > 0);
-	assert(page_shift <= ROW_SHIFT);
         while (1) {
                 v = child(page_shift, u);
-		assert(v > ROOT_IDX(bh));
+		assert(v > R_IDX(page_shift));
                 assert(v >= u);
 		if (v == u)
 			break;		/* index overflow */
@@ -495,8 +495,8 @@ check_invariant(const struct binheap *bh)
         void *p1, *p2;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-        root_idx = ROOT_IDX(bh);
-	page_shift = bh->page_shift;
+        page_shift = bh->page_shift;
+        root_idx = R_IDX(page_shift);
 	assert(page_shift > 0);
 	assert(page_shift < ROW_SHIFT);
         for (u = root_idx + 1; u < bh->next; u++) {
