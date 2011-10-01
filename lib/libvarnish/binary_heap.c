@@ -585,13 +585,19 @@ foo_update(void *priv, void *a, unsigned u)
 {
 	struct binheap *bh;
 	struct foo *fp;
+	void **p1, **p2;
 
 	bh = *((struct binheap **) priv);
 	CAST_OBJ_NOTNULL(fp, a, FOO_MAGIC);
 	++update_calls_count;
-	if (fp->idx != BINHEAP_NOIDX && u != BINHEAP_NOIDX &&
-		(fp->idx >> bh->page_shift) != (u >> bh->page_shift))
-		++page_faults_count;
+	if (fp->idx != BINHEAP_NOIDX && u != BINHEAP_NOIDX) {
+		p1 = &A(bh, IDX_EXT2INT(bh, fp->idx));
+		p2 = &A(bh, IDX_EXT2INT(bh, u));
+		assert(*p2 == fp);
+		if ((((uintptr_t) p1) >> bh->page_shift) !=
+			(((uintptr_t) p2) >> bh->page_shift))
+			++page_faults_count;
+	}
 	fp->idx = u;
 }
 
