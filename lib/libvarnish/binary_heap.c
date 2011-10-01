@@ -57,18 +57,15 @@
  * easier for the compiler to optimize.
  */
 #define ROW_SHIFT		16u
-
-
 #define ROW_WIDTH		(1u << ROW_SHIFT)
 
 /*lint -emacro(572, ROW) shift 0 >> by 16 */
 /*lint -emacro(835, ROW) 0 left of >> */
 /*lint -emacro(778, ROW) const >> evaluates to zero */
-#define ROW(b, n)		((b)->rows[(n) >> ROW_SHIFT])
-#define ORIGINAL_ROW(b, n)	((b)->original_rows[(n) >> ROW_SHIFT])
+#define ROW(rows, n)		((rows)[(n) >> ROW_SHIFT])
 
 /*lint -emacro(835, A) 0 left of & */
-#define A(b, n)			ROW(b, n)[(n) & (ROW_WIDTH - 1)]
+#define A(bh, n)		ROW(bh->rows, n)[(n) & (ROW_WIDTH - 1)]
 
 struct binheap {
         unsigned                magic;
@@ -336,7 +333,7 @@ addrow(struct binheap *bh)
         AN(bh->rows);
         assert(bh->rows_count > 0);
         /* First make sure we have space for another row */
-        if (&ROW(bh, bh->length) >= bh->rows + bh->rows_count) {
+        if (&ROW(bh->rows, bh->length) >= bh->rows + bh->rows_count) {
                 rows_count = bh->rows_count * 2;
                 bh->rows = realloc(bh->rows, sizeof(*bh->rows) * rows_count);
                 XXXAN(bh->rows);
@@ -351,8 +348,8 @@ addrow(struct binheap *bh)
 			++bh->rows_count;
 		}
         }
-        AZ(ROW(bh, bh->length));
-	AZ(ORIGINAL_ROW(bh, bh->length));
+        AZ(ROW(bh->rows, bh->length));
+	AZ(ROW(bh->original_rows, bh->length));
 	page_size = (1u << bh->page_shift);
 	p = NULL;
         row = calloc_page_aligned(sizeof(*row), ROW_WIDTH, page_size, &p);
@@ -362,8 +359,8 @@ addrow(struct binheap *bh)
         /* row should start at page boundary */
         AZ(((uintptr_t) row) & (page_size * sizeof(*row) - 1));
 	AZ(row[0]);
-        ROW(bh, bh->length) = row;
-	ORIGINAL_ROW(bh, bh->length) = original_row;
+        ROW(bh->rows, bh->length) = row;
+	ROW(bh->original_rows, bh->length) = original_row;
 	/* prevent from silent heap overflow */
 	xxxassert(bh->length <= UINT_MAX - ROW_WIDTH);
         bh->length += ROW_WIDTH;
@@ -468,9 +465,12 @@ binheap_delete(struct binheap *bh, unsigned idx)
          * row boundaries.
          */
         if (bh->next + 2 * ROW_WIDTH <= bh->length) {
-                free(ORIGINAL_ROW(bh, bh->length - 1));
-                ROW(bh, bh->length - 1) = NULL;
-		ORIGINAL_ROW(bh, bh->length - 1) = NULL;
+		u = bh->length - 1;
+		AN(ROW(bh->rows, u));
+		AN(ROW(bh->original_rows, u));
+                free(ROW(bh->original_rows, u));
+                ROW(bh->rows, u) = NULL;
+		ROW(bh->original_rows, u) = NULL;
                 bh->length -= ROW_WIDTH;
         }
 }
