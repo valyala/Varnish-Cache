@@ -353,11 +353,13 @@ reorder(struct binheap *bh, void *p, unsigned u)
         assert(v >= ROOT_IDX(bh));
         assert(v <= u);
         assert(A(bh, v) == p);
-        u = trickledown(bh, p, v);
-        AN(A(bh, v));
-        assert(u >= v);
-        assert(A(bh, u) == p);
-	return u;
+	if (v == u) {
+	        v = trickledown(bh, p, u);
+	        AN(A(bh, u));
+	        assert(v >= u);
+	        assert(A(bh, v) == p);
+	}
+	return v;
 }
 
 void
