@@ -223,14 +223,6 @@ update(const struct binheap *bh, void *p, unsigned u)
         bh->update(bh->priv, p, IDX_INT2EXT(bh, u));
 }
 
-static int
-cmp(const struct binheap *bh, void *p1, void *p2)
-{
-	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	AN(bh->cmp);
-	return bh->cmp(bh->priv, p1, p2);
-}
-
 static unsigned
 trickleup(struct binheap *bh, void *p1, unsigned u)
 {
@@ -252,7 +244,7 @@ trickleup(struct binheap *bh, void *p1, unsigned u)
 		assert(v >= root_idx);
 		p2 = A(bh, v);
                 AN(p2);
-                if (cmp(bh, p2, p1))
+                if (bh->cmp(bh->priv, p2, p1))
                         break;	/* parent is smaller than the child */
 		A(bh, v) = p1;
 		A(bh, u) = p2;
@@ -289,13 +281,13 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
                 if (v + 1 < bh->next) {
 			p3 = A(bh, v + 1);
 			AN(p3);
-                        if (cmp(bh, p3, p2)) {
+                        if (bh->cmp(bh->priv, p3, p2)) {
                                 ++v;
 				p2 = p3;
 			}
                 }
                 assert(v < bh->next);
-                if (cmp(bh, p1, p2))
+                if (bh->cmp(bh->priv, p1, p2))
                         break;	/* parent is smaller than children */
 		A(bh, v) = p1;
 		A(bh, u) = p2;
@@ -485,7 +477,7 @@ check_invariant(const struct binheap *bh)
                 assert(v >= root_idx);
                 p1 = A(bh, u);
                 p2 = A(bh, v);
-		assert(cmp(bh, p2, p1) || !cmp(bh, p1, p2));
+		assert(bh->cmp(bh->priv, p2, p1) || !bh->cmp(bh->priv, p1, p2));
         }
 }
 
