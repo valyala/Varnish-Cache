@@ -94,7 +94,8 @@ parent(unsigned page_shift, unsigned u)
 
 	assert(page_shift > 0);
 	assert(page_shift <= ROW_SHIFT);
-	page_mask = (1u << page_shift) - 1;
+	page_mask = R_IDX(page_shift);
+	AZ(page_mask & (page_mask + 1));
 	assert(u >= page_mask);
 	if (u == page_mask)
 		return u;	/* there is no parent for root */
@@ -117,7 +118,8 @@ child(unsigned page_shift, unsigned u)
 
 	assert(page_shift > 0);
 	assert(page_shift <= ROW_SHIFT);
-	page_mask = (1u << page_shift) - 1;
+	page_mask = R_IDX(page_shift);
+	AZ(page_mask & (page_mask + 1));
 	assert(u >= page_mask);
 	v = u & page_mask;
         page_size = page_mask + 1;
