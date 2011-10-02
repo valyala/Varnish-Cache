@@ -87,7 +87,7 @@ struct binheap {
         unsigned                page_shift;
 };
 
-static  unsigned
+static unsigned
 parent(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_children;
