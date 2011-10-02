@@ -411,8 +411,7 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 		free(e);
 	} else {
 		e->__when = t + e->timeout;
-		binheap_delete(evb->binheap, e->__binheap_idx);
-		binheap_insert(evb->binheap, e);
+		binheap_reorder(evb->binheap, e->__binheap_idx);
 	}
 	return (1);
 }
