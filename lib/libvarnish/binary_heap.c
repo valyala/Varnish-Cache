@@ -246,7 +246,6 @@ trickleup(struct binheap *bh, void *p1, unsigned u)
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
         AN(p1);
-	assert(A(bh, u) == p1);
 
         while (u != ROOT_IDX(bh)) {
                 v = parent(bh->page_shift, u);
@@ -256,7 +255,6 @@ trickleup(struct binheap *bh, void *p1, unsigned u)
                 AN(p2);
                 if (bh->cmp(bh->priv, p2, p1))
                         break;	/* parent is smaller than the child */
-		A(bh, v) = p1;
 		A(bh, u) = p2;
 		update(bh, p2, u);
                 u = v;
@@ -276,7 +274,6 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
 	AN(p1);
-	assert(A(bh, u) == p1);
 
         while (1) {
                 v = child(bh->page_shift, u);
@@ -299,7 +296,6 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
                 assert(v < bh->next);
                 if (bh->cmp(bh->priv, p1, p2))
                         break;	/* parent is smaller than children */
-		A(bh, v) = p1;
 		A(bh, u) = p2;
 		update(bh, p2, u);
                 u = v;
@@ -352,12 +348,10 @@ binheap_insert(struct binheap *bh, void *p)
         assert(bh->length > bh->next);
 	assert(bh->next < UINT_MAX);
         u = bh->next++;
-        A(bh, u) = p;
         v = trickleup(bh, p, u);
 	assert(v <= u);
 	assert(v >= ROOT_IDX(bh));
-        AN(A(bh, u));
-	assert(A(bh, v) == p);
+	A(bh, v) = p;
 	update(bh, p, v);
 }
 
@@ -372,15 +366,11 @@ reorder(struct binheap *bh, void *p, unsigned u)
         assert(u < bh->next);
         AN(p);
         v = trickleup(bh, p, u);
-        AN(A(bh, u));
         assert(v >= ROOT_IDX(bh));
         assert(v <= u);
-        assert(A(bh, v) == p);
-	if (v == u) {
+	if (u == v) {
 	        v = trickledown(bh, p, u);
-	        AN(A(bh, u));
 	        assert(v >= u);
-	        assert(A(bh, v) == p);
 	}
 	return v;
 }
@@ -400,8 +390,10 @@ binheap_reorder(struct binheap *bh, unsigned idx)
         p = A(bh, u);
         AN(p);
 	v = reorder(bh, p, u);
-	if (u != v)
+	if (u != v) {
+		A(bh, v) = p;
 		update(bh, p, v);
+	}
 }
 
 void
@@ -418,18 +410,17 @@ binheap_delete(struct binheap *bh, unsigned idx)
         assert(u < bh->next);
 	p = A(bh, u);
         AN(p);
+	A(bh, u) = NULL;
 	update(bh, p, IDX_EXT2INT(bh, BINHEAP_NOIDX));
 	assert(bh->next > 0);
-        if (u == --bh->next) {
-                A(bh, u) = NULL;
-                return;
-        }
-	p = A(bh, bh->next);
-	AN(p);
-        A(bh, u) = p;
-        A(bh, bh->next) = NULL;
-	v = reorder(bh, p, u);
-	update(bh, p, v);
+        if (u < --bh->next) {
+		p = A(bh, bh->next);
+		AN(p);
+	        A(bh, bh->next) = NULL;
+		v = reorder(bh, p, u);
+		A(bh, v) = p;
+		update(bh, p, v);
+	}
 
         /*
          * We keep a hysteresis of one full row before we start to
