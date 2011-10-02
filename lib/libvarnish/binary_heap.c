@@ -715,6 +715,7 @@ main(int argc, char **argv)
 
 	root_idx = IDX_INT2EXT(bh, ROOT_IDX(bh));
         assert(root_idx != BINHEAP_NOIDX);
+	key = 0;
 	while (1) {
 		/* First insert our N elements */
 		for (n = 0; n < N; n++) {
