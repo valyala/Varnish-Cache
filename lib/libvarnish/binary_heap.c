@@ -227,10 +227,13 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 }
 
 static void
-update(const struct binheap *bh, void *p, unsigned u)
+assign(const struct binheap *bh, void *p, unsigned u)
 {
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	AN(bh->update);
+	AN(p);
+	assert(u != IDX_EXT2INT(bh, BINHEAP_NOIDX));
+	A(bh, u) = p;
         bh->update(bh->priv, p, IDX_INT2EXT(bh, u));
 }
 
@@ -255,8 +258,7 @@ trickleup(struct binheap *bh, void *p1, unsigned u)
                 AN(p2);
                 if (bh->cmp(bh->priv, p2, p1))
                         break;	/* parent is smaller than the child */
-		A(bh, u) = p2;
-		update(bh, p2, u);
+		assign(bh, p2, u);
                 u = v;
         }
         return (u);
@@ -296,8 +298,7 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
                 assert(v < bh->next);
                 if (bh->cmp(bh->priv, p1, p2))
                         break;	/* parent is smaller than children */
-		A(bh, u) = p2;
-		update(bh, p2, u);
+		assign(bh, p2, u);
                 u = v;
         }
 	return (u);
@@ -351,8 +352,7 @@ binheap_insert(struct binheap *bh, void *p)
         v = trickleup(bh, p, u);
 	assert(v <= u);
 	assert(v >= ROOT_IDX(bh));
-	A(bh, v) = p;
-	update(bh, p, v);
+	assign(bh, p, v);
 }
 
 static unsigned
@@ -390,10 +390,8 @@ binheap_reorder(struct binheap *bh, unsigned idx)
         p = A(bh, u);
         AN(p);
 	v = reorder(bh, p, u);
-	if (u != v) {
-		A(bh, v) = p;
-		update(bh, p, v);
-	}
+	if (u != v)
+		assign(bh, p, v);
 }
 
 void
@@ -411,15 +409,14 @@ binheap_delete(struct binheap *bh, unsigned idx)
 	p = A(bh, u);
         AN(p);
 	A(bh, u) = NULL;
-	update(bh, p, IDX_EXT2INT(bh, BINHEAP_NOIDX));
+	bh->update(bh->priv, p, BINHEAP_NOIDX);
 	assert(bh->next > 0);
         if (u < --bh->next) {
 		p = A(bh, bh->next);
 		AN(p);
 	        A(bh, bh->next) = NULL;
 		v = reorder(bh, p, u);
-		A(bh, v) = p;
-		update(bh, p, v);
+		assign(bh, p, v);
 	}
 
         /*
