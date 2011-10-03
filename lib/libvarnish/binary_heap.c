@@ -281,15 +281,16 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
 }
 
 static void
-addrow(struct binheap *bh)
+add_row(struct binheap *bh)
 {
         unsigned rows_count;
 
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         AN(bh->rows);
         assert(bh->rows_count > 0);
+	assert(&ROW(bh->rows, bh->length) <= bh->rows + bh->rows_count);
         /* First make sure we have space for another row */
-        if (&ROW(bh->rows, bh->length) >= bh->rows + bh->rows_count) {
+        if (&ROW(bh->rows, bh->length) == bh->rows + bh->rows_count) {
                 rows_count = bh->rows_count * 2;
                 bh->rows = realloc(bh->rows, sizeof(*bh->rows) * rows_count);
                 XXXAN(bh->rows);
@@ -298,7 +299,9 @@ addrow(struct binheap *bh)
                 while (bh->rows_count < rows_count)
                         bh->rows[bh->rows_count++] = NULL;
         }
+	AZ(ROW(bh->rows, bh->length));
 	ROW(bh->rows, bh->length) = alloc_row(bh->page_shift);
+	AN(ROW(bh->rows, bh->length));
 	/* prevent from silent heap overflow */
 	xxxassert(bh->length <= UINT_MAX - ROW_WIDTH);
         bh->length += ROW_WIDTH;
@@ -314,7 +317,7 @@ binheap_insert(struct binheap *bh, void *p)
 	assert(bh->next >= ROOT_IDX(bh));
         assert(bh->length >= bh->next);
         if (bh->length == bh->next)
-        	addrow(bh);
+        	add_row(bh);
         assert(bh->length > bh->next);
 	assert(bh->next < UINT_MAX);
         u = bh->next++;
@@ -364,6 +367,23 @@ binheap_reorder(struct binheap *bh, unsigned idx)
 		assign(bh, p, v);
 }
 
+static void
+remove_row(struct binheap *bh)
+{
+        unsigned u;
+
+        CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+        assert(bh->length >= 2 * ROW_WIDTH);
+        u = bh->length - 1;
+	AN(bh->rows);
+	assert(bh->rows_count > 0);
+	assert(&ROW(bh->rows, u) < bh->rows + bh->rows_count);
+        AN(ROW(bh->rows, u));
+        free(ROW(bh->rows, u));
+        ROW(bh->rows, u) = NULL;
+        bh->length -= ROW_WIDTH;
+}
+
 void
 binheap_delete(struct binheap *bh, unsigned idx)
 {
@@ -394,13 +414,8 @@ binheap_delete(struct binheap *bh, unsigned idx)
          * return space to the OS to avoid silly behaviour around
          * row boundaries.
          */
-        if (bh->next + 2 * ROW_WIDTH <= bh->length) {
-		u = bh->length - 1;
-		AN(ROW(bh->rows, u));
-                free(ROW(bh->rows, u));
-                ROW(bh->rows, u) = NULL;
-                bh->length -= ROW_WIDTH;
-        }
+        if (bh->next + 2 * ROW_WIDTH <= bh->length)
+		remove_row(bh);
 }
 
 void *
