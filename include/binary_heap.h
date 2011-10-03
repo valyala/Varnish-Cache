@@ -83,3 +83,23 @@ void *binheap_root(const struct binheap *);
 	 * Update function pass this value as newidx if the given item has been
 	 * removed from binheap.
 	 */
+
+
+/* binheap2 */
+struct binheap2_item;
+struct binheap2;
+
+struct binheap2 *
+binheap2_new(void);
+
+struct binheap2_item *
+binheap2_insert(struct binheap2 *bh2, void *p, double key);
+
+void
+binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi);
+
+void
+binheap2_reorder(struct binheap2 *bh2, struct binheap2_item *bi, double key);
+
+void *
+binheap2_root(struct binheap2 *bh2);

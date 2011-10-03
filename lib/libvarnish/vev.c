@@ -67,7 +67,7 @@ struct vev_base {
 	struct pollfd		*pfd;
 	unsigned		npfd;
 	unsigned		lpfd;
-	struct binheap		*binheap;
+	struct binheap2		*binheap;
 	unsigned char		compact_pfd;
 	unsigned char		disturbed;
 	unsigned		psig;
@@ -87,31 +87,6 @@ struct vev_base {
 #else
 #define DBG(evb, ...)	/* ... */
 #endif
-
-/*--------------------------------------------------------------------*/
-
-static void
-vev_bh_update(void *priv, void *a, unsigned u)
-{
-	struct vev_base *evb;
-	struct vev *e;
-
-	CAST_OBJ_NOTNULL(evb, priv, VEV_BASE_MAGIC);
-	CAST_OBJ_NOTNULL(e, a, VEV_MAGIC);
-	e->__binheap_idx = u;
-}
-
-static int
-vev_bh_cmp(void *priv, void *a, void *b)
-{
-	struct vev_base *evb;
-	struct vev *ea, *eb;
-
-	CAST_OBJ_NOTNULL(evb, priv, VEV_BASE_MAGIC);
-	CAST_OBJ_NOTNULL(ea, a, VEV_MAGIC);
-	CAST_OBJ_NOTNULL(eb, b, VEV_MAGIC);
-	return (ea->__when < eb->__when);
-}
 
 /*--------------------------------------------------------------------*/
 
@@ -192,7 +167,7 @@ vev_new_base(void)
 	}
 	evb->magic = VEV_BASE_MAGIC;
 	VTAILQ_INIT(&evb->events);
-	evb->binheap = binheap_new(evb, vev_bh_cmp, vev_bh_update);
+	evb->binheap = binheap2_new();
 	evb->thread = pthread_self();
 #ifdef DEBUG_EVENTS
 	evb->debug = fopen("/tmp/_.events", "w");
@@ -279,12 +254,12 @@ vev_add(struct vev_base *evb, struct vev *e)
 
 	if (e->timeout != 0.0) {
 		e->__when += TIM_mono() + e->timeout;
-		binheap_insert(evb->binheap, e);
-		assert(e->__binheap_idx != BINHEAP_NOIDX);
-		DBG(evb, "... bidx = %d\n", e->__binheap_idx);
+		AZ(e->__bi);
+		e->__bi = binheap2_insert(evb->binheap, e, e->__when);
+		AN(e->__bi);
 	} else {
 		e->__when = 0.0;
-		e->__binheap_idx = BINHEAP_NOIDX;
+		e->__bi = NULL;
 	}
 
 	e->__vevb = evb;
@@ -315,9 +290,10 @@ vev_del(struct vev_base *evb, struct vev *e)
 	assert(evb == e->__vevb);
 	assert(evb->thread == pthread_self());
 
-	if (e->__binheap_idx != BINHEAP_NOIDX)
-		binheap_delete(evb->binheap, e->__binheap_idx);
-	assert(e->__binheap_idx == BINHEAP_NOIDX);
+	if (e->__bi != NULL) {
+		binheap2_delete(evb->binheap, e->__bi);
+		e->__bi = NULL;
+	}
 
 	if (e->fd >= 0) {
 		DBG(evb, "... pidx = %d\n", e->__poll_idx);
@@ -411,7 +387,7 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 		free(e);
 	} else {
 		e->__when = t + e->timeout;
-		binheap_reorder(evb->binheap, e->__binheap_idx);
+		binheap2_reorder(evb->binheap, e->__bi, e->__when);
 	}
 	return (1);
 }
@@ -450,10 +426,10 @@ vev_schedule_one(struct vev_base *evb)
 
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(evb->thread == pthread_self());
-	e = binheap_root(evb->binheap);
+	e = binheap2_root(evb->binheap);
 	if (e != NULL) {
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
-		assert(e->__binheap_idx != BINHEAP_NOIDX);
+		AN(e->__bi);
 		t = TIM_mono();
 		if (e->__when <= t)
 			return (vev_sched_timeout(evb, e, t));

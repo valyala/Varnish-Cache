@@ -72,6 +72,7 @@
 #define IDX_EXT2INT(bh, idx)    ((idx) + ROOT_IDX(bh) - 1)
 #define IDX_INT2EXT(bh, u)      ((u) - ROOT_IDX(bh) + 1)
 
+
 struct binheap {
         unsigned                magic;
 #define BINHEAP_MAGIC           0x8bd801f0u     /* from /dev/random */
@@ -425,6 +426,82 @@ binheap_root(const struct binheap *bh)
 	assert(&A(bh, ROOT_IDX(bh)) == bh->rootp);
         assert(*bh->rootp != NULL || bh->next == ROOT_IDX(bh));
         return *bh->rootp;
+}
+
+/* binheap2 */
+struct binheap2_item {
+	double key;
+	void *p;
+	unsigned u;
+};
+
+struct binheap2 {
+	struct binheap *bh;
+};
+
+static int
+cmp2(void *priv, void *p1, void *p2) {
+	struct binheap2_item *bi1, *bi2;
+
+	(void)priv;
+	bi1 = p1;
+	bi2 = p2;
+	return bi1->key < bi2->key;
+}
+
+static void
+update2(void *priv, void *p, unsigned u) {
+	struct binheap2_item *bi;
+
+	(void)priv;
+	bi = p;
+	bi->u = u;
+}
+
+struct binheap2 *
+binheap2_new(void) {
+	struct binheap2 *bh2;
+
+	bh2 = malloc(sizeof(*bh2));
+	AN(bh2);
+	bh2->bh = binheap_new(NULL, cmp2, update2);
+	AN(bh2->bh);
+	return bh2;
+}
+
+struct binheap2_item *
+binheap2_insert(struct binheap2 *bh2, void *p, double key) {
+	struct binheap2_item *bi;
+
+	bi = malloc(sizeof(*bi));
+	AN(bi);
+	bi->key = key;
+	bi->p = p;
+	bi->u = BINHEAP_NOIDX;
+	binheap_insert(bh2->bh, bi);
+	return bi;
+}
+
+void
+binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi) {
+	binheap_delete(bh2->bh, bi->u);
+	free(bi);	
+}
+
+void
+binheap2_reorder(struct binheap2 *bh2, struct binheap2_item *bi, double key) {
+	bi->key = key;
+	binheap_reorder(bh2->bh, bi->u);
+}
+
+void *
+binheap2_root(struct binheap2 *bh2) {
+	struct binheap2_item *bi;
+	bi = binheap_root(bh2->bh);
+	if (bi == NULL)
+		return NULL;
+	AN(bi->p);
+	return bi->p;
 }
 
 #ifdef TEST_DRIVER

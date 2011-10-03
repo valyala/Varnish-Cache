@@ -57,9 +57,9 @@ struct vev {
 	void			*priv;
 
 	/* priv */
+	struct binheap2_item	*__bi;
 	double			__when;
 	VTAILQ_ENTRY(vev)	__list;
-	unsigned		__binheap_idx;
 	unsigned		__privflags;
 	struct vev_base		*__vevb;
 	int			__poll_idx;
