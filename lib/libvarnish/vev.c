@@ -46,7 +46,7 @@
 #undef DEBUG_EVENTS
 
 /* converts time to binheap2 key */
-#define TIME2KEY(t)     ((unsigned) (t / 1e9))
+#define TIME2KEY(t)     ((unsigned) (t))
 
 /* INFTIM indicates an infinite timeout for poll(2) */
 #ifndef INFTIM

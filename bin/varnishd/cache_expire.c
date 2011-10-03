@@ -63,7 +63,7 @@
 #include "stevedore.h"
 
 /* converts time to binheap2 key */
-#define TIME2KEY(t)	((unsigned) (t / 1e9))
+#define TIME2KEY(t)	((unsigned) (t))
 
 static pthread_t exp_thread;
 static struct binheap2 *exp_heap;
