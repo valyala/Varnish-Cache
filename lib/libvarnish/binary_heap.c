@@ -436,7 +436,8 @@ struct binheap2 {
 };
 
 static int
-cmp2(void *priv, void *p1, void *p2) {
+cmp2(void *priv, void *p1, void *p2)
+{
 	struct binheap2_item *bi1, *bi2;
 
 	(void)priv;
@@ -446,7 +447,8 @@ cmp2(void *priv, void *p1, void *p2) {
 }
 
 static void
-update2(void *priv, void *p, unsigned u) {
+update2(void *priv, void *p, unsigned u)
+{
 	struct binheap2_item *bi;
 
 	(void)priv;
@@ -455,7 +457,8 @@ update2(void *priv, void *p, unsigned u) {
 }
 
 struct binheap2 *
-binheap2_new(void) {
+binheap2_new(void)
+{
 	struct binheap2 *bh2;
 
 	bh2 = malloc(sizeof(*bh2));
@@ -466,7 +469,8 @@ binheap2_new(void) {
 }
 
 struct binheap2_item *
-binheap2_insert(struct binheap2 *bh2, void *p, unsigned key) {
+binheap2_insert(struct binheap2 *bh2, void *p, unsigned key)
+{
 	struct binheap2_item *bi;
 
 	bi = malloc(sizeof(*bi));
@@ -479,19 +483,22 @@ binheap2_insert(struct binheap2 *bh2, void *p, unsigned key) {
 }
 
 void
-binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi) {
+binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi)
+{
 	binheap_delete(bh2->bh, bi->u);
 	free(bi);	
 }
 
 void
-binheap2_reorder(struct binheap2 *bh2, struct binheap2_item *bi, unsigned key) {
+binheap2_reorder(struct binheap2 *bh2, struct binheap2_item *bi, unsigned key)
+{
 	bi->key = key;
 	binheap_reorder(bh2->bh, bi->u);
 }
 
 void *
-binheap2_root(struct binheap2 *bh2) {
+binheap2_root(struct binheap2 *bh2)
+{
 	struct binheap2_item *bi;
 	bi = binheap_root(bh2->bh);
 	if (bi == NULL)
