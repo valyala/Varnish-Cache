@@ -102,7 +102,7 @@ parent(unsigned page_shift, unsigned u)
 		return page_mask;
         v = u & page_mask;
 	if (v > 1)
-		return ((u & ~page_mask) + (v / 2) - 1);
+		return u - v + v / 2 - 1;
         page_size = page_mask + 1;
         page_children = page_size / 2 + 1;
 	v = (u >> page_shift) - 2;
@@ -120,12 +120,12 @@ child(unsigned page_shift, unsigned u)
 	page_mask = R_IDX(page_shift);
 	AZ(page_mask & (page_mask + 1));
 	assert(u >= page_mask);
-	v = u & page_mask;
+	v = (u & page_mask) + 2;
         page_size = page_mask + 1;
         page_children = page_size / 2 + 1;
-	if (v + 2 < page_children)
-		return (u & ~page_mask) + (v + 1) * 2;
-	v += (u >> page_shift) * page_children - page_size + 2;
+	if (v < page_children)
+		return u + v;
+	v += (u >> page_shift) * page_children - page_size;
 	if (v > (UINT_MAX >> page_shift))
 		return u;	/* child index is overflown */
 	return page_size * v;
