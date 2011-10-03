@@ -69,8 +69,6 @@
 
 #define R_IDX(page_shift)       ((1u << (page_shift)) - 1)
 #define ROOT_IDX(bh)            R_IDX((bh)->page_shift)
-#define IDX_EXT2INT(bh, idx)    ((idx) + ROOT_IDX(bh) - 1)
-#define IDX_INT2EXT(bh, u)      ((u) - ROOT_IDX(bh) + 1)
 
 struct binheap {
         unsigned                magic;
@@ -208,9 +206,9 @@ assign(const struct binheap *bh, void *p, unsigned u)
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	AN(bh->update);
 	AN(p);
-	assert(u != IDX_EXT2INT(bh, BINHEAP_NOIDX));
+	assert(u != BINHEAP_NOIDX);
 	A(bh, u) = p;
-        bh->update(bh->priv, p, IDX_INT2EXT(bh, u));
+        bh->update(bh->priv, p, u);
 }
 
 static unsigned
@@ -349,15 +347,14 @@ reorder(struct binheap *bh, void *p, unsigned u)
 }
 
 void
-binheap_reorder(struct binheap *bh, unsigned idx)
+binheap_reorder(struct binheap *bh, unsigned u)
 {
 	void *p;
-	unsigned u, v;
+	unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         assert(bh->next >= ROOT_IDX(bh));
-        assert(idx != BINHEAP_NOIDX);
-        u = IDX_EXT2INT(bh, idx);
+        assert(u != BINHEAP_NOIDX);
         assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
         p = A(bh, u);
@@ -385,15 +382,14 @@ remove_row(struct binheap *bh)
 }
 
 void
-binheap_delete(struct binheap *bh, unsigned idx)
+binheap_delete(struct binheap *bh, unsigned u)
 {
 	void *p;
-	unsigned u, v;
+	unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(bh->next > ROOT_IDX(bh));
-	assert(idx != BINHEAP_NOIDX);
-	u = IDX_EXT2INT(bh, idx);
+	assert(u != BINHEAP_NOIDX);
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
 	p = A(bh, u);
@@ -563,8 +559,8 @@ foo_update(void *priv, void *a, unsigned u)
 	CAST_OBJ_NOTNULL(fp, a, FOO_MAGIC);
 	++update_calls_count;
 	if (fp->idx != BINHEAP_NOIDX && u != BINHEAP_NOIDX) {
-		p1 = &A(bh, IDX_EXT2INT(bh, fp->idx));
-		p2 = &A(bh, IDX_EXT2INT(bh, u));
+		p1 = &A(bh, fp->idx);
+		p2 = &A(bh, u);
 		assert(*p2 == fp);
 		page_mask = ~((1u << bh->page_shift) * sizeof(void *) - 1);
 		if ((((uintptr_t) p1) & page_mask) !=
@@ -580,13 +576,12 @@ static void
 check_indexes(const struct binheap *bh)
 {
 	struct foo *fp;
-	unsigned n, idx;
+	unsigned n;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	for (n = ROOT_IDX(bh); n < bh->next; n++) {
 		fp = A(bh, n);
-		idx = IDX_INT2EXT(bh, n);
-		assert(fp->idx == idx);
+		assert(fp->idx == n);
 	}
 }
 
@@ -696,7 +691,7 @@ main(int argc, char **argv)
 	bh = binheap_new(&bh, foo_cmp, foo_update);
 	AZ(binheap_root(bh));
 
-	root_idx = IDX_INT2EXT(bh, ROOT_IDX(bh));
+	root_idx = ROOT_IDX(bh);
         assert(root_idx != BINHEAP_NOIDX);
 	key = 0;
 	while (1) {
