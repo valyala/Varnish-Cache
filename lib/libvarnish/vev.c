@@ -45,6 +45,9 @@
 
 #undef DEBUG_EVENTS
 
+/* converts time to binheap2 key */
+#define TIME2KEY(t)     ((unsigned) (t / 1e9))
+
 /* INFTIM indicates an infinite timeout for poll(2) */
 #ifndef INFTIM
 #define INFTIM -1
@@ -255,7 +258,7 @@ vev_add(struct vev_base *evb, struct vev *e)
 	if (e->timeout != 0.0) {
 		e->__when += TIM_mono() + e->timeout;
 		AZ(e->__bi);
-		e->__bi = binheap2_insert(evb->binheap, e, e->__when);
+		e->__bi = binheap2_insert(evb->binheap, e, TIME2KEY(e->__when));
 		AN(e->__bi);
 	} else {
 		e->__when = 0.0;
@@ -387,7 +390,7 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 		free(e);
 	} else {
 		e->__when = t + e->timeout;
-		binheap2_reorder(evb->binheap, e->__bi, e->__when);
+		binheap2_reorder(evb->binheap, e->__bi, TIME2KEY(e->__when));
 	}
 	return (1);
 }

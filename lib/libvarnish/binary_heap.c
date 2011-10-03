@@ -426,9 +426,9 @@ binheap_root(const struct binheap *bh)
 
 /* binheap2 */
 struct binheap2_item {
-	double key;
 	void *p;
 	unsigned u;
+	unsigned key;
 };
 
 struct binheap2 {
@@ -466,14 +466,14 @@ binheap2_new(void) {
 }
 
 struct binheap2_item *
-binheap2_insert(struct binheap2 *bh2, void *p, double key) {
+binheap2_insert(struct binheap2 *bh2, void *p, unsigned key) {
 	struct binheap2_item *bi;
 
 	bi = malloc(sizeof(*bi));
 	AN(bi);
-	bi->key = key;
 	bi->p = p;
 	bi->u = BINHEAP_NOIDX;
+	bi->key = key;
 	binheap_insert(bh2->bh, bi);
 	return bi;
 }
@@ -485,7 +485,7 @@ binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi) {
 }
 
 void
-binheap2_reorder(struct binheap2 *bh2, struct binheap2_item *bi, double key) {
+binheap2_reorder(struct binheap2 *bh2, struct binheap2_item *bi, unsigned key) {
 	bi->key = key;
 	binheap_reorder(bh2->bh, bi->u);
 }

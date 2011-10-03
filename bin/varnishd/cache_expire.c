@@ -62,6 +62,9 @@
 #include "hash_slinger.h"
 #include "stevedore.h"
 
+/* converts time to binheap2 key */
+#define TIME2KEY(t)	((unsigned) (t / 1e9))
+
 static pthread_t exp_thread;
 static struct binheap2 *exp_heap;
 static struct lock exp_mtx;
@@ -185,7 +188,7 @@ exp_insert(struct objcore *oc, struct lru *lru)
 	Lck_AssertHeld(&lru->mtx);
 	Lck_AssertHeld(&exp_mtx);
 	AZ(oc->bi);
-	oc->bi = binheap2_insert(exp_heap, oc, oc->timer_when);
+	oc->bi = binheap2_insert(exp_heap, oc, TIME2KEY(oc->timer_when));
 	AN(oc->bi);
 	VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
 }
@@ -318,7 +321,7 @@ EXP_Rearm(const struct object *o)
 	 * tending to a timer.  If so, we do not muck with it here.
 	 */
 	if (oc->bi != NULL && update_object_when(o))
-		binheap2_reorder(exp_heap, oc->bi, oc->timer_when);
+		binheap2_reorder(exp_heap, oc->bi, TIME2KEY(oc->timer_when));
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
