@@ -427,8 +427,8 @@ binheap_root(const struct binheap *bh)
 /* binheap2 */
 struct binheap2_item {
 	void *p;
-	unsigned u;
 	unsigned key;
+	unsigned u;
 };
 
 struct binheap2 {
@@ -476,8 +476,8 @@ binheap2_insert(struct binheap2 *bh2, void *p, unsigned key)
 	bi = malloc(sizeof(*bi));
 	AN(bi);
 	bi->p = p;
-	bi->u = BINHEAP_NOIDX;
 	bi->key = key;
+	bi->u = BINHEAP_NOIDX;
 	binheap_insert(bh2->bh, bi);
 	return bi;
 }
@@ -751,6 +751,85 @@ print_counters(void)
 	comparisons_count = update_calls_count = page_faults_count = 0;
 }
 
+struct bar {
+	struct binheap2_item *bi;
+};
+
+static struct bar bb[2 * N];
+
+#include <time.h>
+
+double
+TIM_mono(void)
+{
+        struct timespec ts;
+
+        XXXAZ(clock_gettime(CLOCK_MONOTONIC, &ts));
+        return (ts.tv_sec + 1e-9 * ts.tv_nsec);
+}
+
+static void
+perftest(void)
+{
+	struct binheap2 *bh2;
+	struct bar *bp;
+	double start, end;
+	unsigned u, v;
+
+	bh2 = binheap2_new();
+	start = TIM_mono();
+	for (u = 0; u < N; u++) {
+		bb[u].bi = binheap2_insert(bh2, &bb[u], random());
+	}
+	end = TIM_mono();
+	fprintf(stderr, "%u insertions: %.3lfms\n", N, end - start);
+
+	start = TIM_mono();
+	for (u = N; u < 2 * N; u++) {
+		bb[u].bi = binheap2_insert(bh2, &bb[u], random());
+	}
+	end = TIM_mono();
+	fprintf(stderr, "%u additional insertions: %.3lfms\n", N, end - start);
+
+	start = TIM_mono();
+	for (u = 0; u < N; u++) {
+		bp = binheap2_root(bh2);
+		binheap2_delete(bh2, bp->bi);
+		bp->bi = NULL;
+	}
+	end = TIM_mono();
+	fprintf(stderr, "%u root removals: %.3lfms\n", N, end - start);
+
+	start = TIM_mono();
+	for (u = 0; u < N; u++) {
+		bp = binheap2_root(bh2);
+		binheap2_delete(bh2, bp->bi);
+		bp->bi = binheap2_insert(bh2, bp, random());
+	}
+	end = TIM_mono();
+	fprintf(stderr, "%u root removals+insertions: %.3lfms\n", N, end - start);
+
+	start = TIM_mono();
+	for (u = 0; u < N; u++) {
+		v = random() % N;
+		if (bb[v].bi != NULL)
+			binheap2_reorder(bh2, bb[v].bi, random());
+		else
+			u--;
+	}
+	end = TIM_mono();
+	fprintf(stderr, "%u reorders: %.3lfms\n", N, end - start);
+
+	start = TIM_mono();
+	for (u = 0; u < N; u++) {
+		bp = binheap2_root(bh2);
+		binheap2_delete(bh2, bp->bi);
+		bp->bi = NULL;
+	}
+	end = TIM_mono();
+	fprintf(stderr, "%u remaining removals: %.3lfms\n", N, end - start);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -759,6 +838,7 @@ main(int argc, char **argv)
 	unsigned u, n, key, root_idx;
 	unsigned delete_count, insert_count, reorder_count;
 
+	perftest();
 	if (0) {
 //		srandomdev();
 		u = random();
