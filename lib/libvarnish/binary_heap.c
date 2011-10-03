@@ -62,10 +62,10 @@
 /*lint -emacro(572, ROW) shift 0 >> by 16 */
 /*lint -emacro(835, ROW) 0 left of >> */
 /*lint -emacro(778, ROW) const >> evaluates to zero */
-#define ROW(rows, n)		((rows)[(n) >> ROW_SHIFT])
+#define ROW(bh, n)		((bh)->rows[(n) >> ROW_SHIFT])
 
 /*lint -emacro(835, A) 0 left of & */
-#define A(bh, n)		ROW(bh->rows, n)[(n) & (ROW_WIDTH - 1)]
+#define A(bh, n)		ROW(bh, n)[(n) & (ROW_WIDTH - 1)]
 
 #define R_IDX(page_shift)       ((1u << (page_shift)) - 1)
 #define ROOT_IDX(bh)            R_IDX((bh)->page_shift)
@@ -288,9 +288,9 @@ add_row(struct binheap *bh)
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         AN(bh->rows);
         assert(bh->rows_count > 0);
-	assert(&ROW(bh->rows, bh->length) <= bh->rows + bh->rows_count);
+	assert(&ROW(bh, bh->length) <= bh->rows + bh->rows_count);
         /* First make sure we have space for another row */
-        if (&ROW(bh->rows, bh->length) == bh->rows + bh->rows_count) {
+        if (&ROW(bh, bh->length) == bh->rows + bh->rows_count) {
                 rows_count = bh->rows_count * 2;
                 bh->rows = realloc(bh->rows, sizeof(*bh->rows) * rows_count);
                 XXXAN(bh->rows);
@@ -299,9 +299,9 @@ add_row(struct binheap *bh)
                 while (bh->rows_count < rows_count)
                         bh->rows[bh->rows_count++] = NULL;
         }
-	AZ(ROW(bh->rows, bh->length));
-	ROW(bh->rows, bh->length) = alloc_row(bh->page_shift);
-	AN(ROW(bh->rows, bh->length));
+	AZ(ROW(bh, bh->length));
+	ROW(bh, bh->length) = alloc_row(bh->page_shift);
+	AN(ROW(bh, bh->length));
 	/* prevent from silent heap overflow */
 	xxxassert(bh->length <= UINT_MAX - ROW_WIDTH);
         bh->length += ROW_WIDTH;
@@ -377,10 +377,10 @@ remove_row(struct binheap *bh)
         u = bh->length - 1;
 	AN(bh->rows);
 	assert(bh->rows_count > 0);
-	assert(&ROW(bh->rows, u) < bh->rows + bh->rows_count);
-        AN(ROW(bh->rows, u));
-        free(ROW(bh->rows, u));
-        ROW(bh->rows, u) = NULL;
+	assert(&ROW(bh, u) < bh->rows + bh->rows_count);
+        AN(ROW(bh, u));
+        free(ROW(bh, u));
+        ROW(bh, u) = NULL;
         bh->length -= ROW_WIDTH;
 }
 
