@@ -552,21 +552,21 @@ foo_update(void *priv, void *a, unsigned u)
 {
 	struct binheap *bh;
 	struct foo *fp;
-	void **p1, **p2;
+	char *p1, *p2;
 	unsigned page_mask;
 
 	bh = *((struct binheap **) priv);
 	CAST_OBJ_NOTNULL(fp, a, FOO_MAGIC);
 	++update_calls_count;
 	if (fp->idx != BINHEAP_NOIDX && u != BINHEAP_NOIDX) {
-		p1 = &A(bh, fp->idx);
-		p2 = &A(bh, u);
-		assert(*p2 == fp);
+		p1 = (char *) (&A(bh, fp->idx));
+		p2 = (char *) (&A(bh, u));
+		assert(*(void **)p2 == fp);
 		page_mask = ~((1u << bh->page_shift) * sizeof(void *) - 1);
 		if ((((uintptr_t) p1) & page_mask) !=
 			(((uintptr_t) p2) & page_mask) &&
-			(p2 - bh->rows[0] < 0 ||
-				p2 - bh->rows[0] >= 2 * (~page_mask + 1)))
+			(p2 - (char *) (bh->rows[0]) < 0 ||
+			 p2 - (char *) (bh->rows[0]) >= 2 * (~page_mask + 1)))
 			++page_faults_count;
 	}
 	fp->idx = u;
