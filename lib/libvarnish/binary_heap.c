@@ -873,11 +873,69 @@ test(struct binheap *bh)
         fprintf(stderr, "%u deletes, %.3lfs OK\n", u, end - start);
 }
 
+static void
+perftest(struct binheap *bh)
+{
+        double start, end;
+        struct foo *fp;
+        unsigned u, delete_count;
+
+        AZ(binheap_root(bh));
+        check_consistency(bh);
+
+        start = TIM_mono();
+        for (u = 0; u < N; u++) {
+                ff[u].bi = binheap_insert(bh, &ff[u], random() % R);
+        }
+        end = TIM_mono();
+        fprintf(stderr, "perf %d inserts: %.3lfs\n", N, end - start);
+
+        check_consistency(bh);
+        start = TIM_mono();
+        for (u = 0; u < M; u++) {
+                fp = binheap_root(bh);
+                binheap_delete(bh, fp->bi);
+                fp->bi = binheap_insert(bh, fp, random() % R);
+        }
+        end = TIM_mono();
+        fprintf(stderr, "perf %d replacements: %.3lfs\n", M, end - start);
+
+        check_consistency(bh);
+        start = TIM_mono();
+        for (u = 0; u < M; u++) {
+                fp = &ff[random() % N];
+                binheap_update(bh, fp->bi, random() % R);
+        }
+        end = TIM_mono();
+        fprintf(stderr, "perf %d reorders: %.3lfs\n", M, end - start);
+
+        check_consistency(bh);
+        start = TIM_mono();
+        delete_count = 0;
+        while (1) {
+                fp = binheap_root(bh);
+                if (fp == NULL)
+                        break;
+                binheap_delete(bh, fp->bi);
+                ++delete_count;
+        }
+        end = TIM_mono();
+        fprintf(stderr, "perf %d deletions: %.3lfs\n", delete_count,
+		end - start);
+        check_consistency(bh);
+
+        for (u = 0; u < N; u++) {
+                ff[u].bi = NULL;
+                ff[u].key = 0;
+                ff[u].n = 0;
+        }
+}
+
 int
 main(int argc, char **argv)
 {
         struct binheap *bh;
-        unsigned u, root_idx;
+        unsigned u;
 
         for (u = 1; u <= ROW_SHIFT; u++) {
                 check_parent_child(u, M);
@@ -887,10 +945,10 @@ main(int argc, char **argv)
 
         bh = binheap_new();
         AZ(binheap_root(bh));
-        root_idx = ROOT_IDX(bh);
-        assert(root_idx != NOIDX);
+	check_consistency(bh);
 
 	test(bh);
+	perftest(bh);
 	while (1)
 		test(bh);
 	return 0;
