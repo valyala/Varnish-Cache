@@ -670,7 +670,7 @@ struct foo {
 };
 
 #if 1
-#define M 10000000u		/* Number of operations */
+#define M 40000000u		/* Number of operations */
 #define N 10000000u		/* Number of items */
 #else
 #define M 3401u			/* Number of operations */
