@@ -62,11 +62,11 @@
 #include "hash_slinger.h"
 #include "stevedore.h"
 
-/* converts time to binheap2 key */
+/* converts time to binheap key */
 #define TIME2KEY(t)	((unsigned) (t))
 
 static pthread_t exp_thread;
-static struct binheap2 *exp_heap;
+static struct binheap *exp_heap;
 static struct lock exp_mtx;
 
 /*--------------------------------------------------------------------
@@ -188,7 +188,7 @@ exp_insert(struct objcore *oc, struct lru *lru)
 	Lck_AssertHeld(&lru->mtx);
 	Lck_AssertHeld(&exp_mtx);
 	AZ(oc->bi);
-	oc->bi = binheap2_insert(exp_heap, oc, TIME2KEY(oc->timer_when));
+	oc->bi = binheap_insert(exp_heap, oc, TIME2KEY(oc->timer_when));
 	AN(oc->bi);
 	VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
 }
@@ -321,7 +321,7 @@ EXP_Rearm(const struct object *o)
 	 * tending to a timer.  If so, we do not muck with it here.
 	 */
 	if (oc->bi != NULL && update_object_when(o))
-		binheap2_update(exp_heap, oc->bi, TIME2KEY(oc->timer_when));
+		binheap_update(exp_heap, oc->bi, TIME2KEY(oc->timer_when));
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
@@ -352,7 +352,7 @@ exp_timer(struct sess *sp, void *priv)
 		}
 
 		Lck_Lock(&exp_mtx);
-		oc = binheap2_root(exp_heap);
+		oc = binheap_root(exp_heap);
 		if (oc == NULL) {
 			Lck_Unlock(&exp_mtx);
 			continue;
@@ -389,7 +389,7 @@ exp_timer(struct sess *sp, void *priv)
 
 		/* Remove from binheap */
 		AN(oc->bi);
-		binheap2_delete(exp_heap, oc->bi);
+		binheap_delete(exp_heap, oc->bi);
 		oc->bi = NULL;
 
 		/* And from LRU */
@@ -439,7 +439,7 @@ EXP_NukeOne(const struct sess *sp, struct lru *lru)
 	if (oc != NULL) {
 		VTAILQ_REMOVE(&lru->lru_head, oc, lru_list);
 		AN(oc->bi);
-		binheap2_delete(exp_heap, oc->bi);
+		binheap_delete(exp_heap, oc->bi);
 		oc->bi = NULL;
 		VSC_C_main->n_lru_nuked++;
 	}
@@ -463,7 +463,7 @@ EXP_Init(void)
 {
 
 	Lck_New(&exp_mtx, lck_exp);
-	exp_heap = binheap2_new();
+	exp_heap = binheap_new();
 	AN(exp_heap);
 	WRK_BgThread(&exp_thread, "cache-timeout", exp_timer, NULL);
 }

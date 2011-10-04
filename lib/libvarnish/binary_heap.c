@@ -76,29 +76,26 @@
 #define R_IDX(page_shift)       ((1u << (page_shift)) - 1)
 #define ROOT_IDX(bh)            R_IDX((bh)->page_shift)
 
+struct binheap_item {
+        unsigned idx;
+        void *p;
+};
+
 /*
  * Storing key near p should improve memory locality
  * for hot paths during binheap mutations.
  * Code below expects sizeof(binheap_item) is a power of two.
  */
-struct binheap_item {
+struct item {
 	unsigned key;
-	void *p;
+	struct binheap_item *bi;
 };
-
-/*
- * Update function.
- * When items move in the tree, this function gets called to
- * notify the item of its new index.
- */
-typedef void binheap_update_t(void *priv, void *p, unsigned newidx);
 
 struct binheap {
         unsigned                magic;
 #define BINHEAP_MAGIC           0x8bd801f0u     /* from /dev/random */
-        void                    *priv;
-        binheap_update_t        *update;
-        struct binheap_item     **rows;
+        struct item		**rows;
+	struct binheap_item	*free_list;
         unsigned                next;
         unsigned                rows_count;
         unsigned                length;
@@ -150,11 +147,11 @@ child(unsigned page_shift, unsigned u)
 	return page_size * v;
 }
 
-static struct binheap_item *
+static struct item *
 alloc_row(unsigned page_shift)
 {
         void *p;
-	struct binheap_item *row;
+	struct item *row;
 	size_t item_size, alignment;
 	unsigned u;
 	int rv;
@@ -175,19 +172,18 @@ alloc_row(unsigned page_shift)
 	/* null out items */
 	for (u = 0; u < ROW_WIDTH; u++) {
 		row[u].key = 0;
-		row[u].p = NULL;
+		row[u].bi = NULL;
 	}
 	return row;
 }
 
-static struct binheap *
-binheap_new(void *priv, binheap_update_t *update_f)
+struct binheap *
+binheap_new(void)
 {
-	struct binheap_item **rows;
+	struct item **rows;
         struct binheap *bh;
         unsigned page_size, page_shift;
 
-        AN(update_f);
         page_size = ((unsigned) getpagesize()) / sizeof(**rows);
 	xxxassert(page_size > 1);
 	xxxassert(page_size * sizeof(**rows) == getpagesize());
@@ -215,9 +211,8 @@ binheap_new(void *priv, binheap_update_t *update_f)
 	AN(rows[0]);
         bh = (struct binheap *) rows[0];
 	bh->magic = BINHEAP_MAGIC;
-	bh->priv = priv;
-        bh->update = update_f;
         bh->rows = rows;
+	bh->free_list = NULL;
         bh->next = R_IDX(page_shift);
         bh->rows_count = 1;
 	bh->length = ROW_WIDTH;
@@ -232,24 +227,26 @@ binheap_new(void *priv, binheap_update_t *update_f)
 }
 
 static void
-assign(const struct binheap *bh, void *p, unsigned key, unsigned u)
+assign(const struct binheap *bh, struct binheap_item *bi, unsigned key,
+	unsigned idx)
 {
-	struct binheap_item *bi;
+	struct item *i;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	AN(bh->update);
-	AN(p);
-	assert(u != NOIDX);
-	bi = &A(bh, u);
-	bi->key = key;
-	bi->p = p;
-        bh->update(bh->priv, p, u);
+	AN(bi);
+	assert(idx != NOIDX);
+	assert(idx >= ROOT_IDX(bh));
+	assert(idx < bh->next);
+	i = &A(bh, idx);
+	i->key = key;
+	i->bi = bi;
+	bi->idx = idx;
 }
 
 static unsigned
 trickleup(const struct binheap *bh, unsigned key, unsigned u)
 {
-	struct binheap_item *bi;
+	struct item *i;
         unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
@@ -260,11 +257,16 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
                 v = parent(bh->page_shift, u);
                 assert(v < u);
 		assert(v >= ROOT_IDX(bh));
-		bi = &A(bh, v);
-                AN(bi->p);
-                if (bi->key < key)
+		i = &A(bh, v);
+                AN(i->bi);
+		AN(i->bi->p);
+		assert(i->bi->idx == v);
+                if (i->key < key)
                         break;	/* parent is smaller than the child */
-		assign(bh, bi->p, bi->key, u);
+		assign(bh, i->bi, i->key, u);
+		assert(i->bi->idx == u);
+		assert(A(bh, u).bi == i->bi);
+		assert(A(bh, u).key == i->key);
                 u = v;
         }
         return u;
@@ -273,7 +275,7 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
 static unsigned
 trickledown(const struct binheap *bh, unsigned key, unsigned u)
 {
-	struct binheap_item *bi1, *bi2;
+	struct item *i1, *i2;
 	unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
@@ -288,20 +290,27 @@ trickledown(const struct binheap *bh, unsigned key, unsigned u)
 			break;		/* index overflow */
                 if (v >= bh->next)
                         break;		/* reached the end of heap */
-		bi1 = &A(bh, v);
-		AN(bi1->p);
+		i1 = &A(bh, v);
+		AN(i1->bi);
+		AN(i1->bi->p);
+		assert(i1->bi->idx == v);
                 if (v + 1 < bh->next) {
-			bi2 = &A(bh, v + 1);
-			AN(bi2->p);
-                        if (bi2->key < bi1->key) {
+			i2 = &A(bh, v + 1);
+			AN(i2->bi);
+			AN(i2->bi->p);
+			assert(i2->bi->idx == v + 1);
+                        if (i2->key < i1->key) {
                                 ++v;
-				bi1 = bi2;
+				i1 = i2;
 			}
                 }
                 assert(v < bh->next);
-                if (key < bi1->key)
+                if (key < i1->key)
                         break;	/* parent is smaller than children */
-		assign(bh, bi1->p, bi1->key, u);
+		assign(bh, i1->bi, i1->key, u);
+		assert(i1->bi->idx == u);
+		assert(A(bh, u).bi == i1->bi);
+		assert(A(bh, u).key == i1->key);
                 u = v;
         }
 	return u;
@@ -321,7 +330,7 @@ add_row(struct binheap *bh)
                 rows_count = bh->rows_count * 2;
                 bh->rows = realloc(bh->rows, sizeof(*bh->rows) * rows_count);
                 XXXAN(bh->rows);
-
+		AZ(((uintptr_t) bh->rows) % sizeof(*bh->rows));
                 /* NULL out new pointers */
                 while (bh->rows_count < rows_count)
                         bh->rows[bh->rows_count++] = NULL;
@@ -334,29 +343,91 @@ add_row(struct binheap *bh)
         bh->length += ROW_WIDTH;
 }
 
+static struct binheap_item *
+alloc_bi_row(void)
+{
+        struct binheap_item *row;
+        unsigned u;
+
+	/* TODO: determine the best row width */
+        row = calloc(ROW_WIDTH, sizeof(*row));
+        XXXAN(row);
+	AZ(((uintptr_t) row) % sizeof(*row));
+
+        /* construct freelist from items in the row */
+        for (u = 0; u < ROW_WIDTH; u++) {
+                row[u].idx = NOIDX;
+                row[u].p = row + u + 1;
+        }
+        row[ROW_WIDTH - 1].p = NULL;
+        return row;
+}
+
+static struct binheap_item *
+acquire_bi(struct binheap *bh)
+{
+	struct binheap_item *bi;
+
+	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	if (bh->free_list == NULL) {
+		bh->free_list = alloc_bi_row();
+		AN(bh->free_list);
+	}
+	bi = bh->free_list;
+	bh->free_list = bi->p;
+	AN(bi);
+	assert(bi->idx == NOIDX);
+	bi->p = NULL;
+	return bi;
+}
+
 static void
+release_bi(struct binheap *bh, struct binheap_item *bi)
+{
+	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	AN(bi);
+	assert(bi->idx != NOIDX);
+	AN(bi->p);
+	bi->idx = NOIDX;
+	bi->p = bh->free_list;
+	bh->free_list = bi;
+	/* TODO: free up memory? */
+}
+
+struct binheap_item *
 binheap_insert(struct binheap *bh, void *p, unsigned key)
 {
+	struct binheap_item *bi;
         unsigned u, v;
 
-	AN(p);
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	AN(p);
 	assert(bh->next >= ROOT_IDX(bh));
-        assert(bh->length >= bh->next);
+        assert(bh->next <= bh->length);
         if (bh->length == bh->next)
         	add_row(bh);
         assert(bh->length > bh->next);
 	assert(bh->next < UINT_MAX);
         u = bh->next++;
-	AZ(A(bh, u).p);
+	AZ(A(bh, u).bi);
+	AZ(A(bh, u).key);
         v = trickleup(bh, key, u);
 	assert(v <= u);
 	assert(v >= ROOT_IDX(bh));
-	assign(bh, p, key, v);
+	bi = acquire_bi(bh);
+	AN(bi);
+	assert(bi->idx == NOIDX);
+	AZ(bi->p);
+	bi->p = p;
+	assign(bh, bi, key, v);
+	assert(bi->idx == v);
+	assert(A(bh, v).bi == bi);
+	assert(A(bh, v).key == key);
+	return bi;
 }
 
 static unsigned
-update(const struct binheap *bh, unsigned key, unsigned u)
+reorder(const struct binheap *bh, unsigned key, unsigned u)
 {
         unsigned v;
 
@@ -370,30 +441,36 @@ update(const struct binheap *bh, unsigned key, unsigned u)
 	if (u == v) {
 	        v = trickledown(bh, key, u);
 	        assert(v >= u);
+		assert(v < bh->next);
 	}
 	return v;
 }
 
-static void
-binheap_update(const struct binheap *bh, unsigned key, unsigned u)
+void
+binheap_update(const struct binheap *bh, struct binheap_item *bi,
+	unsigned key)
 {
-	struct binheap_item *bi;
-	void *p;
-	unsigned v;
+	struct item *i;
+	unsigned u, v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         assert(bh->next >= ROOT_IDX(bh));
+	AN(bi);
+	AN(bi->p);
+	u = bi->idx;
         assert(u != NOIDX);
         assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
-	bi = &A(bh, u);
-        p = bi->p;
-	AN(p);
-	v = update(bh, key, u);
+	i = &A(bh, u);
+	assert(i->bi == bi);
+	v = reorder(bh, key, u);
 	if (u != v)
-		assign(bh, p, key, v);
+		assign(bh, bi, key, v);
 	else
-		bi->key = key;
+		i->key = key;
+        assert(bi->idx == v);
+        assert(A(bh, v).bi == bi);
+	assert(A(bh, v).key == key);
 }
 
 static void
@@ -413,34 +490,42 @@ remove_row(struct binheap *bh)
         bh->length -= ROW_WIDTH;
 }
 
-static void
-binheap_delete(struct binheap *bh, unsigned u)
+void
+binheap_delete(struct binheap *bh, struct binheap_item *bi)
 {
-	struct binheap_item *bi;
-	void *p;
-	unsigned v, key;
+	struct item *i;
+	unsigned u, v, key;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(bh->next > ROOT_IDX(bh));
+	assert(bh->next <= bh->length);
+	AN(bi);
+	AN(bi->p);
+	u = bi->idx;
 	assert(u != NOIDX);
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
-	bi = &A(bh, u);
-	p = bi->p;
-        AN(p);
-	bi->key = 0;
-	bi->p = NULL;
-	bh->update(bh->priv, p, NOIDX);
+	i = &A(bh, u);
+	assert(i->bi == bi);
+	i->key = 0;
+	i->bi = NULL;
+	release_bi(bh, bi);
+	assert(bi->idx == NOIDX);
 	assert(bh->next > 0);
         if (u < --bh->next) {
-		bi = &A(bh, bh->next);
-		key = bi->key;
-		p = bi->p;
-		AN(p);
-		bi->key = 0;
-	        bi->p = NULL;
-		v = update(bh, key, u);
-		assign(bh, p, key, v);
+		i = &A(bh, bh->next);
+		key = i->key;
+		bi = i->bi;
+		AN(bi);
+		AN(bi->p);
+		assert(bi->idx == bh->next);
+		i->key = 0;
+	        i->bi = NULL;
+		v = reorder(bh, key, u);
+		assign(bh, bi, key, v);
+		assert(bi->idx == v);
+		assert(A(bh, v).bi == bi);
+		assert(A(bh, v).key == key);
 	}
 
         /*
@@ -448,200 +533,62 @@ binheap_delete(struct binheap *bh, unsigned u)
          * return space to the OS to avoid silly behaviour around
          * row boundaries.
          */
-        if (bh->next + 2 * ROW_WIDTH <= bh->length)
+        if (bh->next + 2 * ROW_WIDTH <= bh->length) {
 		remove_row(bh);
-}
-
-static void *
-binheap_root(const struct binheap *bh)
-{
-        CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-        assert(A(bh, ROOT_IDX(bh)).p != NULL || bh->next == ROOT_IDX(bh));
-        return A(bh, ROOT_IDX(bh)).p;
-}
-
-/* binheap2 */
-struct binheap2_item {
-	unsigned u;
-	void *p;
-};
-
-struct binheap2 {
-	unsigned magic;
-#define BINHEAP2_MAGIC	0x97c9edb6u
-	struct binheap *bh;
-	struct binheap2_item *free_list;
-	struct binheap2_item **rows;
-	unsigned rows_count;
-	unsigned length;
-};
-
-static void
-update2(void *priv, void *p, unsigned u)
-{
-	struct binheap2_item *bi;
-
-	AZ(priv);
-	AN(p);
-	(void)priv;
-	bi = p;
-	bi->u = u;
-}
-
-static struct binheap2_item *
-alloc_row2(void)
-{
-	struct binheap2_item *row;
-	unsigned u;
-
-        row = calloc(ROW_WIDTH, sizeof(*row));
-        XXXAN(row);
-
-        /* push added items into freelist */
-        for (u = 0; u < ROW_WIDTH; u++) {
-                row[u].u = NOIDX;
-                row[u].p = row + u + 1;
-        }
-        row[ROW_WIDTH - 1].p = NULL;
-	return row;
-}
-
-struct binheap2 *
-binheap2_new(void)
-{
-	struct binheap2 *bh2;
-	struct binheap2_item **rows;
-
-	rows = calloc(1, sizeof(*rows));
-	XXXAN(rows);
-	AZ(rows[0]);
-	rows[0] = alloc_row2();
-	AN(rows[0]);
-
-	bh2 = malloc(sizeof(*bh2));
-	AN(bh2);
-	bh2->magic = BINHEAP2_MAGIC;
-	bh2->bh = binheap_new(NULL, update2);
-	AN(bh2->bh);
-	bh2->free_list = rows[0];
-	bh2->rows = rows;
-	bh2->rows_count = 1;
-	bh2->length = ROW_WIDTH;
-	return bh2;
-}
-
-static void
-add_row2(struct binheap2 *bh2)
-{
-        struct binheap2_item *row;
-        unsigned rows_count;
-
-        AZ(bh2->free_list);
-        assert(&ROW(bh2, bh2->length) <= bh2->rows + bh2->rows_count);
-        if (&ROW(bh2, bh2->length) == bh2->rows + bh2->rows_count) {
-                rows_count = 2 * bh2->rows_count;
-                bh2->rows = realloc(bh2->rows, sizeof(*bh2->rows) * rows_count);
-                XXXAN(bh2->rows);
-                while (bh2->rows_count < rows_count)
-                        bh2->rows[bh2->rows_count++] = NULL;
-        }
-        row = alloc_row2();
-        AN(row);
-        ROW(bh2, bh2->length) = row;
-        bh2->free_list = row;
-
-        xxxassert(bh2->length <= UINT_MAX - ROW_WIDTH);
-        bh2->length += ROW_WIDTH;
-}
-
-struct binheap2_item *
-binheap2_insert(struct binheap2 *bh2, void *p, unsigned key)
-{
-	struct binheap2_item *bi;
-
-	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
-	AN(p);
-	if (bh2->free_list == NULL)
-		add_row2(bh2);
-	bi = bh2->free_list;
-	AN(bi);
-	bh2->free_list = bi->p;
-	bi->u = NOIDX;
-	bi->p = p;
-	binheap_insert(bh2->bh, bi, key);
-	assert(bi->u != NOIDX);
-	return bi;
-}
-
-void
-binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi)
-{
-	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
-	AN(bi);
-	AN(bi->p);
-	assert(bi->u != NOIDX);
-	binheap_delete(bh2->bh, bi->u);
-	assert(bi->u == NOIDX);
-	bi->p = bh2->free_list;
-	bh2->free_list = bi;
-}
-
-void
-binheap2_update(const struct binheap2 *bh2, struct binheap2_item *bi, unsigned key)
-{
-	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
-	AN(bi);
-	AN(bi->p);
-	assert(bi->u != NOIDX);
-	binheap_update(bh2->bh, key, bi->u);
-	assert(bi->u != NOIDX);
+		assert(bh->next + 2 * ROW_WIDTH > bh->length);
+	}
 }
 
 void *
-binheap2_root(const struct binheap2 *bh2)
+binheap_root(const struct binheap *bh)
 {
-	struct binheap2_item *bi;
+	struct binheap_item *bi;
 
-	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
-	AN(bh2->bh);
-	bi = binheap_root(bh2->bh);
-	if (bi == NULL)
+        CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	bi = A(bh, ROOT_IDX(bh)).bi;
+	if (bi == NULL) {
+		assert(bh->next == ROOT_IDX(bh));
 		return NULL;
+	}
+	assert(bi->idx == ROOT_IDX(bh));
 	AN(bi->p);
-	assert(bi->u != NOIDX);
 	return bi->p;
 }
 
 #ifdef TEST_DRIVER
 
 static void
-check_invariant(const struct binheap *bh)
+check_consistency(const struct binheap *bh)
 {
-        unsigned u, v, root_idx, page_shift, key1, key2;
+	struct item *i1, *i2;
+        unsigned u, v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-        page_shift = bh->page_shift;
-        root_idx = R_IDX(page_shift);
-	assert(page_shift > 0);
-	assert(page_shift < ROW_SHIFT);
-        for (u = root_idx + 1; u < bh->next; u++) {
-                v = parent(page_shift, u);
+	assert(ROOT_IDX(bh) != NOIDX);
+	assert(bh->next >= ROOT_IDX(bh));
+	assert(bh->next <= bh->length);
+	assert(bh->length >= ROW_WIDTH);
+	assert(bh->rows_count >= 1);
+	assert(bh->rows_count <= UINT_MAX / ROW_WIDTH);
+	assert(bh->rows_count * ROW_WIDTH >= bh->length);
+	assert(bh->page_shift > 0);
+	assert(bh->page_shift <= ROW_SHIFT);
+	AN(bh->rows);
+        for (u = ROOT_IDX(bh) + 1; u < bh->next; u++) {
+                v = parent(bh->page_shift, u);
                 assert(v < u);
-                assert(v >= root_idx);
-                key1 = A(bh, u).key;
-                key2 = A(bh, v).key;
-		assert(key2 <= key1);
+                assert(v >= ROOT_IDX(bh));
+		i1 = &A(bh, u);
+		i2 = &A(bh, v);
+		assert(i2->key <= i1->key);
+		AN(i2->bi);
+		AN(i2->bi->p);
+		assert(i1->bi->idx == u);
+		AN(i2->bi);
+		AN(i2->bi->p);
+		assert(i2->bi->idx == v);
         }
 }
-
-#ifdef PARANOIA
-#define paranoia_check(bh)	do { \
-	check_invariant(bh); \
-	check_indexes(bh); \
-} while (0)
-#else
-#define paranoia_check(bh)	((void)0)
-#endif
 
 static void
 check_parent_child(unsigned page_shift, unsigned n_max)
@@ -692,6 +639,7 @@ check_parent_child_overflow(unsigned page_shift, unsigned n_max)
 
 /* Test driver -------------------------------------------------------*/
 #include <stdio.h>
+#include <time.h>
 
 static void
 vasfail(const char *func, const char *file, int line,
@@ -705,11 +653,11 @@ vasfail(const char *func, const char *file, int line,
 vas_f *VAS_Fail = vasfail;
 
 struct foo {
-	unsigned	magic;
+	unsigned		magic;
 #define FOO_MAGIC	0x23239823u
-	unsigned	idx;
-	unsigned	key;
-	unsigned	n;
+	unsigned		key;
+	unsigned		n;
+	struct binheap_item 	*bi;
 };
 
 #if 1
@@ -721,63 +669,33 @@ struct foo {
 #endif
 #define R ((unsigned) RAND_MAX)	/* Random modulus */
 
-static struct foo *ff[N];
-static unsigned update_calls_count, page_faults_count;
+#ifdef PARANOIA
+#define paranoia_check(bh)      check_consistency(bh)
+#else
+#define paranoia_check(bh)      ((void)0)
+#endif
 
-static void
-foo_update_f(void *priv, void *a, unsigned u)
-{
-	struct binheap *bh;
-	struct foo *fp;
-	char *p1, *p2;
-	unsigned page_mask;
-
-	bh = *((struct binheap **) priv);
-	CAST_OBJ_NOTNULL(fp, a, FOO_MAGIC);
-	++update_calls_count;
-	if (fp->idx != NOIDX && u != NOIDX) {
-		p1 = (char *) (&A(bh, fp->idx));
-		p2 = (char *) (&A(bh, u));
-		assert(((struct binheap_item *)p2)->p == fp);
-		page_mask = ~((1u << bh->page_shift) * sizeof(**bh->rows) - 1);
-		if ((((uintptr_t) p1) & page_mask) !=
-			(((uintptr_t) p2) & page_mask) &&
-			(p2 - (char *)(bh->rows[0]) < 0 ||
-				p2 - (char *)(bh->rows[0]) >= 2 * (~page_mask + 1)))
-			++page_faults_count;
-	}
-	fp->idx = u;
-}
-
-static void
-check_indexes(const struct binheap *bh)
-{
-	struct foo *fp;
-	unsigned n;
-
-	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	for (n = ROOT_IDX(bh); n < bh->next; n++) {
-		fp = A(bh, n).p;
-		AN(fp);
-		assert(fp->idx == n);
-	}
-}
+static struct foo ff[N];
 
 static void
 foo_check(const struct foo *fp)
 {
 	CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
 	assert(fp->n < N);
-	assert(fp == ff[fp->n]);
+	assert(fp == &ff[fp->n]);
 }
 
 static void
 foo_check_existense(struct binheap *bh, const struct foo *fp)
 {
         foo_check(fp);
-        assert(fp->idx != NOIDX);
-        assert(fp->key == A(bh, fp->idx).key);
-        assert(fp == A(bh, fp->idx).p);
+	AN(fp->bi);
+	assert(fp->bi->idx != NOIDX);
+	assert(fp->bi->idx >= ROOT_IDX(bh));
+	assert(fp->bi->idx < bh->next);
+	assert(fp->bi->p == fp);
+	assert(fp->bi == A(bh, fp->bi->idx).bi);
+	assert(fp->key == A(bh, fp->bi->idx).key);
 }
 
 static void
@@ -788,15 +706,15 @@ foo_insert(struct binheap *bh, unsigned n)
 
 	paranoia_check(bh);
         assert(n < N);
-        AZ(ff[n]);
-        ALLOC_OBJ(fp, FOO_MAGIC);
-        XXXAN(fp);
+	fp = &ff[n];
+	AZ(fp->key);
+	AZ(fp->n);
+        AZ(fp->bi);
 	key = random() % R;
-        fp->idx = NOIDX;
+	fp->magic = FOO_MAGIC;
         fp->key = key;
         fp->n = n;
-        ff[n] = fp;
-	binheap_insert(bh, fp, key);
+	fp->bi = binheap_insert(bh, fp, key);
 	foo_check_existense(bh, fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
@@ -812,13 +730,15 @@ foo_delete(struct binheap *bh, struct foo *fp)
 	foo_check_existense(bh, fp);
 	key = fp->key;
 	n = fp->n;
-	binheap_delete(bh, fp->idx);
+	binheap_delete(bh, fp->bi);
 	foo_check(fp);
-	assert(fp->idx == NOIDX);
+	AN(fp->bi);
+	assert(fp->bi->idx == NOIDX);
 	assert(fp->key == key);
 	assert(fp->n == n);
-        ff[fp->n] = NULL;
-        FREE_OBJ(fp);
+	fp->key = 0;
+	fp->n = 0;
+	fp->bi = NULL;
 	paranoia_check(bh);
 }
 
@@ -832,28 +752,12 @@ foo_update(struct binheap *bh, struct foo *fp)
         key = random() % R;
 	n = fp->n;
         fp->key = key;
-        binheap_update(bh, key, fp->idx);
+        binheap_update(bh, fp->bi, key);
 	foo_check_existense(bh, fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
 	paranoia_check(bh);
 }
-
-static void
-print_counters(void)
-{
-	fprintf(stderr, "%u update calls, %u page faults\n",
-		update_calls_count, page_faults_count);
-	update_calls_count = page_faults_count = 0;
-}
-
-struct bar {
-	struct binheap2_item *bi;
-};
-
-static struct bar bb[2 * N];
-
-#include <time.h>
 
 double
 TIM_mono(void)
@@ -864,144 +768,66 @@ TIM_mono(void)
         return (ts.tv_sec + 1e-9 * ts.tv_nsec);
 }
 
-static void
-perftest(void)
-{
-	struct binheap2 *bh2;
-	struct bar *bp;
-	double start, end;
-	unsigned u, v;
-
-	bh2 = binheap2_new();
-	start = TIM_mono();
-	for (u = 0; u < N; u++) {
-		bb[u].bi = binheap2_insert(bh2, &bb[u], random());
-	}
-	end = TIM_mono();
-	fprintf(stderr, "%u insertions: %.3lfms\n", N, end - start);
-	check_invariant(bh2->bh);
-
-	start = TIM_mono();
-	for (u = N; u < 2 * N; u++) {
-		bb[u].bi = binheap2_insert(bh2, &bb[u], random());
-	}
-	end = TIM_mono();
-	fprintf(stderr, "%u additional insertions: %.3lfms\n", N, end - start);
-        check_invariant(bh2->bh);
-
-	start = TIM_mono();
-	for (u = 0; u < N; u++) {
-		bp = binheap2_root(bh2);
-		binheap2_delete(bh2, bp->bi);
-		bp->bi = NULL;
-	}
-	end = TIM_mono();
-	fprintf(stderr, "%u root removals: %.3lfms\n", N, end - start);
-        check_invariant(bh2->bh);
-
-	start = TIM_mono();
-	for (u = 0; u < N; u++) {
-		bp = binheap2_root(bh2);
-		binheap2_delete(bh2, bp->bi);
-		bp->bi = binheap2_insert(bh2, bp, random());
-	}
-	end = TIM_mono();
-	fprintf(stderr, "%u root removals+insertions: %.3lfms\n", N, end - start);
-        check_invariant(bh2->bh);
-
-	start = TIM_mono();
-	for (u = 0; u < N; u++) {
-		v = random() % N;
-		if (bb[v].bi != NULL)
-			binheap2_update(bh2, bb[v].bi, random());
-		else
-			u--;
-	}
-	end = TIM_mono();
-	fprintf(stderr, "%u updates: %.3lfms\n", N, end - start);
-        check_invariant(bh2->bh);
-
-	start = TIM_mono();
-	for (u = 0; u < N; u++) {
-		bp = binheap2_root(bh2);
-		binheap2_delete(bh2, bp->bi);
-		bp->bi = NULL;
-	}
-	end = TIM_mono();
-	fprintf(stderr, "%u remaining removals: %.3lfms\n", N, end - start);
-        check_invariant(bh2->bh);
-	AZ(binheap2_root(bh2));
-}
-
 int
 main(int argc, char **argv)
 {
+	double start, end;
 	struct binheap *bh;
         struct foo *fp;
 	unsigned u, n, key, root_idx;
 	unsigned delete_count, insert_count, update_count;
 
-	if (0) {
-		/* srandomdev(); */
-		u = random();
-		printf("Seed %u\n", u);
-		srandom(u);
-	}
 	for (u = 1; u <= ROW_SHIFT; u++) {
 	        check_parent_child(u, M);
-	        fprintf(stderr, "%u parent-child tests for row_shift=%u OK\n", M, u);
 	        check_parent_child_overflow(u, M);
-	        fprintf(stderr, "%u overflow parent-child tests for row_shift=%u OK\n",
-			M, u);
 	}
+	fprintf(stderr, "parent-child test OK\n");
 
-        perftest();
-
-	bh = binheap_new(&bh, foo_update_f);
+	bh = binheap_new();
 	AZ(binheap_root(bh));
-
 	root_idx = ROOT_IDX(bh);
         assert(root_idx != NOIDX);
 	key = 0;
 	while (1) {
 		/* First insert our N elements */
+		start = TIM_mono();
 		for (n = 0; n < N; n++) {
 			foo_insert(bh, n);
-			key = ff[n]->key;
+			key = ff[n].key;
 			fp = binheap_root(bh);
 			foo_check(fp);
-			assert(fp->idx == root_idx);
+			assert(fp->bi->idx == root_idx);
 			assert(fp->key <= key);
 		}
-		check_invariant(bh);
-		check_indexes(bh);
-		fprintf(stderr, "%u inserts OK\n", N);
-		print_counters();
+		check_consistency(bh);
+		end = TIM_mono();
+		fprintf(stderr, "%u inserts, %.3lfs OK\n", N, end - start);
 
 		/* For M cycles, pick the root, insert new */
+		start = TIM_mono();
 		for (u = 0; u < M; u++) {
 			fp = binheap_root(bh);
 			foo_check(fp);
-			assert(fp->idx == root_idx);
+			assert(fp->bi->idx == root_idx);
 			assert(fp->key <= key);
 			n = fp->n;
 			foo_delete(bh, fp);
 			foo_insert(bh, n);
-			key = ff[n]->key;
+			key = ff[n].key;
 		}
-		check_invariant(bh);
-		check_indexes(bh);
-		fprintf(stderr, "%u replacements OK\n", M);
-		print_counters();
+		check_consistency(bh);
+		end = TIM_mono();
+		fprintf(stderr, "%u replacements, %.3lfs OK\n", M, end - start);
 
 		/* Randomly insert, delete and update */
 		delete_count = 0;
 		insert_count = 0;
 		update_count = 0;
+		start = TIM_mono();
 		for (u = 0; u < M; u++) {
 			n = random() % N;
-			fp = ff[n];
-			if (fp != NULL) {
+			fp = &ff[n];
+			if (fp->bi != NULL) {
 				if (fp->key & 1) {
 					foo_delete(bh, fp);
 					++delete_count;
@@ -1015,22 +841,23 @@ main(int argc, char **argv)
 			}
 		}
 		assert(delete_count >= insert_count);
-		check_invariant(bh);
-		check_indexes(bh);
-		fprintf(stderr, "%u deletes, %u inserts, %u updates OK\n",
-			delete_count, insert_count, update_count);
-		print_counters();
+		check_consistency(bh);
+		end = TIM_mono();
+		fprintf(stderr,
+			"%u deletes, %u inserts, %u updates, %.3lfs OK\n",
+			delete_count, insert_count, update_count, end - start);
 
                 /* Then remove everything */
                 key = 0;
 		u = 0;
+		start = TIM_mono();
                 while (1) {
                         fp = binheap_root(bh);
                         if (fp == NULL) {
                                 break;
                         }
                         foo_check(fp);
-			assert(fp->idx == root_idx);
+			assert(fp->bi->idx == root_idx);
                         assert(fp->key >= key);
                         key = fp->key;
                         foo_delete(bh, fp);
@@ -1038,11 +865,10 @@ main(int argc, char **argv)
                 }
                 assert(u == N - (delete_count - insert_count));
 		AZ(binheap_root(bh));
-		check_invariant(bh);
-		check_indexes(bh);
-                fprintf(stderr, "%u removes OK\n", u);
-		print_counters();
+		check_consistency(bh);
+		end = TIM_mono();
+                fprintf(stderr, "%u deletes, %.3lfs OK\n", u, end - start);
 	}
-	return (0);
+	return 0;
 }
 #endif

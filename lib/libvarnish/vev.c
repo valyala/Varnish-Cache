@@ -45,7 +45,7 @@
 
 #undef DEBUG_EVENTS
 
-/* converts time to binheap2 key */
+/* converts time to binheap key */
 #define TIME2KEY(t)     ((unsigned) (t))
 
 /* INFTIM indicates an infinite timeout for poll(2) */
@@ -70,7 +70,7 @@ struct vev_base {
 	struct pollfd		*pfd;
 	unsigned		npfd;
 	unsigned		lpfd;
-	struct binheap2		*binheap;
+	struct binheap		*binheap;
 	unsigned char		compact_pfd;
 	unsigned char		disturbed;
 	unsigned		psig;
@@ -170,7 +170,8 @@ vev_new_base(void)
 	}
 	evb->magic = VEV_BASE_MAGIC;
 	VTAILQ_INIT(&evb->events);
-	evb->binheap = binheap2_new();
+	evb->binheap = binheap_new();
+	AN(evb->binheap);
 	evb->thread = pthread_self();
 #ifdef DEBUG_EVENTS
 	evb->debug = fopen("/tmp/_.events", "w");
@@ -258,7 +259,7 @@ vev_add(struct vev_base *evb, struct vev *e)
 	if (e->timeout != 0.0) {
 		e->__when += TIM_mono() + e->timeout;
 		AZ(e->__bi);
-		e->__bi = binheap2_insert(evb->binheap, e, TIME2KEY(e->__when));
+		e->__bi = binheap_insert(evb->binheap, e, TIME2KEY(e->__when));
 		AN(e->__bi);
 	} else {
 		e->__when = 0.0;
@@ -294,7 +295,7 @@ vev_del(struct vev_base *evb, struct vev *e)
 	assert(evb->thread == pthread_self());
 
 	if (e->__bi != NULL) {
-		binheap2_delete(evb->binheap, e->__bi);
+		binheap_delete(evb->binheap, e->__bi);
 		e->__bi = NULL;
 	}
 
@@ -390,7 +391,7 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 		free(e);
 	} else {
 		e->__when = t + e->timeout;
-		binheap2_update(evb->binheap, e->__bi, TIME2KEY(e->__when));
+		binheap_update(evb->binheap, e->__bi, TIME2KEY(e->__when));
 	}
 	return (1);
 }
@@ -429,7 +430,7 @@ vev_schedule_one(struct vev_base *evb)
 
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(evb->thread == pthread_self());
-	e = binheap2_root(evb->binheap);
+	e = binheap_root(evb->binheap);
 	if (e != NULL) {
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
 		AN(e->__bi);
