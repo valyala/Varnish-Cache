@@ -47,6 +47,12 @@
 /* Parameters --------------------------------------------------------*/
 
 /*
+ * Update function pass this value as newidx if the given item has been
+ * removed from binheap.
+ */
+#define BINHEAP_NOIDX   0
+
+/*
  * The number of elements in a row has to be a compromise between
  * wasted space and number of memory allocations.
  * With 64k objects per row, there will be at least 5...10 seconds
@@ -70,15 +76,41 @@
 #define R_IDX(page_shift)       ((1u << (page_shift)) - 1)
 #define ROOT_IDX(bh)            R_IDX((bh)->page_shift)
 
+/*
+ * Storing key near p should improve memory locality
+ * for hot paths during binheap mutations.
+ */
+struct binheap_item {
+	/*
+	 * Do not change the order of members here,
+	 * otherwise access to p can become aliased on x64
+	 * when accessing row[i] with (i & 1) == 1.
+	 * This can negatively impact performance.
+	 * It is assumed sizeof(binheap_item) = 8 on x32
+	 * and sizeof(binheap_item) = 16 on x64.
+	 *
+	 * Code below expects that the sizeof(binheap_item) is a power of two.
+	 */
+	unsigned key;
+	void *p;
+};
+
+
+/*
+ * Update function.
+ * When items move in the tree, this function gets called to
+ * notify the item of its new index.
+ */
+typedef void binheap_update_t(void *priv, void *p, unsigned newidx);
+
 
 struct binheap {
         unsigned                magic;
 #define BINHEAP_MAGIC           0x8bd801f0u     /* from /dev/random */
         void                    *priv;
-        binheap_cmp_t           *cmp;
         binheap_update_t        *update;
-        void                    ***rows;
-	void			**rootp;	/* fast access to root */
+        struct binheap_item     **rows;
+	struct binheap_item	*rootp;		/* fast access to root */
         unsigned                next;
         unsigned                rows_count;
         unsigned                length;
@@ -130,10 +162,11 @@ child(unsigned page_shift, unsigned u)
 	return page_size * v;
 }
 
-static void **
+static struct binheap_item *
 alloc_row(unsigned page_shift)
 {
-        void *p, **row;
+        void *p;
+	struct binheap_item *row;
 	size_t item_size, alignment;
 	unsigned u;
 	int rv;
@@ -141,6 +174,7 @@ alloc_row(unsigned page_shift)
 	assert(page_shift > 0);
 	assert(page_shift <= ROW_SHIFT);
 	item_size = sizeof(*row);
+	AZ(item_size & (item_size - 1));	/* should be power of 2 */
         assert((1u << page_shift) < UINT_MAX / item_size);
 	alignment = (1u << page_shift) * item_size;
 	assert(ROW_WIDTH < SIZE_MAX / item_size);
@@ -151,28 +185,30 @@ alloc_row(unsigned page_shift)
 	row = p;
         AZ(((uintptr_t) row) & (alignment - 1));
 	/* null out items */
-	for (u = 0; u < ROW_WIDTH; u++)
-		row[u] = NULL;
+	for (u = 0; u < ROW_WIDTH; u++) {
+		row[u].key = 0;
+		row[u].p = NULL;
+	}
 	return row;
 }
 
 struct binheap *
-binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
+binheap_new(void *priv, binheap_update_t *update_f)
 {
-	void ***rows;
+	struct binheap_item **rows;
         struct binheap *bh;
         unsigned page_size, page_shift;
 
-        AN(cmp_f);
         AN(update_f);
         page_size = ((unsigned) getpagesize()) / sizeof(**rows);
+	xxxassert(page_size > 1);
 	xxxassert(page_size * sizeof(**rows) == getpagesize());
         page_shift = 0u - 1;
         while (page_size) {
                 page_size >>= 1;
                 ++page_shift;
         }
-        xxxassert(page_shift > 0);
+        assert(page_shift > 0);
 	page_size = 1u << page_shift;
         xxxassert(page_size <= ROW_WIDTH);
 	XXXAZ(ROW_WIDTH % page_size);
@@ -181,13 +217,17 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
         XXXAN(rows);
         AZ(rows[0]);
 
-        /* allocate the first row and embed binheap structure into it */
+	/*
+	 * Since the first memory page in the first row is almost empty
+	 * (except the row[R_IDX(page_shift)] at the end of the page),
+	 * so let's embed binheap structure into the beginning of the page.
+	 * This should also improve locality of reference.
+         */
 	rows[0] = alloc_row(page_shift);
 	AN(rows[0]);
         bh = (struct binheap *) rows[0];
 	bh->magic = BINHEAP_MAGIC;
 	bh->priv = priv;
-        bh->cmp = cmp_f;
         bh->update = update_f;
         bh->rows = rows;
 	bh->rootp = rows[0] + R_IDX(page_shift);
@@ -195,62 +235,66 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
         bh->rows_count = 1;
 	bh->length = ROW_WIDTH;
 	bh->page_shift = page_shift;
-	/* make sure the row with embedded binheap has free space for root pointer */
+
+	/*
+	 * Make sure the page with embedded binheap don't overlap with
+	 * binheap items, which start from R_IDX(page_shift) index.
+	 */
         xxxassert(sizeof(*bh) <= sizeof(**rows) * R_IDX(page_shift));
+
+	/* Verify that the rootp points to the root item. */
 	assert(bh->rootp == &A(bh, R_IDX(page_shift)));
-        return (bh);
+        return bh;
 }
 
 static void
-assign(const struct binheap *bh, void *p, unsigned u)
+assign(const struct binheap *bh, void *p, unsigned key, unsigned u)
 {
+	struct binheap_item *bi;
+
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	AN(bh->update);
 	AN(p);
 	assert(u != BINHEAP_NOIDX);
-	A(bh, u) = p;
+	bi = &A(bh, u);
+	bi->key = key;
+	bi->p = p;
         bh->update(bh->priv, p, u);
 }
 
 static unsigned
-trickleup(struct binheap *bh, void *p1, unsigned u)
+trickleup(const struct binheap *bh, unsigned key, unsigned u)
 {
-	void *p2;
+	struct binheap_item *bi;
         unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-        assert(bh->page_shift > 0);
-        assert(bh->page_shift <= ROW_SHIFT);
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
-        AN(p1);
 
         while (u != ROOT_IDX(bh)) {
                 v = parent(bh->page_shift, u);
                 assert(v < u);
 		assert(v >= ROOT_IDX(bh));
-		p2 = A(bh, v);
-                AN(p2);
-                if (bh->cmp(bh->priv, p2, p1))
+		bi = &A(bh, v);
+                AN(bi->p);
+                if (bi->key < key)
                         break;	/* parent is smaller than the child */
-		assign(bh, p2, u);
+		assign(bh, bi->p, bi->key, u);
                 u = v;
         }
-        return (u);
+        return u;
 }
 
 static unsigned
-trickledown(struct binheap *bh, void *p1, unsigned u)
+trickledown(const struct binheap *bh, unsigned key, unsigned u)
 {
-	void *p2, *p3;
+	struct binheap_item *bi1, *bi2;
 	unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-        assert(bh->page_shift > 0);
-        assert(bh->page_shift <= ROW_SHIFT);
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
-	AN(p1);
 
         while (1) {
                 v = child(bh->page_shift, u);
@@ -260,23 +304,23 @@ trickledown(struct binheap *bh, void *p1, unsigned u)
 			break;		/* index overflow */
                 if (v >= bh->next)
                         break;		/* reached the end of heap */
-		p2 = A(bh, v);
-		AN(p2);
+		bi1 = &A(bh, v);
+		AN(bi1->p);
                 if (v + 1 < bh->next) {
-			p3 = A(bh, v + 1);
-			AN(p3);
-                        if (bh->cmp(bh->priv, p3, p2)) {
+			bi2 = &A(bh, v + 1);
+			AN(bi2->p);
+                        if (bi2->key < bi1->key) {
                                 ++v;
-				p2 = p3;
+				bi1 = bi2;
 			}
                 }
                 assert(v < bh->next);
-                if (bh->cmp(bh->priv, p1, p2))
+                if (key < bi1->key)
                         break;	/* parent is smaller than children */
-		assign(bh, p2, u);
+		assign(bh, bi1->p, bi1->key, u);
                 u = v;
         }
-	return (u);
+	return u;
 }
 
 static void
@@ -307,7 +351,7 @@ add_row(struct binheap *bh)
 }
 
 void
-binheap_insert(struct binheap *bh, void *p)
+binheap_insert(struct binheap *bh, void *p, unsigned key)
 {
         unsigned u, v;
 
@@ -320,15 +364,15 @@ binheap_insert(struct binheap *bh, void *p)
         assert(bh->length > bh->next);
 	assert(bh->next < UINT_MAX);
         u = bh->next++;
-	AZ(A(bh, u));
-        v = trickleup(bh, p, u);
+	AZ(A(bh, u).p);
+        v = trickleup(bh, key, u);
 	assert(v <= u);
 	assert(v >= ROOT_IDX(bh));
-	assign(bh, p, v);
+	assign(bh, p, key, v);
 }
 
 static unsigned
-reorder(struct binheap *bh, void *p, unsigned u)
+reorder(const struct binheap *bh, unsigned key, unsigned u)
 {
         unsigned v;
 
@@ -336,20 +380,20 @@ reorder(struct binheap *bh, void *p, unsigned u)
         assert(bh->next >= ROOT_IDX(bh));
         assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
-        AN(p);
-        v = trickleup(bh, p, u);
+        v = trickleup(bh, key, u);
         assert(v >= ROOT_IDX(bh));
         assert(v <= u);
 	if (u == v) {
-	        v = trickledown(bh, p, u);
+	        v = trickledown(bh, key, u);
 	        assert(v >= u);
 	}
 	return v;
 }
 
 void
-binheap_reorder(struct binheap *bh, unsigned u)
+binheap_reorder(const struct binheap *bh, unsigned key, unsigned u)
 {
+	struct binheap_item *bi;
 	void *p;
 	unsigned v;
 
@@ -358,11 +402,14 @@ binheap_reorder(struct binheap *bh, unsigned u)
         assert(u != BINHEAP_NOIDX);
         assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
-        p = A(bh, u);
-        AN(p);
-	v = reorder(bh, p, u);
+	bi = &A(bh, u);
+        p = bi->p;
+	AN(p);
+	v = reorder(bh, key, u);
 	if (u != v)
-		assign(bh, p, v);
+		assign(bh, p, key, v);
+	else
+		bi->key = key;
 }
 
 static void
@@ -385,25 +432,31 @@ remove_row(struct binheap *bh)
 void
 binheap_delete(struct binheap *bh, unsigned u)
 {
+	struct binheap_item *bi;
 	void *p;
-	unsigned v;
+	unsigned v, key;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(bh->next > ROOT_IDX(bh));
 	assert(u != BINHEAP_NOIDX);
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
-	p = A(bh, u);
+	bi = &A(bh, u);
+	p = bi->p;
         AN(p);
-	A(bh, u) = NULL;
+	bi->key = 0;
+	bi->p = NULL;
 	bh->update(bh->priv, p, BINHEAP_NOIDX);
 	assert(bh->next > 0);
         if (u < --bh->next) {
-		p = A(bh, bh->next);
+		bi = &A(bh, bh->next);
+		key = bi->key;
+		p = bi->p;
 		AN(p);
-	        A(bh, bh->next) = NULL;
-		v = reorder(bh, p, u);
-		assign(bh, p, v);
+		bi->key = 0;
+	        bi->p = NULL;
+		v = reorder(bh, key, u);
+		assign(bh, p, key, v);
 	}
 
         /*
@@ -420,37 +473,29 @@ binheap_root(const struct binheap *bh)
 {
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(&A(bh, ROOT_IDX(bh)) == bh->rootp);
-        assert(*bh->rootp != NULL || bh->next == ROOT_IDX(bh));
-        return *bh->rootp;
+        assert(bh->rootp->p != NULL || bh->next == ROOT_IDX(bh));
+        return bh->rootp->p;
 }
 
 /* binheap2 */
 struct binheap2_item {
-	void *p;
-	unsigned key;
 	unsigned u;
+	void *p;
 };
 
 struct binheap2 {
+	unsigned magic;
+#define BINHEAP2_MAGIC	0x97c9edb6u
 	struct binheap *bh;
 };
-
-static int
-cmp2(void *priv, void *p1, void *p2)
-{
-	struct binheap2_item *bi1, *bi2;
-
-	(void)priv;
-	bi1 = p1;
-	bi2 = p2;
-	return bi1->key < bi2->key;
-}
 
 static void
 update2(void *priv, void *p, unsigned u)
 {
 	struct binheap2_item *bi;
 
+	AZ(priv);
+	AN(p);
 	(void)priv;
 	bi = p;
 	bi->u = u;
@@ -463,7 +508,8 @@ binheap2_new(void)
 
 	bh2 = malloc(sizeof(*bh2));
 	AN(bh2);
-	bh2->bh = binheap_new(NULL, cmp2, update2);
+	bh2->magic = BINHEAP2_MAGIC;
+	bh2->bh = binheap_new(NULL, update2);
 	AN(bh2->bh);
 	return bh2;
 }
@@ -473,37 +519,52 @@ binheap2_insert(struct binheap2 *bh2, void *p, unsigned key)
 {
 	struct binheap2_item *bi;
 
+	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
+	AN(p);
 	bi = malloc(sizeof(*bi));
 	AN(bi);
-	bi->p = p;
-	bi->key = key;
 	bi->u = BINHEAP_NOIDX;
-	binheap_insert(bh2->bh, bi);
+	bi->p = p;
+	binheap_insert(bh2->bh, bi, key);
+	assert(bi->u != BINHEAP_NOIDX);
 	return bi;
 }
 
 void
 binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi)
 {
+	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
+	AN(bi);
+	AN(bi->p);
+	assert(bi->u != BINHEAP_NOIDX);
 	binheap_delete(bh2->bh, bi->u);
-	free(bi);	
+	assert(bi->u == BINHEAP_NOIDX);
+	free(bi);
 }
 
 void
-binheap2_reorder(struct binheap2 *bh2, struct binheap2_item *bi, unsigned key)
+binheap2_reorder(const struct binheap2 *bh2, struct binheap2_item *bi, unsigned key)
 {
-	bi->key = key;
-	binheap_reorder(bh2->bh, bi->u);
+	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
+	AN(bi);
+	AN(bi->p);
+	assert(bi->u != BINHEAP_NOIDX);
+	binheap_reorder(bh2->bh, key, bi->u);
+	assert(bi->u != BINHEAP_NOIDX);
 }
 
 void *
-binheap2_root(struct binheap2 *bh2)
+binheap2_root(const struct binheap2 *bh2)
 {
 	struct binheap2_item *bi;
+
+	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
+	AN(bh2->bh);
 	bi = binheap_root(bh2->bh);
 	if (bi == NULL)
 		return NULL;
 	AN(bi->p);
+	assert(bi->u != BINHEAP_NOIDX);
 	return bi->p;
 }
 
@@ -512,8 +573,7 @@ binheap2_root(struct binheap2 *bh2)
 static void
 check_invariant(const struct binheap *bh)
 {
-        unsigned u, v, root_idx, page_shift;
-        void *p1, *p2;
+        unsigned u, v, root_idx, page_shift, key1, key2;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
         page_shift = bh->page_shift;
@@ -524,9 +584,9 @@ check_invariant(const struct binheap *bh)
                 v = parent(page_shift, u);
                 assert(v < u);
                 assert(v >= root_idx);
-                p1 = A(bh, u);
-                p2 = A(bh, v);
-		assert(bh->cmp(bh->priv, p2, p1) || !bh->cmp(bh->priv, p1, p2));
+                key1 = A(bh, u).key;
+                key2 = A(bh, v).key;
+		assert(key2 <= key1);
         }
 }
 
@@ -609,8 +669,8 @@ struct foo {
 };
 
 #if 1
-#define M 10000000u		/* Number of operations */
-#define N 10000000u		/* Number of items */
+#define M 1000000u		/* Number of operations */
+#define N 1000000u		/* Number of items */
 #else
 #define M 3401u			/* Number of operations */
 #define N 1131u			/* Number of items */
@@ -618,39 +678,28 @@ struct foo {
 #define R ((unsigned) RAND_MAX)	/* Random modulus */
 
 static struct foo *ff[N];
-static unsigned comparisons_count, update_calls_count, page_faults_count;
-
-static int
-foo_cmp(void *priv, void *a, void *b)
-{
-	struct foo *fa, *fb;
-
-	CAST_OBJ_NOTNULL(fa, a, FOO_MAGIC);
-	CAST_OBJ_NOTNULL(fb, b, FOO_MAGIC);
-	++comparisons_count;
-	return (fa->key < fb->key);
-}
+static unsigned update_calls_count, page_faults_count;
 
 static void
 foo_update(void *priv, void *a, unsigned u)
 {
 	struct binheap *bh;
 	struct foo *fp;
-	void **p1, **p2;
+	char *p1, *p2;
 	unsigned page_mask;
 
 	bh = *((struct binheap **) priv);
 	CAST_OBJ_NOTNULL(fp, a, FOO_MAGIC);
 	++update_calls_count;
 	if (fp->idx != BINHEAP_NOIDX && u != BINHEAP_NOIDX) {
-		p1 = &A(bh, fp->idx);
-		p2 = &A(bh, u);
-		assert(*p2 == fp);
+		p1 = (char *) (&A(bh, fp->idx));
+		p2 = (char *) (&A(bh, u));
+		assert(((struct binheap_item *)p2)->p == fp);
 		page_mask = ~((1u << bh->page_shift) * sizeof(void *) - 1);
 		if ((((uintptr_t) p1) & page_mask) !=
 			(((uintptr_t) p2) & page_mask) &&
-			(p2 - bh->rows[0] < 0 ||
-				p2 - bh->rows[0] >= 2 * (~page_mask + 1)))
+			(p2 - (char *)(bh->rows[0]) < 0 ||
+				p2 - (char *)(bh->rows[0]) >= 2 * (~page_mask + 1)))
 			++page_faults_count;
 	}
 	fp->idx = u;
@@ -664,7 +713,8 @@ check_indexes(const struct binheap *bh)
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	for (n = ROOT_IDX(bh); n < bh->next; n++) {
-		fp = A(bh, n);
+		fp = A(bh, n).p;
+		AN(fp);
 		assert(fp->idx == n);
 	}
 }
@@ -678,10 +728,12 @@ foo_check(const struct foo *fp)
 }
 
 static void
-foo_check_existense(const struct foo *fp)
+foo_check_existense(struct binheap *bh, const struct foo *fp)
 {
         foo_check(fp);
         assert(fp->idx != BINHEAP_NOIDX);
+        assert(fp->key == A(bh, fp->idx).key);
+        assert(fp == A(bh, fp->idx).p);
 }
 
 static void
@@ -700,8 +752,8 @@ foo_insert(struct binheap *bh, unsigned n)
         fp->key = key;
         fp->n = n;
         ff[n] = fp;
-	binheap_insert(bh, fp);
-	foo_check_existense(fp);
+	binheap_insert(bh, fp, key);
+	foo_check_existense(bh, fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
 	paranoia_check(bh);
@@ -713,7 +765,7 @@ foo_delete(struct binheap *bh, struct foo *fp)
 	unsigned key, n;
 
 	paranoia_check(bh);
-	foo_check_existense(fp);
+	foo_check_existense(bh, fp);
 	key = fp->key;
 	n = fp->n;
 	binheap_delete(bh, fp->idx);
@@ -732,12 +784,12 @@ foo_reorder(struct binheap *bh, struct foo *fp)
         unsigned key, n;
 
 	paranoia_check(bh);
-        foo_check_existense(fp);
+        foo_check_existense(bh, fp);
         key = random() % R;
 	n = fp->n;
         fp->key = key;
-        binheap_reorder(bh, fp->idx);
-	foo_check_existense(fp);
+        binheap_reorder(bh, key, fp->idx);
+	foo_check_existense(bh, fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
 	paranoia_check(bh);
@@ -746,9 +798,9 @@ foo_reorder(struct binheap *bh, struct foo *fp)
 static void
 print_counters(void)
 {
-	fprintf(stderr, "%u comparisons, %u update calls, %u page faults\n",
-		comparisons_count, update_calls_count, page_faults_count);
-	comparisons_count = update_calls_count = page_faults_count = 0;
+	fprintf(stderr, "%u update calls, %u page faults\n",
+		update_calls_count, page_faults_count);
+	update_calls_count = page_faults_count = 0;
 }
 
 struct bar {
@@ -783,6 +835,7 @@ perftest(void)
 	}
 	end = TIM_mono();
 	fprintf(stderr, "%u insertions: %.3lfms\n", N, end - start);
+	check_invariant(bh2->bh);
 
 	start = TIM_mono();
 	for (u = N; u < 2 * N; u++) {
@@ -790,6 +843,7 @@ perftest(void)
 	}
 	end = TIM_mono();
 	fprintf(stderr, "%u additional insertions: %.3lfms\n", N, end - start);
+        check_invariant(bh2->bh);
 
 	start = TIM_mono();
 	for (u = 0; u < N; u++) {
@@ -799,6 +853,7 @@ perftest(void)
 	}
 	end = TIM_mono();
 	fprintf(stderr, "%u root removals: %.3lfms\n", N, end - start);
+        check_invariant(bh2->bh);
 
 	start = TIM_mono();
 	for (u = 0; u < N; u++) {
@@ -808,6 +863,7 @@ perftest(void)
 	}
 	end = TIM_mono();
 	fprintf(stderr, "%u root removals+insertions: %.3lfms\n", N, end - start);
+        check_invariant(bh2->bh);
 
 	start = TIM_mono();
 	for (u = 0; u < N; u++) {
@@ -819,6 +875,7 @@ perftest(void)
 	}
 	end = TIM_mono();
 	fprintf(stderr, "%u reorders: %.3lfms\n", N, end - start);
+        check_invariant(bh2->bh);
 
 	start = TIM_mono();
 	for (u = 0; u < N; u++) {
@@ -828,6 +885,8 @@ perftest(void)
 	}
 	end = TIM_mono();
 	fprintf(stderr, "%u remaining removals: %.3lfms\n", N, end - start);
+        check_invariant(bh2->bh);
+	AZ(binheap2_root(bh2));
 }
 
 int
@@ -852,7 +911,7 @@ main(int argc, char **argv)
 	        fprintf(stderr, "%u overflow parent-child tests for row_shift=%u OK\n",
 			M, u);
 	}
-	bh = binheap_new(&bh, foo_cmp, foo_update);
+	bh = binheap_new(&bh, foo_update);
 	AZ(binheap_root(bh));
 
 	root_idx = ROOT_IDX(bh);

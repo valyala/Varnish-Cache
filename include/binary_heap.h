@@ -32,74 +32,36 @@
 
 /* Public Interface --------------------------------------------------*/
 
-struct binheap;
-
-typedef int binheap_cmp_t(void *priv, void *a, void *b);
-	/*
-	 * Comparison function.
-	 * Should return true if item 'a' should be closer to the root
-	 * than item 'b'.
-	 */
-
-typedef void binheap_update_t(void *priv, void *a, unsigned newidx);
-	/*
-	 * Update function.
-	 * When items move in the tree, this function gets called to
-	 * notify the item of its new index.
-	 */
-
-struct binheap *binheap_new(void *priv, binheap_cmp_t, binheap_update_t);
-	/*
-	 * Create Binary tree.
-	 * cmd and update functions are required, priv is optional.
-	 * 'priv' is passed to cmp and update functions.
-	 */
-
-void binheap_insert(struct binheap *, void *);
-	/*
-	 * Insert an item.
-	 * Item cannot be NULL.
-	 */
-
-void binheap_reorder(struct binheap *, unsigned idx);
-	/*
-	 * Restore binheap invariant after modifying key value for the item
-	 * with the given index.
-	 */
-
-void binheap_delete(struct binheap *, unsigned idx);
-	/*
-	 * Remove the item with the given index from binheap.
-	 */
-
-void *binheap_root(const struct binheap *);
-	/*
-	 * Return the root item.
-	 * If the binheap is empty, return NULL.
-	 */
-
-#define BINHEAP_NOIDX	0
-	/*
-	 * Update function pass this value as newidx if the given item has been
-	 * removed from binheap.
-	 */
-
-
-/* binheap2 */
-struct binheap2_item;
 struct binheap2;
+struct binheap2_item;
 
-struct binheap2 *
-binheap2_new(void);
+struct binheap2 *binheap2_new(void);
+	/*
+	 * Creates binary heap.
+	 */
 
-struct binheap2_item *
-binheap2_insert(struct binheap2 *bh2, void *p, unsigned key);
+struct binheap2_item *binheap2_insert(struct binheap2 *bh, void *p,
+	unsigned key);
+	/*
+	 * Inserts an item p with the given key into binheap.
+	 * Item cannot be NULL.
+	 * Returns a pointer to opaque object, which can be passed
+	 * to binheap2_delete() and binheap2_reorder().
+	 */
 
-void
-binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi);
+void binheap2_delete(struct binheap2 *bh, struct binheap2_item *bi);
+	/*
+	 * Removes the item from binheap.
+	 */
 
-void
-binheap2_reorder(struct binheap2 *bh2, struct binheap2_item *bi, unsigned key);
+void binheap2_reorder(const struct binheap2 *bh, struct binheap2_item *bi,
+	unsigned key);
+        /*
+         * Modifies key value for the given item.
+         */
 
-void *
-binheap2_root(struct binheap2 *bh2);
+void *binheap2_root(const struct binheap2 *bh);
+	/*
+	 * Returns the root item.
+	 * If the binheap is empty, returns NULL.
+	 */
