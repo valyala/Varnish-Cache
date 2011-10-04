@@ -211,7 +211,7 @@ binheap_new(void *priv, binheap_update_t *update_f)
         xxxassert(page_size <= ROW_WIDTH);
 	XXXAZ(ROW_WIDTH % page_size);
 
-        rows = calloc(sizeof(*rows), 1);
+        rows = calloc(1, sizeof(*rows));
         XXXAN(rows);
         AZ(rows[0]);
 
@@ -485,6 +485,10 @@ struct binheap2 {
 	unsigned magic;
 #define BINHEAP2_MAGIC	0x97c9edb6u
 	struct binheap *bh;
+	struct binheap2_item *free_list;
+	struct binheap2_item **rows;
+	unsigned rows_count;
+	unsigned length;
 };
 
 static void
@@ -499,17 +503,70 @@ update2(void *priv, void *p, unsigned u)
 	bi->u = u;
 }
 
+static struct binheap2_item *
+alloc_row2(void)
+{
+	struct binheap2_item *row;
+	unsigned u;
+
+        row = calloc(ROW_WIDTH, sizeof(*row));
+        XXXAN(row);
+
+        /* push added items into freelist */
+        for (u = 0; u < ROW_WIDTH; u++) {
+                row[u].u = NOIDX;
+                row[u].p = row + u + 1;
+        }
+        row[ROW_WIDTH - 1].p = NULL;
+	return row;
+}
+
 struct binheap2 *
 binheap2_new(void)
 {
 	struct binheap2 *bh2;
+	struct binheap2_item **rows;
+
+	rows = calloc(1, sizeof(*rows));
+	XXXAN(rows);
+	AZ(rows[0]);
+	rows[0] = alloc_row2();
+	AN(rows[0]);
 
 	bh2 = malloc(sizeof(*bh2));
 	AN(bh2);
 	bh2->magic = BINHEAP2_MAGIC;
 	bh2->bh = binheap_new(NULL, update2);
 	AN(bh2->bh);
+	bh2->free_list = rows[0];
+	bh2->rows = rows;
+	bh2->rows_count = 1;
+	bh2->length = ROW_WIDTH;
 	return bh2;
+}
+
+static void
+add_row2(struct binheap2 *bh2)
+{
+        struct binheap2_item *row;
+        unsigned rows_count;
+
+        AZ(bh2->free_list);
+        assert(&ROW(bh2, bh2->length) <= bh2->rows + bh2->rows_count);
+        if (&ROW(bh2, bh2->length) == bh2->rows + bh2->rows_count) {
+                rows_count = 2 * bh2->rows_count;
+                bh2->rows = realloc(bh2->rows, sizeof(*bh2->rows) * rows_count);
+                XXXAN(bh2->rows);
+                while (bh2->rows_count < rows_count)
+                        bh2->rows[bh2->rows_count++] = NULL;
+        }
+        row = alloc_row2();
+        AN(row);
+        ROW(bh2, bh2->length) = row;
+        bh2->free_list = row;
+
+        xxxassert(bh2->length <= UINT_MAX - ROW_WIDTH);
+        bh2->length += ROW_WIDTH;
 }
 
 struct binheap2_item *
@@ -519,8 +576,11 @@ binheap2_insert(struct binheap2 *bh2, void *p, unsigned key)
 
 	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
 	AN(p);
-	bi = malloc(sizeof(*bi));
+	if (bh2->free_list == NULL)
+		add_row2(bh2);
+	bi = bh2->free_list;
 	AN(bi);
+	bh2->free_list = bi->p;
 	bi->u = NOIDX;
 	bi->p = p;
 	binheap_insert(bh2->bh, bi, key);
@@ -537,7 +597,8 @@ binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi)
 	assert(bi->u != NOIDX);
 	binheap_delete(bh2->bh, bi->u);
 	assert(bi->u == NOIDX);
-	free(bi);
+	bi->p = bh2->free_list;
+	bh2->free_list = bi;
 }
 
 void
@@ -667,8 +728,8 @@ struct foo {
 };
 
 #if 1
-#define M 1000000u		/* Number of operations */
-#define N 1000000u		/* Number of items */
+#define M 10000000u		/* Number of operations */
+#define N 10000000u		/* Number of items */
 #else
 #define M 3401u			/* Number of operations */
 #define N 1131u			/* Number of items */
