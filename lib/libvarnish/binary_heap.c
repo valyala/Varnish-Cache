@@ -79,18 +79,9 @@
 /*
  * Storing key near p should improve memory locality
  * for hot paths during binheap mutations.
+ * Code below expects sizeof(binheap_item) is a power of two.
  */
 struct binheap_item {
-	/*
-	 * Do not change the order of members here,
-	 * otherwise access to p can become aliased on x64
-	 * when accessing row[i] with (i & 1) == 1.
-	 * This can negatively impact performance.
-	 * It is assumed sizeof(binheap_item) = 8 on x32
-	 * and sizeof(binheap_item) = 16 on x64.
-	 *
-	 * Code below expects that the sizeof(binheap_item) is a power of two.
-	 */
 	unsigned key;
 	void *p;
 };
@@ -330,7 +321,7 @@ add_row(struct binheap *bh)
                 rows_count = bh->rows_count * 2;
                 bh->rows = realloc(bh->rows, sizeof(*bh->rows) * rows_count);
                 XXXAN(bh->rows);
-
+		AZ(((uintptr_t) bh->rows) % sizeof(*bh->rows));
                 /* NULL out new pointers */
                 while (bh->rows_count < rows_count)
                         bh->rows[bh->rows_count++] = NULL;
@@ -551,6 +542,7 @@ add_row2(struct binheap2 *bh2)
                 rows_count = 2 * bh2->rows_count;
                 bh2->rows = realloc(bh2->rows, sizeof(*bh2->rows) * rows_count);
                 XXXAN(bh2->rows);
+		AZ(((uintptr_t) bh2->rows) % sizeof(*bh2->rows));
                 while (bh2->rows_count < rows_count)
                         bh2->rows[bh2->rows_count++] = NULL;
         }
