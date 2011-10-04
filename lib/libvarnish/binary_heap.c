@@ -479,22 +479,31 @@ vasfail(const char *func, const char *file, int line,
 
 vas_f *VAS_Fail = vasfail;
 
-struct foo {
-	unsigned	magic;
-#define FOO_MAGIC	0x23239823
-	unsigned	idx;
-	unsigned	key;
-	unsigned	n;
-};
-
 #if 1
-#define M 10000000u             /* Number of operations */
-#define N 10000000u             /* Number of items */
+#define M 20000000u             /* Number of operations */
+#define N 2000000u              /* Number of items */
 #else
 #define M 3401u                 /* Number of operations */
 #define N 1131u                 /* Number of items */
 #endif
 #define R ((unsigned) RAND_MAX) /* Random modulus */
+
+/*
+ * Pad foo so its' size is equivalent to the objcore size.
+ * Currently size of objcore is 120 bytes on x64 and 72 bytes
+ * on x32. This means that the padding should be 104 for x64
+ * and 56 for x32.
+ */
+#define PADDING 104
+
+struct foo {
+        unsigned        magic;
+#define FOO_MAGIC       0x23239823
+        unsigned        idx;
+        unsigned        key;
+        unsigned        n;
+	char		padding[PADDING];
+};
 
 static struct foo ff[N];
 
