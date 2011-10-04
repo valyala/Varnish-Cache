@@ -79,11 +79,9 @@
 /*
  * Storing key near p should improve memory locality
  * for hot paths during binheap mutations.
+ * Code below expects sizeof(binheap_item) is a power of two.
  */
 struct binheap_item {
-	/*
-	 * Code below expects that the sizeof(binheap_item) is a power of two.
-	 */
 	unsigned key;
 	unsigned pu;
 };
