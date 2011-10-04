@@ -670,8 +670,8 @@ vasfail(const char *func, const char *file, int line,
 
 vas_f *VAS_Fail = vasfail;
 
-#define M 4000000u		/* Number of operations */
-#define N 1000000u		/* Number of items */
+#define M 20000000u		/* Number of operations */
+#define N 2000000u		/* Number of items */
 #define R ((unsigned) RAND_MAX)	/* Random modulus */
 
 /*
