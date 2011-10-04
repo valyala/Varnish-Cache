@@ -108,7 +108,6 @@ struct binheap {
         void                    *priv;
         binheap_update_t        *update;
         struct binheap_item     **rows;
-	void			**rootp;	/* fast access to root item */
         unsigned                next;
         unsigned                rows_count;
         unsigned                length;
@@ -228,7 +227,6 @@ binheap_new(void *priv, binheap_update_t *update_f)
 	bh->priv = priv;
         bh->update = update_f;
         bh->rows = rows;
-	bh->rootp = &(rows[0][R_IDX(page_shift)].p);
         bh->next = R_IDX(page_shift);
         bh->rows_count = 1;
 	bh->length = ROW_WIDTH;
@@ -239,9 +237,6 @@ binheap_new(void *priv, binheap_update_t *update_f)
 	 * binheap items, which start from R_IDX(page_shift) index.
 	 */
         xxxassert(sizeof(*bh) <= sizeof(**rows) * R_IDX(page_shift));
-
-	/* Verify that the rootp points to the root item. */
-	assert(bh->rootp == &(A(bh, R_IDX(page_shift)).p));
         return bh;
 }
 
@@ -470,9 +465,8 @@ static void *
 binheap_root(const struct binheap *bh)
 {
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	assert(&(A(bh, ROOT_IDX(bh)).p) == bh->rootp);
-        assert(*(bh->rootp) != NULL || bh->next == ROOT_IDX(bh));
-        return *(bh->rootp);
+        assert(A(bh, ROOT_IDX(bh)).p != NULL || bh->next == ROOT_IDX(bh));
+        return A(bh, ROOT_IDX(bh)).p;
 }
 
 /* binheap2 */
