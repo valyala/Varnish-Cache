@@ -670,8 +670,8 @@ vasfail(const char *func, const char *file, int line,
 
 vas_f *VAS_Fail = vasfail;
 
-#define M 20000000u		/* Number of operations */
-#define N 2000000u		/* Number of items */
+#define M 1000000u		/* Number of operations */
+#define N 500000u		/* Number of items */
 #define R ((unsigned) RAND_MAX)	/* Random modulus */
 
 /*
@@ -781,107 +781,118 @@ foo_update(struct binheap *bh, struct foo *fp)
 	paranoia_check(bh);
 }
 
-int
-main(int argc, char **argv)
+static void
+test(struct binheap *bh)
 {
 	double start, end;
-	struct binheap *bh;
         struct foo *fp;
 	unsigned u, n, key, root_idx;
 	unsigned delete_count, insert_count, update_count;
 
-	for (u = 1; u <= ROW_SHIFT; u++) {
-	        check_parent_child(u, M);
-	        check_parent_child_overflow(u, M);
-	}
-	fprintf(stderr, "parent-child test OK\n");
-
-	bh = binheap_new();
 	AZ(binheap_root(bh));
 	root_idx = ROOT_IDX(bh);
         assert(root_idx != NOIDX);
-	key = 0;
-	while (1) {
-		/* First insert our N elements */
-		start = TIM_mono();
-		for (n = 0; n < N; n++) {
-			foo_insert(bh, n);
-			key = ff[n].key;
-			fp = binheap_root(bh);
-			foo_check(fp);
-			assert(fp->bi->idx == root_idx);
-			assert(fp->key <= key);
-		}
-		check_consistency(bh);
-		end = TIM_mono();
-		fprintf(stderr, "%u inserts, %.3lfs OK\n", N, end - start);
 
-		/* For M cycles, pick the root, insert new */
-		start = TIM_mono();
-		for (u = 0; u < M; u++) {
-			fp = binheap_root(bh);
-			foo_check(fp);
-			assert(fp->bi->idx == root_idx);
-			assert(fp->key <= key);
-			n = fp->n;
-			foo_delete(bh, fp);
-			foo_insert(bh, n);
-			key = ff[n].key;
-		}
-		check_consistency(bh);
-		end = TIM_mono();
-		fprintf(stderr, "%u replacements, %.3lfs OK\n", M, end - start);
-
-		/* Randomly insert, delete and update */
-		delete_count = 0;
-		insert_count = 0;
-		update_count = 0;
-		start = TIM_mono();
-		for (u = 0; u < M; u++) {
-			n = random() % N;
-			fp = &ff[n];
-			if (fp->bi != NULL) {
-				if (fp->key & 1) {
-					foo_delete(bh, fp);
-					++delete_count;
-				} else {
-					foo_update(bh, fp);
-					++update_count;
-				}
-			} else {
-				foo_insert(bh, n);
-				++insert_count;
-			}
-		}
-		assert(delete_count >= insert_count);
-		check_consistency(bh);
-		end = TIM_mono();
-		fprintf(stderr,
-			"%u deletes, %u inserts, %u updates, %.3lfs OK\n",
-			delete_count, insert_count, update_count, end - start);
-
-                /* Then remove everything */
-                key = 0;
-		u = 0;
-		start = TIM_mono();
-                while (1) {
-                        fp = binheap_root(bh);
-                        if (fp == NULL) {
-                                break;
-                        }
-                        foo_check(fp);
-			assert(fp->bi->idx == root_idx);
-                        assert(fp->key >= key);
-                        key = fp->key;
-                        foo_delete(bh, fp);
-                        ++u;
-                }
-                assert(u == N - (delete_count - insert_count));
-		AZ(binheap_root(bh));
-		check_consistency(bh);
-		end = TIM_mono();
-                fprintf(stderr, "%u deletes, %.3lfs OK\n", u, end - start);
+	/* First insert our N elements */
+	start = TIM_mono();
+	for (n = 0; n < N; n++) {
+		foo_insert(bh, n);
+		key = ff[n].key;
+		fp = binheap_root(bh);
+		foo_check(fp);
+		assert(fp->bi->idx == root_idx);
+		assert(fp->key <= key);
 	}
+	check_consistency(bh);
+	end = TIM_mono();
+	fprintf(stderr, "%u inserts, %.3lfs OK\n", N, end - start);
+
+	/* For M cycles, pick the root, insert new */
+	start = TIM_mono();
+	for (u = 0; u < M; u++) {
+		fp = binheap_root(bh);
+		foo_check(fp);
+		assert(fp->bi->idx == root_idx);
+		assert(fp->key <= key);
+		n = fp->n;
+		foo_delete(bh, fp);
+		foo_insert(bh, n);
+		key = ff[n].key;
+	}
+	check_consistency(bh);
+	end = TIM_mono();
+	fprintf(stderr, "%u replacements, %.3lfs OK\n", M, end - start);
+
+	/* Randomly insert, delete and update */
+	delete_count = 0;
+	insert_count = 0;
+	update_count = 0;
+	start = TIM_mono();
+	for (u = 0; u < M; u++) {
+		n = random() % N;
+		fp = &ff[n];
+		if (fp->bi != NULL) {
+			if (fp->key & 1) {
+				foo_delete(bh, fp);
+				++delete_count;
+			} else {
+				foo_update(bh, fp);
+				++update_count;
+			}
+		} else {
+			foo_insert(bh, n);
+			++insert_count;
+		}
+	}
+	assert(delete_count >= insert_count);
+	check_consistency(bh);
+	end = TIM_mono();
+	fprintf(stderr,
+		"%u deletes, %u inserts, %u updates, %.3lfs OK\n",
+		delete_count, insert_count, update_count, end - start);
+
+	/* Then remove everything */
+	key = 0;
+	u = 0;
+	start = TIM_mono();
+	while (1) {
+        	fp = binheap_root(bh);
+                if (fp == NULL)
+                	break;
+		foo_check(fp);
+		assert(fp->bi->idx == root_idx);
+                assert(fp->key >= key);
+                key = fp->key;
+                foo_delete(bh, fp);
+                ++u;
+	}
+        assert(u == N - (delete_count - insert_count));
+	AZ(binheap_root(bh));
+	check_consistency(bh);
+	end = TIM_mono();
+        fprintf(stderr, "%u deletes, %.3lfs OK\n", u, end - start);
+}
+
+int
+main(int argc, char **argv)
+{
+        struct binheap *bh;
+        unsigned u, root_idx;
+
+        for (u = 1; u <= ROW_SHIFT; u++) {
+                check_parent_child(u, M);
+                check_parent_child_overflow(u, M);
+        }
+        fprintf(stderr, "parent-child test OK\n");
+
+        bh = binheap_new();
+        AZ(binheap_root(bh));
+        root_idx = ROOT_IDX(bh);
+        assert(root_idx != NOIDX);
+
+	test(bh);
+	while (1)
+		test(bh);
 	return 0;
 }
 #endif
