@@ -46,7 +46,7 @@ struct binheap2_item *binheap2_insert(struct binheap2 *bh, void *p,
 	 * Inserts an item p with the given key into binheap.
 	 * Item cannot be NULL.
 	 * Returns a pointer to opaque object, which can be passed
-	 * to binheap2_delete() and binheap2_reorder().
+	 * to binheap2_delete() and binheap2_update().
 	 */
 
 void binheap2_delete(struct binheap2 *bh, struct binheap2_item *bi);
@@ -54,7 +54,7 @@ void binheap2_delete(struct binheap2 *bh, struct binheap2_item *bi);
 	 * Removes the item from binheap.
 	 */
 
-void binheap2_reorder(const struct binheap2 *bh, struct binheap2_item *bi,
+void binheap2_update(const struct binheap2 *bh, struct binheap2_item *bi,
 	unsigned key);
         /*
          * Modifies key value for the given item.

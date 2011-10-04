@@ -390,7 +390,7 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 		free(e);
 	} else {
 		e->__when = t + e->timeout;
-		binheap2_reorder(evb->binheap, e->__bi, TIME2KEY(e->__when));
+		binheap2_update(evb->binheap, e->__bi, TIME2KEY(e->__when));
 	}
 	return (1);
 }

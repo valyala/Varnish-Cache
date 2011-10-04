@@ -370,7 +370,7 @@ binheap_insert(struct binheap *bh, void *p, unsigned key)
 }
 
 static unsigned
-reorder(const struct binheap *bh, unsigned key, unsigned u)
+update(const struct binheap *bh, unsigned key, unsigned u)
 {
         unsigned v;
 
@@ -389,7 +389,7 @@ reorder(const struct binheap *bh, unsigned key, unsigned u)
 }
 
 static void
-binheap_reorder(const struct binheap *bh, unsigned key, unsigned u)
+binheap_update(const struct binheap *bh, unsigned key, unsigned u)
 {
 	struct binheap_item *bi;
 	void *p;
@@ -403,7 +403,7 @@ binheap_reorder(const struct binheap *bh, unsigned key, unsigned u)
 	bi = &A(bh, u);
         p = bi->p;
 	AN(p);
-	v = reorder(bh, key, u);
+	v = update(bh, key, u);
 	if (u != v)
 		assign(bh, p, key, v);
 	else
@@ -453,7 +453,7 @@ binheap_delete(struct binheap *bh, unsigned u)
 		AN(p);
 		bi->key = 0;
 	        bi->p = NULL;
-		v = reorder(bh, key, u);
+		v = update(bh, key, u);
 		assign(bh, p, key, v);
 	}
 
@@ -541,13 +541,13 @@ binheap2_delete(struct binheap2 *bh2, struct binheap2_item *bi)
 }
 
 void
-binheap2_reorder(const struct binheap2 *bh2, struct binheap2_item *bi, unsigned key)
+binheap2_update(const struct binheap2 *bh2, struct binheap2_item *bi, unsigned key)
 {
 	CHECK_OBJ_NOTNULL(bh2, BINHEAP2_MAGIC);
 	AN(bi);
 	AN(bi->p);
 	assert(bi->u != NOIDX);
-	binheap_reorder(bh2->bh, key, bi->u);
+	binheap_update(bh2->bh, key, bi->u);
 	assert(bi->u != NOIDX);
 }
 
@@ -679,7 +679,7 @@ static struct foo *ff[N];
 static unsigned update_calls_count, page_faults_count;
 
 static void
-foo_update(void *priv, void *a, unsigned u)
+foo_update_f(void *priv, void *a, unsigned u)
 {
 	struct binheap *bh;
 	struct foo *fp;
@@ -777,7 +777,7 @@ foo_delete(struct binheap *bh, struct foo *fp)
 }
 
 static void
-foo_reorder(struct binheap *bh, struct foo *fp)
+foo_update(struct binheap *bh, struct foo *fp)
 {
         unsigned key, n;
 
@@ -786,7 +786,7 @@ foo_reorder(struct binheap *bh, struct foo *fp)
         key = random() % R;
 	n = fp->n;
         fp->key = key;
-        binheap_reorder(bh, key, fp->idx);
+        binheap_update(bh, key, fp->idx);
 	foo_check_existense(bh, fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
@@ -867,12 +867,12 @@ perftest(void)
 	for (u = 0; u < N; u++) {
 		v = random() % N;
 		if (bb[v].bi != NULL)
-			binheap2_reorder(bh2, bb[v].bi, random());
+			binheap2_update(bh2, bb[v].bi, random());
 		else
 			u--;
 	}
 	end = TIM_mono();
-	fprintf(stderr, "%u reorders: %.3lfms\n", N, end - start);
+	fprintf(stderr, "%u updates: %.3lfms\n", N, end - start);
         check_invariant(bh2->bh);
 
 	start = TIM_mono();
@@ -893,7 +893,7 @@ main(int argc, char **argv)
 	struct binheap *bh;
         struct foo *fp;
 	unsigned u, n, key, root_idx;
-	unsigned delete_count, insert_count, reorder_count;
+	unsigned delete_count, insert_count, update_count;
 
 	if (0) {
 		/* srandomdev(); */
@@ -911,7 +911,7 @@ main(int argc, char **argv)
 
         perftest();
 
-	bh = binheap_new(&bh, foo_update);
+	bh = binheap_new(&bh, foo_update_f);
 	AZ(binheap_root(bh));
 
 	root_idx = ROOT_IDX(bh);
@@ -948,10 +948,10 @@ main(int argc, char **argv)
 		fprintf(stderr, "%u replacements OK\n", M);
 		print_counters();
 
-		/* Randomly insert, delete and reorder */
+		/* Randomly insert, delete and update */
 		delete_count = 0;
 		insert_count = 0;
-		reorder_count = 0;
+		update_count = 0;
 		for (u = 0; u < M; u++) {
 			n = random() % N;
 			fp = ff[n];
@@ -960,8 +960,8 @@ main(int argc, char **argv)
 					foo_delete(bh, fp);
 					++delete_count;
 				} else {
-					foo_reorder(bh, fp);
-					++reorder_count;
+					foo_update(bh, fp);
+					++update_count;
 				}
 			} else {
 				foo_insert(bh, n);
@@ -971,8 +971,8 @@ main(int argc, char **argv)
 		assert(delete_count >= insert_count);
 		check_invariant(bh);
 		check_indexes(bh);
-		fprintf(stderr, "%u deletes, %u inserts, %u reorders OK\n",
-			delete_count, insert_count, reorder_count);
+		fprintf(stderr, "%u deletes, %u inserts, %u updates OK\n",
+			delete_count, insert_count, update_count);
 		print_counters();
 
                 /* Then remove everything */
