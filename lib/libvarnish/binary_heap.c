@@ -47,12 +47,6 @@
 /* Parameters --------------------------------------------------------*/
 
 /*
- * Update function pass this value as newidx if the given item has been
- * removed from binheap.
- */
-#define NOIDX   0
-
-/*
  * The number of elements in a row has to be a compromise between
  * wasted space and number of memory allocations.
  * With 64k objects per row, there will be at least 5...10 seconds
@@ -75,6 +69,7 @@
 
 #define R_IDX(page_shift)       ((1u << (page_shift)) - 1)
 #define ROOT_IDX(bh)            R_IDX((bh)->page_shift)
+#define NOIDX   		0
 
 struct binheap_item {
         unsigned idx;
