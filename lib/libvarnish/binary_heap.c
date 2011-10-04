@@ -650,6 +650,15 @@ check_parent_child_overflow(unsigned page_shift, unsigned n_max)
 #include <stdio.h>
 #include <time.h>
 
+double
+TIM_mono(void)
+{
+        struct timespec ts;
+
+        XXXAZ(clock_gettime(CLOCK_MONOTONIC, &ts));
+        return (ts.tv_sec + 1e-9 * ts.tv_nsec);
+}
+
 static void
 vasfail(const char *func, const char *file, int line,
     const char *cond, int err, int xxx)
@@ -766,15 +775,6 @@ foo_update(struct binheap *bh, struct foo *fp)
 	assert(fp->key == key);
 	assert(fp->n == n);
 	paranoia_check(bh);
-}
-
-double
-TIM_mono(void)
-{
-        struct timespec ts;
-
-        XXXAZ(clock_gettime(CLOCK_MONOTONIC, &ts));
-        return (ts.tv_sec + 1e-9 * ts.tv_nsec);
 }
 
 int
