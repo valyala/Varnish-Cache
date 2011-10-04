@@ -897,9 +897,8 @@ main(int argc, char **argv)
 	unsigned u, n, key, root_idx;
 	unsigned delete_count, insert_count, reorder_count;
 
-	perftest();
 	if (0) {
-//		srandomdev();
+		/* srandomdev(); */
 		u = random();
 		printf("Seed %u\n", u);
 		srandom(u);
@@ -911,6 +910,9 @@ main(int argc, char **argv)
 	        fprintf(stderr, "%u overflow parent-child tests for row_shift=%u OK\n",
 			M, u);
 	}
+
+        perftest();
+
 	bh = binheap_new(&bh, foo_update);
 	AZ(binheap_root(bh));
 
