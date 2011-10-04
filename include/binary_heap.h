@@ -32,35 +32,35 @@
 
 /* Public Interface --------------------------------------------------*/
 
-struct binheap2;
-struct binheap2_item;
+struct binheap;
+struct binheap_item;
 
-struct binheap2 *binheap2_new(void);
+struct binheap *binheap_new(void);
 	/*
 	 * Creates binary heap.
 	 */
 
-struct binheap2_item *binheap2_insert(struct binheap2 *bh, void *p,
+struct binheap_item *binheap_insert(struct binheap *bh, void *p,
 	unsigned key);
 	/*
 	 * Inserts an item p with the given key into binheap.
 	 * Item cannot be NULL.
 	 * Returns a pointer to opaque object, which can be passed
-	 * to binheap2_delete() and binheap2_update().
+	 * to binheap_update() or binheap_delete().
 	 */
 
-void binheap2_delete(struct binheap2 *bh, struct binheap2_item *bi);
-	/*
-	 * Removes the item from binheap.
-	 */
-
-void binheap2_update(const struct binheap2 *bh, struct binheap2_item *bi,
+void binheap_update(const struct binheap *bh, struct binheap_item *bi,
 	unsigned key);
         /*
          * Modifies key value for the given item.
          */
 
-void *binheap2_root(const struct binheap2 *bh);
+void binheap_delete(struct binheap *bh, struct binheap_item *bi);
+        /*
+         * Removes the item from binheap.
+         */
+
+void *binheap_root(const struct binheap *bh);
 	/*
 	 * Returns the root item.
 	 * If the binheap is empty, returns NULL.
