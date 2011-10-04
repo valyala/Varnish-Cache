@@ -562,7 +562,7 @@ foo_update(void *priv, void *a, unsigned u)
 		p1 = (char *) (&A(bh, fp->idx));
 		p2 = (char *) (&A(bh, u));
 		assert(*(void **)p2 == fp);
-		page_mask = ~((1u << bh->page_shift) * sizeof(void *) - 1);
+		page_mask = ~((1u << bh->page_shift) * sizeof(**bh->rows) - 1);
 		if ((((uintptr_t) p1) & page_mask) !=
 			(((uintptr_t) p2) & page_mask) &&
 			(p2 - (char *) (bh->rows[0]) < 0 ||
