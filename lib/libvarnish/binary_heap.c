@@ -176,7 +176,7 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
         xxxassert(page_size <= ROW_WIDTH);
 	XXXAZ(ROW_WIDTH % page_size);
 
-        rows = calloc(sizeof(*rows), 1);
+        rows = calloc(1, sizeof(*rows));
         XXXAN(rows);
         AZ(rows[0]);
 
