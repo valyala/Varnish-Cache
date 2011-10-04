@@ -77,7 +77,6 @@ struct binheap {
         binheap_cmp_t           *cmp;
         binheap_update_t        *update;
         void                    ***rows;
-	void			**rootp;	/* fast access to root */
         unsigned                next;
         unsigned                rows_count;
         unsigned                length;
@@ -189,14 +188,12 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
         bh->cmp = cmp_f;
         bh->update = update_f;
         bh->rows = rows;
-	bh->rootp = rows[0] + R_IDX(page_shift);
         bh->next = R_IDX(page_shift);
         bh->rows_count = 1;
 	bh->length = ROW_WIDTH;
 	bh->page_shift = page_shift;
 	/* make sure the row with embedded binheap has free space for root pointer */
         xxxassert(sizeof(*bh) <= sizeof(**rows) * R_IDX(page_shift));
-	assert(bh->rootp == &A(bh, R_IDX(page_shift)));
         return (bh);
 }
 
@@ -418,9 +415,8 @@ void *
 binheap_root(const struct binheap *bh)
 {
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	assert(&A(bh, ROOT_IDX(bh)) == bh->rootp);
-        assert(*bh->rootp != NULL || bh->next == ROOT_IDX(bh));
-        return *bh->rootp;
+        assert(A(bh, ROOT_IDX(bh)) != NULL || bh->next == ROOT_IDX(bh));
+        return A(bh, ROOT_IDX(bh));
 }
 
 #ifdef TEST_DRIVER
