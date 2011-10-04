@@ -616,7 +616,7 @@ check_parent_child(unsigned page_shift, unsigned n_max)
                         continue;
                 }
                 v = child(page_shift, u);
-                assert(v == (n & (0u - 2)));
+                assert(v == n || v == n - 1);
         }
 }
 
@@ -628,12 +628,21 @@ check_parent_child_overflow(unsigned page_shift, unsigned n_max)
 	assert(page_shift > 0);
 	assert(page_shift <= ROW_SHIFT);
 	root_idx = R_IDX(page_shift);
-	for (n = 0; n < n_max; n++) {
-		u = parent(page_shift, UINT_MAX - n);
-		assert(u < UINT_MAX - n);
+	n = UINT_MAX - n_max;
+	while (n++ < UINT_MAX) {
+		u = parent(page_shift, n);
+		assert(u < n);
 		assert(u >= root_idx);
 		v = child(page_shift, u);
-		assert(v == ((UINT_MAX - n) & (0u - 2)));
+		assert(v == n || v == n - 1);
+
+		u = child(page_shift, n);
+		assert(u >= n);
+		assert(u >= root_idx);
+		if (u == n)
+			continue;	/* overflow */
+		v = parent(page_shift, u);
+		assert(v == n || v == n - 1);
 	}
 }
 
