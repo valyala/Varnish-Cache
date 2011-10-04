@@ -816,14 +816,14 @@ perftest(struct binheap *bh)
 		++delete_count;
 	}
 	end = TIM_mono();
-	fprintf(stderr, "perf %d deletions: %.3lf\n", delete_count, end - start);
+	fprintf(stderr, "perf %d deletions: %.3lfs\n", delete_count, end - start);
+	check_consistency(bh);
 
 	for (u = 0; u < N; u++) {
 		ff[u].idx = BINHEAP_NOIDX;
 		ff[u].key = 0;
 		ff[u].n = 0;
 	}
-	check_consistency(bh);
 }
 
 int
