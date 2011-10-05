@@ -461,6 +461,7 @@ binheap_root(const struct binheap *bh)
 #ifdef PARANOIA
 	chk(bh);
 #endif
+	TEST_DRIVER_ACCESS_IDX(bh, ROOT_IDX);
 	return (A(bh, ROOT_IDX));
 }
 
