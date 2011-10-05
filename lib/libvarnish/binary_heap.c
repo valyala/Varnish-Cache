@@ -44,8 +44,6 @@
 #include "libvarnish.h"
 #include "miniobj.h"
 
-/* Parameters --------------------------------------------------------*/
-
 /*
  * The number of elements in a row has to be a compromise between
  * wasted space and number of memory allocations.
@@ -71,6 +69,95 @@
 #define ROOT_IDX(bh)            R_IDX((bh)->page_shift)
 #define NOIDX   		0
 
+
+#ifdef TEST_DRIVER
+
+/* the number of pages in lru cache */
+#define LRU_SIZE 32
+
+struct mem {
+        uintptr_t *lru;
+        uint64_t page_faults;
+        unsigned is_enabled;
+};
+
+static struct mem *
+create_mem(void)
+{
+        struct mem *m;
+
+        m = malloc(sizeof(*m));
+        XXXAN(m);
+        m->lru = calloc(LRU_SIZE, sizeof(*m->lru));
+        XXXAN(m->lru);
+        m->page_faults = 0;
+        m->is_enabled = 0;
+        return m;
+}
+
+static void
+enable_mem(struct mem *m)
+{
+        m->is_enabled = 1;
+}
+
+static void
+disable_mem(struct mem *m)
+{
+        m->is_enabled = 0;
+}
+
+static void
+clear_mem(struct mem *m)
+{
+        unsigned u;
+
+        for (u = 0; u < LRU_SIZE; u++)
+                m->lru[u] = 0;
+        m->page_faults = 0;
+}
+
+static void
+access_mem(struct mem *m, void *p)
+{
+        uintptr_t addr, *lru;
+        unsigned u, v;
+
+        AN(m);
+        assert(LRU_SIZE > 0);
+        if (!m->is_enabled)
+                return;
+
+        addr = ((uintptr_t) p) & ~((uintptr_t) 4095);
+        lru = m->lru;
+        for (u = 0; u < LRU_SIZE; u++) {
+                if (lru[u] == addr) {
+                        for (v = u; v >= 1; v--)
+                                lru[v] = lru[v - 1];
+                        lru[0] = addr;
+                        return;
+                }
+        }
+        m->page_faults++;
+        for (v = LRU_SIZE - 1; v >= 1; v--)
+                lru[v] = lru[v - 1];
+        lru[0] = addr;
+}
+
+#define TEST_DRIVER_DECLARE_MEM         struct mem *m;  /* semicolon */
+#define TEST_DRIVER_CREATE_MEM(bh)      (bh)->m = create_mem()
+#define TEST_DRIVER_ACCESS_MEM(bh, p)   access_mem((bh)->m, (p))
+#else
+#define TEST_DRIVER_DECLARE_MEM         /* nothing */
+#define TEST_DRIVER_CREATE_MEM(bh)      ((void)0)
+#define TEST_DRIVER_ACCESS_MEM(bh, p)   ((void)0)
+#endif
+
+#define TEST_DRIVER_ACCESS_IDX(bh, u)   do { \
+        TEST_DRIVER_ACCESS_MEM(bh, &A(bh, u)); \
+        TEST_DRIVER_ACCESS_MEM(bh, A(bh, u).bi); \
+} while (0)
+
 struct binheap_item {
         unsigned idx;
         void *p;
@@ -95,6 +182,7 @@ struct binheap {
         unsigned                rows_count;
         unsigned                length;
         unsigned                page_shift;
+	TEST_DRIVER_DECLARE_MEM			/* no semicolon */
 };
 
 static unsigned
@@ -210,6 +298,7 @@ binheap_new(void)
         bh->rows_count = 1;
 	bh->length = ROW_WIDTH;
 	bh->page_shift = page_shift;
+	TEST_DRIVER_CREATE_MEM(bh);
 
 	/*
 	 * Make sure the page with embedded binheap don't overlap with
@@ -230,6 +319,7 @@ assign(const struct binheap *bh, struct binheap_item *bi, unsigned key,
 	assert(idx != NOIDX);
 	assert(idx >= ROOT_IDX(bh));
 	assert(idx < bh->next);
+	TEST_DRIVER_ACCESS_IDX(bh, idx);
 	i = &A(bh, idx);
 	i->key = key;
 	i->bi = bi;
@@ -250,6 +340,7 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
                 v = parent(bh->page_shift, u);
                 assert(v < u);
 		assert(v >= ROOT_IDX(bh));
+		TEST_DRIVER_ACCESS_IDX(bh, v);
 		i = &A(bh, v);
                 AN(i->bi);
 		AN(i->bi->p);
@@ -283,11 +374,13 @@ trickledown(const struct binheap *bh, unsigned key, unsigned u)
 			break;		/* index overflow */
                 if (v >= bh->next)
                         break;		/* reached the end of heap */
+		TEST_DRIVER_ACCESS_IDX(bh, v);
 		i1 = &A(bh, v);
 		AN(i1->bi);
 		AN(i1->bi->p);
 		assert(i1->bi->idx == v);
                 if (v + 1 < bh->next) {
+			TEST_DRIVER_ACCESS_IDX(bh, v + 1);
 			i2 = &A(bh, v + 1);
 			AN(i2->bi);
 			AN(i2->bi->p);
@@ -496,6 +589,7 @@ binheap_delete(struct binheap *bh, struct binheap_item *bi)
 	assert(u != NOIDX);
 	assert(u >= ROOT_IDX(bh));
         assert(u < bh->next);
+	TEST_DRIVER_ACCESS_IDX(bh, u);
 	i = &A(bh, u);
 	assert(i->bi == bi);
 	i->key = 0;
@@ -504,6 +598,7 @@ binheap_delete(struct binheap *bh, struct binheap_item *bi)
 	assert(bi->idx == NOIDX);
 	assert(bh->next > 0);
         if (u < --bh->next) {
+		TEST_DRIVER_ACCESS_IDX(bh, bh->next);
 		i = &A(bh, bh->next);
 		key = i->key;
 		bi = i->bi;
@@ -536,6 +631,7 @@ binheap_root(const struct binheap *bh)
 	struct binheap_item *bi;
 
         CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	TEST_DRIVER_ACCESS_IDX(bh, ROOT_IDX(bh));
 	bi = A(bh, ROOT_IDX(bh)).bi;
 	if (bi == NULL) {
 		assert(bh->next == ROOT_IDX(bh));
@@ -783,9 +879,11 @@ test(struct binheap *bh)
 	AZ(binheap_root(bh));
 	root_idx = ROOT_IDX(bh);
         assert(root_idx != NOIDX);
+	enable_mem(bh->m);
 
 	/* First insert our N elements */
 	start = TIM_mono();
+	clear_mem(bh->m);
 	for (n = 0; n < N; n++) {
 		foo_insert(bh, n);
 		key = ff[n].key;
@@ -796,10 +894,12 @@ test(struct binheap *bh)
 	}
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u inserts, %.3lfs OK\n", N, end - start);
+	fprintf(stderr, "%u inserts: %.3lfs page_faults=%lu OK\n", N,
+		end - start, bh->m->page_faults);
 
 	/* For M cycles, pick the root, insert new */
 	start = TIM_mono();
+	clear_mem(bh->m);
 	for (u = 0; u < M; u++) {
 		fp = binheap_root(bh);
 		foo_check(fp);
@@ -812,10 +912,12 @@ test(struct binheap *bh)
 	}
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u root replacements, %.3lfs OK\n", M, end - start);
+	fprintf(stderr, "%u root replacements: %.3lfs, page_faults=%lu OK\n", M,
+		end - start, bh->m->page_faults);
 
 	/* Randomly update */
 	start = TIM_mono();
+	clear_mem(bh->m);
 	for (u = 0; u < M; u++) {
 		n = random() % N;
 		fp = &ff[n];
@@ -823,13 +925,15 @@ test(struct binheap *bh)
 	}
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u random updates, %.3lfs OK\n", M, end - start);
+	fprintf(stderr, "%u random updates: %.3lfs, page_faults=%lu OK\n", M,
+		end - start, bh->m->page_faults);
 
 	/* Randomly insert, delete and update */
 	delete_count = 0;
 	insert_count = 0;
 	update_count = 0;
 	start = TIM_mono();
+	clear_mem(bh->m);
 	for (u = 0; u < M; u++) {
 		n = random() % N;
 		fp = &ff[n];
@@ -850,13 +954,16 @@ test(struct binheap *bh)
 	check_consistency(bh);
 	end = TIM_mono();
 	fprintf(stderr,
-		"%u deletes, %u inserts, %u updates, %.3lfs OK\n",
-		delete_count, insert_count, update_count, end - start);
+		"%u deletes, %u inserts, %u updates: %.3lfs, "
+		"page_faults=%lu OK\n",
+		delete_count, insert_count, update_count, end - start,
+		bh->m->page_faults);
 
 	/* Then remove everything */
 	key = 0;
 	u = 0;
 	start = TIM_mono();
+	clear_mem(bh->m);
 	while (1) {
         	fp = binheap_root(bh);
                 if (fp == NULL)
@@ -872,7 +979,10 @@ test(struct binheap *bh)
 	AZ(binheap_root(bh));
 	check_consistency(bh);
 	end = TIM_mono();
-        fprintf(stderr, "%u deletes, %.3lfs OK\n", u, end - start);
+        fprintf(stderr, "%u deletes: %.3lfs, page_faults=%lu OK\n", u,
+		end - start, bh->m->page_faults);
+
+	disable_mem(bh->m);
 }
 
 static void
