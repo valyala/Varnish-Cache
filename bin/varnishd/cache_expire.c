@@ -320,8 +320,10 @@ EXP_Rearm(const struct object *o)
 	 * The hang-man might have this object of the binheap while
 	 * tending to a timer.  If so, we do not muck with it here.
 	 */
-	if (oc->bi != NULL && update_object_when(o))
+	if (oc->bi != NULL && update_object_when(o)) {
+		AN(oc->bi);
 		binheap_reorder(exp_heap, oc->bi, TIME2KEY(oc->timer_when));
+	}
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
