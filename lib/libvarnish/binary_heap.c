@@ -145,7 +145,6 @@ child(unsigned page_shift, unsigned u)
 static struct item *
 alloc_row(unsigned page_shift)
 {
-        void *p;
 	struct item *row;
 	size_t item_size, alignment;
 	unsigned u;
@@ -157,12 +156,11 @@ alloc_row(unsigned page_shift)
 	AZ(item_size & (item_size - 1));	/* should be power of 2 */
         assert((1u << page_shift) < UINT_MAX / item_size);
 	alignment = (1u << page_shift) * item_size;
-	assert(ROW_WIDTH < SIZE_MAX / item_size);
-        p = NULL;
-	rv = posix_memalign(&p, alignment, ROW_WIDTH * item_size);
+	assert(ROW_WIDTH <= SIZE_MAX / item_size);
+        row = NULL;
+	rv = posix_memalign((void **) &row, alignment, item_size * ROW_WIDTH);
 	XXXAZ(rv);
-        AN(p);
-	row = p;
+        AN(row);
         AZ(((uintptr_t) row) & (alignment - 1));
 	/* null out items */
 	for (u = 0; u < ROW_WIDTH; u++) {
@@ -325,7 +323,6 @@ add_row(struct binheap *bh)
                 rows_count = bh->rows_count * 2;
                 bh->rows = realloc(bh->rows, sizeof(*bh->rows) * rows_count);
                 XXXAN(bh->rows);
-		AZ(((uintptr_t) bh->rows) % sizeof(*bh->rows));
                 /* NULL out new pointers */
                 while (bh->rows_count < rows_count)
                         bh->rows[bh->rows_count++] = NULL;
@@ -347,7 +344,6 @@ alloc_bi_row(void)
 	/* TODO: determine the best row width */
         row = calloc(ROW_WIDTH, sizeof(*row));
         XXXAN(row);
-	AZ(((uintptr_t) row) % sizeof(*row));
 
         /* construct freelist from items in the row */
         for (u = 0; u < ROW_WIDTH; u++) {
