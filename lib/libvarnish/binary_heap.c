@@ -80,7 +80,7 @@
  * The maximum number of resident pages in memory.
  * Other pages are swapped out in lru order.
  */
-#define RESIDENT_PAGES_COUNT 1
+#define RESIDENT_PAGES_COUNT	1
 
 /* Memory model, which counts page faults */
 struct mem {
