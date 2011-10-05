@@ -712,7 +712,18 @@ test(struct binheap *bh)
 	}
         check_consistency(bh);
         end = TIM_mono();
-        fprintf(stderr, "%u replacements, %.3lfs OK\n", M, end - start);
+        fprintf(stderr, "%u root replacements, %.3lfs OK\n", M, end - start);
+
+	/* Randomly update */
+	start = TIM_mono();
+	for (u = 0; u < M; u++) {
+		n = random() % N;
+		fp = &ff[n];
+		foo_reorder(bh, fp);
+	}
+	check_consistency(bh);
+	end = TIM_mono();
+	fprintf(stderr, "%u random updates, %.3lfs OK\n", M, end - start);
 
         /* Randomly insert, delete and update */
         delete_count = 0;
