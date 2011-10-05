@@ -77,6 +77,7 @@
 
 struct mem {
         uintptr_t *lru;
+	uintptr_t page_mask;
         uint64_t page_faults;
         unsigned is_enabled;
 };
@@ -85,11 +86,17 @@ static struct mem *
 create_mem(void)
 {
         struct mem *m;
+	uintptr_t page_size;
+
+        page_size = (uintptr_t) getpagesize();
+        xxxassert(page_size > 0);
+        XXXAZ(page_size & (page_size - 1));
 
         m = malloc(sizeof(*m));
         XXXAN(m);
         m->lru = calloc(LRU_SIZE, sizeof(*m->lru));
         XXXAN(m->lru);
+	m->page_mask = ~(page_size - 1);
         m->page_faults = 0;
         m->is_enabled = 0;
         return m;
@@ -128,7 +135,7 @@ access_mem(struct mem *m, void *p)
         if (!m->is_enabled)
                 return;
 
-        addr = ((uintptr_t) p) & ~((uintptr_t) 4095);
+        addr = ((uintptr_t) p) & m->page_mask;
         lru = m->lru;
         for (u = 0; u < LRU_SIZE; u++) {
                 if (lru[u] == addr) {
