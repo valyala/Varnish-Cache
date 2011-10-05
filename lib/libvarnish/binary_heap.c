@@ -73,6 +73,95 @@
 /*lint -emacro(835, A) 0 left of & */
 #define A(b, n)			ROW(b, n)[(n) & (ROW_WIDTH - 1)]
 
+
+#ifdef TEST_DRIVER
+
+/* the number of pages in lru cache */
+#define LRU_SIZE 32
+
+struct mem {
+	uintptr_t *lru;
+	uint64_t page_faults;
+	unsigned is_enabled;
+};
+
+static struct mem *
+create_mem(void)
+{
+	struct mem *m;
+
+	m = malloc(sizeof(*m));
+	XXXAN(m);
+	m->lru = calloc(LRU_SIZE, sizeof(*m->lru));
+	XXXAN(m->lru);
+	m->page_faults = 0;
+	m->is_enabled = 0;
+	return m;
+}
+
+static void
+enable_mem(struct mem *m)
+{
+	m->is_enabled = 1;
+}
+
+static void
+disable_mem(struct mem *m)
+{
+	m->is_enabled = 0;
+}
+
+static void
+clear_mem(struct mem *m)
+{
+	unsigned u;
+
+	for (u = 0; u < LRU_SIZE; u++)
+		m->lru[u] = 0;
+	m->page_faults = 0;
+}
+
+static void
+access_mem(struct mem *m, void *p)
+{
+	uintptr_t addr, *lru;
+	unsigned u, v;
+
+	AN(m);
+	assert(LRU_SIZE > 0);
+	if (!m->is_enabled)
+		return;
+
+	addr = ((uintptr_t) p) & ~((uintptr_t) 4095);
+	lru = m->lru;
+	for (u = 0; u < LRU_SIZE; u++) {
+		if (lru[u] == addr) {
+			for (v = u; v >= 1; v--)
+				lru[v] = lru[v - 1];
+			lru[0] = addr;
+			return;
+		}
+	}
+	m->page_faults++;
+	for (v = LRU_SIZE - 1; v >= 1; v--)
+		lru[v] = lru[v - 1];
+	lru[0] = addr;
+}
+
+#define TEST_DRIVER_DECLARE_MEM		struct mem *m;	/* semicolon */
+#define TEST_DRIVER_CREATE_MEM(bh)	(bh)->m = create_mem()
+#define TEST_DRIVER_ACCESS_MEM(bh, p)	access_mem((bh)->m, (p))
+#else
+#define TEST_DRIVER_DECLARE_MEM		/* nothing */
+#define TEST_DRIVER_CREATE_MEM(bh)	((void)0)
+#define TEST_DRIVER_ACCESS_MEM(bh, p)	((void)0)
+#endif
+
+#define TEST_DRIVER_ACCESS_IDX(bh, u)   do { \
+	TEST_DRIVER_ACCESS_MEM(bh, &A(bh, u)); \
+	TEST_DRIVER_ACCESS_MEM(bh, A(bh, u)); \
+} while (0)
+
 struct binheap {
 	unsigned		magic;
 #define BINHEAP_MAGIC		0xf581581aU	/* from /dev/random */
@@ -86,6 +175,7 @@ struct binheap {
 	unsigned		page_size;
 	unsigned		page_mask;
 	unsigned		page_shift;
+	TEST_DRIVER_DECLARE_MEM			/* no semicolon */
 };
 
 #define VM_AWARE
@@ -225,6 +315,7 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 	bh->rows = 16;		/* A tiny-ish number */
 	bh->array = calloc(sizeof *bh->array, bh->rows);
 	assert(bh->array != NULL);
+	TEST_DRIVER_CREATE_MEM(bh);
 	binheap_addrow(bh);
 	A(bh, ROOT_IDX) = NULL;
 	bh->magic = BINHEAP_MAGIC;
@@ -238,8 +329,10 @@ binheap_update(const struct binheap *bh, unsigned u)
 	assert(bh->magic == BINHEAP_MAGIC);
 	assert(u < bh->next);
 	assert(A(bh, u) != NULL);
-	if (bh->update != NULL)
+	if (bh->update != NULL) {
+		TEST_DRIVER_ACCESS_IDX(bh, u);
 		bh->update(bh->priv, A(bh, u), u);
+	}
 }
 
 static void
@@ -276,6 +369,8 @@ binheap_trickleup(const struct binheap *bh, unsigned u)
 		assert(v < u);
 		assert(v < bh->next);
 		assert(A(bh, v) != NULL);
+		TEST_DRIVER_ACCESS_IDX(bh, u);
+		TEST_DRIVER_ACCESS_IDX(bh, v);
 		if (!bh->cmp(bh->priv, A(bh, u), A(bh, v)))
 			break;
 		binhead_swap(bh, u, v);
@@ -308,11 +403,15 @@ binheap_trickledown(const struct binheap *bh, unsigned u)
 		assert(A(bh, v1) != NULL);
 		if (v1 != v2 && v2 < bh->next) {
 			assert(A(bh, v2) != NULL);
+			TEST_DRIVER_ACCESS_IDX(bh, v1);
+			TEST_DRIVER_ACCESS_IDX(bh, v2);
 			if (bh->cmp(bh->priv, A(bh, v2), A(bh, v1)))
 				v1 = v2;
 		}
 		assert(v1 < bh->next);
 		assert(A(bh, v1) != NULL);
+		TEST_DRIVER_ACCESS_IDX(bh, u);
+		TEST_DRIVER_ACCESS_IDX(bh, v1);
 		if (bh->cmp(bh->priv, A(bh, u), A(bh, v1)))
 			return (u);
 		binhead_swap(bh, u, v1);
@@ -399,6 +498,7 @@ binheap_delete(struct binheap *bh, unsigned idx)
 	assert(idx < bh->next);
 	assert(idx > 0);
 	assert(A(bh, idx) != NULL);
+        TEST_DRIVER_ACCESS_IDX(bh, idx);
 	bh->update(bh->priv, A(bh, idx), BINHEAP_NOIDX);
 	if (idx == --bh->next) {
 		A(bh, bh->next) = NULL;
@@ -683,9 +783,11 @@ test(struct binheap *bh)
 
 	AZ(binheap_root(bh));
 	check_consistency(bh);
+	enable_mem(bh->m);
 
 	/* First insert our N elements */
         start = TIM_mono();
+	clear_mem(bh->m);
         for (n = 0; n < N; n++) {
         	foo_insert(bh, n);
                 key = ff[n].key;
@@ -696,10 +798,12 @@ test(struct binheap *bh)
 	}
         check_consistency(bh);
         end = TIM_mono();
-        fprintf(stderr, "%u inserts, %.3lfs OK\n", N, end - start);
+        fprintf(stderr, "%u inserts: %.3lfs, page_faults=%lu OK\n", N,
+		end - start, bh->m->page_faults);
 
         /* For M cycles, pick the root, insert new */
         start = TIM_mono();
+	clear_mem(bh->m);
         for (u = 0; u < M; u++) {
         	fp = binheap_root(bh);
                 foo_check(fp);
@@ -712,10 +816,12 @@ test(struct binheap *bh)
 	}
         check_consistency(bh);
         end = TIM_mono();
-        fprintf(stderr, "%u root replacements, %.3lfs OK\n", M, end - start);
+        fprintf(stderr, "%u root replacements: %.3lfs, page_faults=%lu OK\n", M,
+		end - start, bh->m->page_faults);
 
 	/* Randomly update */
 	start = TIM_mono();
+	clear_mem(bh->m);
 	for (u = 0; u < M; u++) {
 		n = random() % N;
 		fp = &ff[n];
@@ -723,13 +829,15 @@ test(struct binheap *bh)
 	}
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u random updates, %.3lfs OK\n", M, end - start);
+	fprintf(stderr, "%u random updates: %.3lfs, page_faults=%lu OK\n", M,
+		end - start, bh->m->page_faults);
 
         /* Randomly insert, delete and update */
         delete_count = 0;
         insert_count = 0;
         update_count = 0;
         start = TIM_mono();
+	clear_mem(bh->m);
         for (u = 0; u < M; u++) {
         	n = random() % N;
                 fp = &ff[n];
@@ -750,13 +858,16 @@ test(struct binheap *bh)
         check_consistency(bh);
         end = TIM_mono();
         fprintf(stderr,
-        	"%u deletes, %u inserts, %u updates, %.3lfs OK\n",
-                delete_count, insert_count, update_count, end - start);
+        	"%u deletes, %u inserts, %u updates: %.3lfs, "
+		"page_faults=%lu OK\n",
+		delete_count, insert_count, update_count, end - start,
+		bh->m->page_faults);
 
 	/* Then remove everything */
         key = 0;
         u = 0;
         start = TIM_mono();
+	clear_mem(bh->m);
         while (1) {
         	fp = binheap_root(bh);
                 if (fp == NULL)
@@ -772,7 +883,10 @@ test(struct binheap *bh)
         AZ(binheap_root(bh));
         check_consistency(bh);
         end = TIM_mono();
-        fprintf(stderr, "%u deletes, %.3lfs OK\n", u, end - start);
+        fprintf(stderr, "%u deletes: %.3lfs, page_faults=%lu OK\n", u,
+		end - start, bh->m->page_faults);
+
+	disable_mem(bh->m);
 }
 
 static void
@@ -827,7 +941,8 @@ perftest(struct binheap *bh)
 		++delete_count;
 	}
 	end = TIM_mono();
-	fprintf(stderr, "perf %d deletions: %.3lfs\n", delete_count, end - start);
+	fprintf(stderr, "perf %d deletions: %.3lfs\n", delete_count,
+		end - start);
 	check_consistency(bh);
 
 	for (u = 0; u < N; u++) {
