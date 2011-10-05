@@ -65,3 +65,12 @@ void *binheap_root(const struct binheap *bh);
 	 * Returns the root item.
 	 * If the binheap is empty, returns NULL.
 	 */
+
+#define BINHEAP_TIME2KEY(t)	((unsigned) (t))
+	/*
+	 * Converts time in seconds to a binheap_item key.
+	 * Note that the resolution of the key is 1 second, while t resolution
+	 * can be much higher (nanoseconds).
+	 * TODO: deal with Y2038 problem?
+	 * http://en.wikipedia.org/wiki/Year_2038_problem
+	 */
