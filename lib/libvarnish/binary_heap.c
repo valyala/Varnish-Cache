@@ -153,8 +153,9 @@ access_mem(struct mem *m, void *p)
 #define TEST_DRIVER_ACCESS_MEM(bh, p)   ((void)0)
 #endif
 
+#define TEST_DRIVER_ACCESS_KEY(bh, u)	TEST_DRIVER_ACCESS_MEM(bh, &A(bh, u))
 #define TEST_DRIVER_ACCESS_IDX(bh, u)   do { \
-        TEST_DRIVER_ACCESS_MEM(bh, &A(bh, u)); \
+        TEST_DRIVER_ACCESS_KEY(bh, u); \
         TEST_DRIVER_ACCESS_MEM(bh, A(bh, u).bi); \
 } while (0)
 
@@ -340,7 +341,7 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
                 v = parent(bh->page_shift, u);
                 assert(v < u);
 		assert(v >= ROOT_IDX(bh));
-		TEST_DRIVER_ACCESS_IDX(bh, v);
+		TEST_DRIVER_ACCESS_KEY(bh, v);
 		i = &A(bh, v);
                 AN(i->bi);
 		AN(i->bi->p);
@@ -374,13 +375,13 @@ trickledown(const struct binheap *bh, unsigned key, unsigned u)
 			break;		/* index overflow */
                 if (v >= bh->next)
                         break;		/* reached the end of heap */
-		TEST_DRIVER_ACCESS_IDX(bh, v);
+		TEST_DRIVER_ACCESS_KEY(bh, v);
 		i1 = &A(bh, v);
 		AN(i1->bi);
 		AN(i1->bi->p);
 		assert(i1->bi->idx == v);
                 if (v + 1 < bh->next) {
-			TEST_DRIVER_ACCESS_IDX(bh, v + 1);
+			TEST_DRIVER_ACCESS_KEY(bh, v + 1);
 			i2 = &A(bh, v + 1);
 			AN(i2->bi);
 			AN(i2->bi->p);
@@ -598,7 +599,7 @@ binheap_delete(struct binheap *bh, struct binheap_item *bi)
 	assert(bi->idx == NOIDX);
 	assert(bh->next > 0);
         if (u < --bh->next) {
-		TEST_DRIVER_ACCESS_IDX(bh, bh->next);
+		TEST_DRIVER_ACCESS_KEY(bh, bh->next);
 		i = &A(bh, bh->next);
 		key = i->key;
 		bi = i->bi;
