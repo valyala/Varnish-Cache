@@ -57,7 +57,7 @@ struct vev {
 	void			*priv;
 
 	/* priv */
-	struct binheap_item	*__exp_entry;
+	struct binheap_entry	*__exp_entry;
 	double			__when;
 	VTAILQ_ENTRY(vev)	__list;
 	unsigned		__privflags;

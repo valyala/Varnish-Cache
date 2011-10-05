@@ -33,42 +33,42 @@
 /* Public Interface --------------------------------------------------*/
 
 struct binheap;
-struct binheap_item;
+struct binheap_entry;
 
 struct binheap *binheap_new(void);
 	/*
 	 * Creates binary heap.
 	 */
 
-struct binheap_item *binheap_insert(struct binheap *bh, void *p,
+struct binheap_entry *binheap_insert(struct binheap *bh, void *p,
 	unsigned key);
 	/*
-	 * Inserts an item p with the given key into binheap.
-	 * Item cannot be NULL.
+	 * Inserts the pointer p with the given key into binheap.
+	 * p cannot be NULL.
 	 * Returns a pointer to opaque object, which can be passed
 	 * to binheap_reorder() or binheap_delete().
 	 */
 
-void binheap_reorder(const struct binheap *bh, struct binheap_item *bi,
+void binheap_reorder(const struct binheap *bh, struct binheap_entry *be,
 	unsigned key);
         /*
-         * Modifies key value for the given item.
+         * Modifies key value for the given entry.
          */
 
-void binheap_delete(struct binheap *bh, struct binheap_item *bi);
+void binheap_delete(struct binheap *bh, struct binheap_entry *be);
         /*
-         * Removes the item from binheap.
+         * Removes the entry from binheap.
          */
 
 void *binheap_root(const struct binheap *bh);
 	/*
-	 * Returns the root item.
+	 * Returns pointer associated with the binheap root entry.
 	 * If the binheap is empty, returns NULL.
 	 */
 
 #define BINHEAP_TIME2KEY(t)	((unsigned) (t))
 	/*
-	 * Converts time in seconds to a binheap_item key.
+	 * Converts time in seconds to a binheap_entry key.
 	 * Note that the resolution of the key is 1 second, while t resolution
 	 * can be much higher (nanoseconds).
 	 * TODO: deal with Y2038 problem?

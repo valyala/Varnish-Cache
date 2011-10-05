@@ -433,7 +433,7 @@ struct objcore {
 	unsigned		priv2;
 	struct objhead		*objhead;
 	struct busyobj		*busyobj;
-	struct binheap_item	*exp_entry;
+	struct binheap_entry	*exp_entry;
 	double			timer_when;
 	unsigned		flags;
 #define OC_F_BUSY		(1<<1)
