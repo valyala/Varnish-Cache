@@ -187,9 +187,9 @@ exp_insert(struct objcore *oc, struct lru *lru)
 
 	Lck_AssertHeld(&lru->mtx);
 	Lck_AssertHeld(&exp_mtx);
-	AZ(oc->bi);
-	oc->bi = binheap_insert(exp_heap, oc, TIME2KEY(oc->timer_when));
-	AN(oc->bi);
+	AZ(oc->exp_entry);
+	oc->exp_entry = binheap_insert(exp_heap, oc, TIME2KEY(oc->timer_when));
+	AN(oc->exp_entry);
 	VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
 }
 
@@ -277,14 +277,14 @@ EXP_Touch(struct objcore *oc)
 
 	/*
 	 * We only need the LRU lock here.  The locking order is LRU->EXP
-	 * so we can trust the content of the oc->bi without the
+	 * so we can trust the content of the oc->exp_entry without the
 	 * EXP lock.   Since each lru list has its own lock, this should
 	 * reduce contention a fair bit
 	 */
 	if (Lck_Trylock(&lru->mtx))
 		return (0);
 
-	if (oc->bi != NULL) {
+	if (oc->exp_entry != NULL) {
 		VTAILQ_REMOVE(&lru->lru_head, oc, lru_list);
 		VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
 		VSC_C_main->n_lru_moved++;
@@ -320,9 +320,10 @@ EXP_Rearm(const struct object *o)
 	 * The hang-man might have this object of the binheap while
 	 * tending to a timer.  If so, we do not muck with it here.
 	 */
-	if (oc->bi != NULL && update_object_when(o)) {
-		AN(oc->bi);
-		binheap_reorder(exp_heap, oc->bi, TIME2KEY(oc->timer_when));
+	if (oc->exp_entry != NULL && update_object_when(o)) {
+		AN(oc->exp_entry);
+		binheap_reorder(exp_heap, oc->exp_entry,
+				TIME2KEY(oc->timer_when));
 	}
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
@@ -390,9 +391,9 @@ exp_timer(struct sess *sp, void *priv)
 		}
 
 		/* Remove from binheap */
-		AN(oc->bi);
-		binheap_delete(exp_heap, oc->bi);
-		oc->bi = NULL;
+		AN(oc->exp_entry);
+		binheap_delete(exp_heap, oc->exp_entry);
+		oc->exp_entry = NULL;
 
 		/* And from LRU */
 		lru = oc_getlru(oc);
@@ -429,7 +430,7 @@ EXP_NukeOne(const struct sess *sp, struct lru *lru)
 	Lck_Lock(&exp_mtx);
 	VTAILQ_FOREACH(oc, &lru->lru_head, lru_list) {
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
-		AN(oc->bi);
+		AN(oc->exp_entry);
 		/*
 		 * It wont release any space if we cannot release the last
 		 * reference, besides, if somebody else has a reference,
@@ -440,9 +441,9 @@ EXP_NukeOne(const struct sess *sp, struct lru *lru)
 	}
 	if (oc != NULL) {
 		VTAILQ_REMOVE(&lru->lru_head, oc, lru_list);
-		AN(oc->bi);
-		binheap_delete(exp_heap, oc->bi);
-		oc->bi = NULL;
+		AN(oc->exp_entry);
+		binheap_delete(exp_heap, oc->exp_entry);
+		oc->exp_entry = NULL;
 		VSC_C_main->n_lru_nuked++;
 	}
 	Lck_Unlock(&exp_mtx);

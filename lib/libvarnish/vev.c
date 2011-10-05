@@ -258,12 +258,13 @@ vev_add(struct vev_base *evb, struct vev *e)
 
 	if (e->timeout != 0.0) {
 		e->__when += TIM_mono() + e->timeout;
-		AZ(e->__bi);
-		e->__bi = binheap_insert(evb->binheap, e, TIME2KEY(e->__when));
-		AN(e->__bi);
+		AZ(e->__exp_entry);
+		e->__exp_entry = binheap_insert(evb->binheap, e,
+						TIME2KEY(e->__when));
+		AN(e->__exp_entry);
 	} else {
 		e->__when = 0.0;
-		e->__bi = NULL;
+		e->__exp_entry = NULL;
 	}
 
 	e->__vevb = evb;
@@ -294,9 +295,9 @@ vev_del(struct vev_base *evb, struct vev *e)
 	assert(evb == e->__vevb);
 	assert(evb->thread == pthread_self());
 
-	if (e->__bi != NULL) {
-		binheap_delete(evb->binheap, e->__bi);
-		e->__bi = NULL;
+	if (e->__exp_entry != NULL) {
+		binheap_delete(evb->binheap, e->__exp_entry);
+		e->__exp_entry = NULL;
 	}
 
 	if (e->fd >= 0) {
@@ -391,7 +392,8 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 		free(e);
 	} else {
 		e->__when = t + e->timeout;
-		binheap_reorder(evb->binheap, e->__bi, TIME2KEY(e->__when));
+		binheap_reorder(evb->binheap, e->__exp_entry,
+				TIME2KEY(e->__when));
 	}
 	return (1);
 }
@@ -433,7 +435,7 @@ vev_schedule_one(struct vev_base *evb)
 	e = binheap_root(evb->binheap);
 	if (e != NULL) {
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
-		AN(e->__bi);
+		AN(e->__exp_entry);
 		t = TIM_mono();
 		if (e->__when <= t)
 			return (vev_sched_timeout(evb, e, t));
