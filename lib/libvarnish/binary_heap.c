@@ -543,7 +543,7 @@ reorder(const struct binheap *bh, unsigned key, unsigned u)
 }
 
 void
-binheap_update(const struct binheap *bh, struct binheap_item *bi,
+binheap_reorder(const struct binheap *bh, struct binheap_item *bi,
 	unsigned key)
 {
 	struct item *i;
@@ -873,7 +873,7 @@ foo_update(struct binheap *bh, struct foo *fp)
 	key = random() % R;
 	n = fp->n;
 	fp->key = key;
-	binheap_update(bh, fp->bi, key);
+	binheap_reorder(bh, fp->bi, key);
 	foo_check_existense(bh, fp);
 	assert(fp->key == key);
 	assert(fp->n == n);
@@ -1028,7 +1028,7 @@ perftest(struct binheap *bh)
 	start = TIM_mono();
 	for (u = 0; u < M; u++) {
 		fp = &ff[random() % N];
-		binheap_update(bh, fp->bi, random() % R);
+		binheap_reorder(bh, fp->bi, random() % R);
 	}
 	end = TIM_mono();
 	fprintf(stderr, "perf %d reorders: %.3lfs\n", M, end - start);

@@ -46,10 +46,10 @@ struct binheap_item *binheap_insert(struct binheap *bh, void *p,
 	 * Inserts an item p with the given key into binheap.
 	 * Item cannot be NULL.
 	 * Returns a pointer to opaque object, which can be passed
-	 * to binheap_update() or binheap_delete().
+	 * to binheap_reorder() or binheap_delete().
 	 */
 
-void binheap_update(const struct binheap *bh, struct binheap_item *bi,
+void binheap_reorder(const struct binheap *bh, struct binheap_item *bi,
 	unsigned key);
         /*
          * Modifies key value for the given item.
