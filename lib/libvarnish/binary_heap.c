@@ -593,7 +593,7 @@ vas_f *VAS_Fail = vasfail;
 
 #define M 1000000u		/* Number of operations */
 #define N 500000u		/* Number of items */
-#define R ((unsigned) RAND_MAX) /* Random modulus */
+#define R ((unsigned) RAND_MAX)	/* Random modulus */
 
 /*
  * Pad foo so its' size is equivalent to the objcore size.
