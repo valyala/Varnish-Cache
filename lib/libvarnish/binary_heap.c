@@ -44,6 +44,8 @@
 #include "libvarnish.h"
 #include "miniobj.h"
 
+/* Parameters --------------------------------------------------------*/
+
 /*
  * The number of elements in a row has to be a compromise between
  * wasted space and number of memory allocations.
@@ -55,6 +57,12 @@
  * easier for the compiler to optimize.
  */
 #define ROW_SHIFT		16
+
+
+#undef PARANOIA
+
+/* Private definitions -----------------------------------------------*/
+
 #define ROW_WIDTH		(1 << ROW_SHIFT)
 
 /*lint -emacro(572, ROW) shift 0 >> by 16 */
