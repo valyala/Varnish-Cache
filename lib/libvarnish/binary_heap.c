@@ -930,8 +930,7 @@ main(int argc, char **argv)
 		run_tests(bh, u);
 
 	fprintf(stderr, "\n* Tests with pagefault counter disabled\n");
-	while (1)
-		run_tests(bh, 0);
+	run_tests(bh, 0);
 	return (0);
 }
 #endif
