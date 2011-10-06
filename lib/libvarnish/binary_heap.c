@@ -31,6 +31,10 @@
  * See also:
  *	http://portal.acm.org/citation.cfm?doid=1785414.1785434
  *	(or: http://queue.acm.org/detail.cfm?id=1814327)
+ *
+ * Test driver can be built and started using the following commands:
+ * $ cc -DTEST_DRIVER -I../.. -I../../include -lrt -lm binary_heap.c
+ * $ ./a.out
  */
 
 #include "config.h"
@@ -760,6 +764,7 @@ check_parent_child_overflow(unsigned page_shift, unsigned n_max)
 }
 
 /* Test driver -------------------------------------------------------*/
+#include <math.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -785,9 +790,9 @@ vas_f *VAS_Fail = vasfail;
 
 #define PARENT_CHILD_TESTS_COUNT	1000000
 #define MAX_ITEMS_COUNT 		100000
-#define TESTS_PER_ITEM			10
-#define TEST_STEPS_COUNT 		2
+#define TEST_STEPS_COUNT 		5
 #define MAX_RESIDENT_PAGES_COUNT	4096
+#define ITERATIONS_PER_TEST_COUNT	MAX_ITEMS_COUNT * 10
 
 /*
  * Pad foo so its' size is equivalent to the objcore size.
@@ -902,17 +907,15 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 {
 	double start, end;
 	struct foo *fp;
-	unsigned u, n, key, root_idx, tests_count;
+	unsigned u, n, key, root_idx;
 	unsigned delete_count, insert_count, reorder_count;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(items_count > 0);
 	assert(items_count <= MAX_ITEMS_COUNT);
-	assert(items_count <= UINT_MAX / TESTS_PER_ITEM);
-	tests_count = items_count * TESTS_PER_ITEM;
 
-	fprintf(stderr, "\n+ %u items, %u tests, %u resident pages\n",
-		items_count, tests_count, resident_pages_count);
+	fprintf(stderr, "\n+ %u items, %u iterations, %u resident pages\n",
+		items_count, ITERATIONS_PER_TEST_COUNT, resident_pages_count);
 	AZ(binheap_root(bh));
 	check_consistency(bh);
 	root_idx = ROOT_IDX(bh);
@@ -937,7 +940,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	/* For M cycles, pick the root, insert new */
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
-	for (u = 0; u < tests_count; u++) {
+	for (u = 0; u < ITERATIONS_PER_TEST_COUNT; u++) {
 		fp = binheap_root(bh);
 		foo_check(fp, items_count);
 		assert(fp->be->idx == root_idx);
@@ -950,12 +953,13 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	check_consistency(bh);
 	end = TIM_mono();
 	fprintf(stderr, "%u root replacements: %.3lfs, pagefaults=%.lf OK\n",
-		tests_count, end - start, (double) bh->m->pagefaults_count);
+		ITERATIONS_PER_TEST_COUNT, end - start,
+		(double) bh->m->pagefaults_count);
 
 	/* Randomly reorder */
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
-	for (u = 0; u < tests_count; u++) {
+	for (u = 0; u < ITERATIONS_PER_TEST_COUNT; u++) {
 		n = random() % items_count;
 		fp = &ff[n];
 		foo_reorder(bh, fp, items_count);
@@ -963,7 +967,8 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	check_consistency(bh);
 	end = TIM_mono();
 	fprintf(stderr, "%u random reorders: %.3lfs, pagefaults=%.lf OK\n",
-		tests_count, end - start, (double) bh->m->pagefaults_count);
+		ITERATIONS_PER_TEST_COUNT, end - start,
+		(double) bh->m->pagefaults_count);
 
 	/* Randomly insert, delete and reorder */
 	delete_count = 0;
@@ -971,7 +976,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	reorder_count = 0;
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
-	for (u = 0; u < tests_count; u++) {
+	for (u = 0; u < ITERATIONS_PER_TEST_COUNT; u++) {
 		n = random() % items_count;
 		fp = &ff[n];
 		if (fp->be != NULL) {
@@ -1023,12 +1028,14 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 static void
 run_tests(struct binheap *bh, unsigned resident_pages_count)
 {
-	unsigned u, tests_count;
+	unsigned u, items_count;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	assert(TEST_STEPS_COUNT > 0);
 	for (u = 1; u <= TEST_STEPS_COUNT; u++) {
-		tests_count = MAX_ITEMS_COUNT / TEST_STEPS_COUNT * u;
-		test(bh, tests_count, resident_pages_count);
+		items_count = (unsigned) (MAX_ITEMS_COUNT /
+			pow(2.0, (double) (TEST_STEPS_COUNT - u)));
+		test(bh, items_count, resident_pages_count);
 	}
 }
 
