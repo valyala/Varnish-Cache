@@ -657,6 +657,23 @@ binheap_root(const struct binheap *bh)
 #ifdef TEST_DRIVER
 
 static void
+check_time2key(void)
+{
+	assert(BINHEAP_TIME2KEY(-1e9) == 0);
+	assert(BINHEAP_TIME2KEY(-1.0) == 0);
+	assert(BINHEAP_TIME2KEY(-0.1) == 0);
+	assert(BINHEAP_TIME2KEY(0.499) == 0);
+	assert(BINHEAP_TIME2KEY(0.501) == 1);
+	assert(BINHEAP_TIME2KEY(1.499) == 1);
+	assert(BINHEAP_TIME2KEY(UINT_MAX * 1.0 - 0.6) == UINT_MAX - 1);
+	assert(BINHEAP_TIME2KEY(UINT_MAX * 1.0 - 0.4) == UINT_MAX);
+	assert(BINHEAP_TIME2KEY(UINT_MAX * 1.0 + 0.4) == UINT_MAX);
+	assert(BINHEAP_TIME2KEY(UINT_MAX * 1.0 + 0.6) == UINT_MAX);
+	assert(BINHEAP_TIME2KEY(UINT_MAX * 2.0) == UINT_MAX);
+	assert(BINHEAP_TIME2KEY(UINT_MAX * 1000.0) == UINT_MAX);
+}
+
+static void
 check_consistency(const struct binheap *bh)
 {
 	struct entry *e1, *e2;
@@ -1060,6 +1077,9 @@ main(int argc, char **argv)
 {
 	struct binheap *bh;
 	unsigned u;
+
+	check_time2key();
+	fprintf(stderr, "time2key test OK\n");
 
 	for (u = 1; u <= ROW_SHIFT; u++) {
 		check_parent_child(u, M);
