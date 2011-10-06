@@ -1038,6 +1038,7 @@ main(int argc, char **argv)
 	struct binheap *bh;
 	unsigned u;
 
+	srandom(123);	/* generate predictive results */
 	check_time2key();
 	fprintf(stderr, "time2key test OK\n");
 
