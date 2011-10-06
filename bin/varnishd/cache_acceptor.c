@@ -130,10 +130,10 @@ VCA_Prep(struct sess *sp)
 		AZ(getsockname(sp->fd, (void*)&sp->mysockaddr, &sp->mysockaddrlen));
 		VTCP_name(&sp->mysockaddr, sp->mysockaddrlen,
 		    addr, sizeof addr, port, sizeof port);
-		VSL(SLT_SessionOpen, sp->fd, "%s %s %s %s",
+		WSP(sp, SLT_SessionOpen, "%s %s %s %s",
 		    sp->addr, sp->port, addr, port);
 	} else {
-		VSL(SLT_SessionOpen, sp->fd, "%s %s %s",
+		WSP(sp, SLT_SessionOpen, "%s %s %s",
 		    sp->addr, sp->port, sp->mylsock->name);
 	}
 	sp->acct_ses.first = sp->t_open;
@@ -277,7 +277,7 @@ VCA_SetupSess(struct worker *w)
 	sp = w->sp;
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	sp->fd = wa->acceptsock;
-	sp->id = wa->acceptsock;
+	sp->vsl_id = wa->acceptsock | VSL_CLIENTMARKER ;
 	wa->acceptsock = -1;
 	sp->t_open = TIM_real();
 	sp->t_end = sp->t_open;

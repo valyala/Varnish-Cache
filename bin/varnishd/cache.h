@@ -199,6 +199,7 @@ struct http_conn {
 #define HTTP_CONN_MAGIC		0x3e19edd1
 
 	int			fd;
+	unsigned		vsl_id;
 	unsigned		maxbytes;
 	unsigned		maxhdr;
 	struct ws		*ws;
@@ -542,7 +543,7 @@ struct sess {
 	unsigned		magic;
 #define SESS_MAGIC		0x2c2f9c5a
 	int			fd;
-	int			id;
+	unsigned		vsl_id;
 	unsigned		xid;
 
 	int			restarts;
@@ -632,6 +633,7 @@ struct vbc {
 	VTAILQ_ENTRY(vbc)	list;
 	struct backend		*backend;
 	struct vdi_simple	*vdis;
+	unsigned		vsl_id;
 	int			fd;
 
 	struct sockaddr_storage	*addr;
@@ -756,21 +758,23 @@ const char *http_StatusMessage(unsigned);
 unsigned http_EstimateWS(const struct http *fm, unsigned how, uint16_t *nhd);
 void HTTP_Init(void);
 void http_ClrHeader(struct http *to);
-unsigned http_Write(struct worker *w, const struct http *hp, int resp);
+unsigned http_Write(struct worker *w, unsigned vsl_id, const struct http *hp,
+    int resp);
 void http_CopyResp(struct http *to, const struct http *fm);
 void http_SetResp(struct http *to, const char *proto, uint16_t status,
     const char *response);
-void http_FilterFields(struct worker *w, int fd, struct http *to,
+void http_FilterFields(struct worker *w, unsigned vsl_id, struct http *to,
     const struct http *fm, unsigned how);
 void http_FilterHeader(const struct sess *sp, unsigned how);
-void http_PutProtocol(struct worker *w, int fd, const struct http *to,
+void http_PutProtocol(struct worker *w, unsigned vsl_id, const struct http *to,
     const char *protocol);
 void http_PutStatus(struct http *to, uint16_t status);
-void http_PutResponse(struct worker *w, int fd, const struct http *to,
+void http_PutResponse(struct worker *w, unsigned vsl_id, const struct http *to,
     const char *response);
-void http_PrintfHeader(struct worker *w, int fd, struct http *to,
+void http_PrintfHeader(struct worker *w, unsigned vsl_id, struct http *to,
     const char *fmt, ...);
-void http_SetHeader(struct worker *w, int fd, struct http *to, const char *hdr);
+void http_SetHeader(struct worker *w, unsigned vsl_id, struct http *to,
+    const char *hdr);
 void http_SetH(const struct http *to, unsigned n, const char *fm);
 void http_ForceGet(const struct http *to);
 void http_Setup(struct http *ht, struct ws *ws);
@@ -787,13 +791,13 @@ uint16_t http_DissectRequest(struct sess *sp);
 uint16_t http_DissectResponse(struct worker *w, const struct http_conn *htc,
     struct http *sp);
 const char *http_DoConnection(const struct http *hp);
-void http_CopyHome(struct worker *w, int fd, const struct http *hp);
+void http_CopyHome(struct worker *w, unsigned vsl_id, const struct http *hp);
 void http_Unset(struct http *hp, const char *hdr);
 void http_CollectHdr(struct http *hp, const char *hdr);
 
 /* cache_httpconn.c */
-void HTC_Init(struct http_conn *htc, struct ws *ws, int fd, unsigned maxbytes,
-    unsigned maxhdr);
+void HTC_Init(struct http_conn *htc, struct ws *ws, int fd, unsigned vsl_id,
+    unsigned maxbytes, unsigned maxhdr);
 int HTC_Reinit(struct http_conn *htc);
 int HTC_Rx(struct http_conn *htc);
 ssize_t HTC_Read(struct http_conn *htc, void *d, size_t len);
@@ -887,10 +891,10 @@ void WSL_Flush(struct worker *w, int overflow);
 	} while (0)
 
 #define WSP(sess, tag, ...)					\
-	WSL((sess)->wrk, tag, (sess)->fd, __VA_ARGS__)
+	WSL((sess)->wrk, tag, (sess)->vsl_id, __VA_ARGS__)
 
 #define WSPR(sess, tag, txt)					\
-	WSLR((sess)->wrk, tag, (sess)->fd, txt)
+	WSLR((sess)->wrk, tag, (sess)->vsl_id, txt)
 
 #define INCOMPL() do {							\
 	VSL(SLT_Debug, 0, "INCOMPLETE AT: %s(%d)", __func__, __LINE__); \
