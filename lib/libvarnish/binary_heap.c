@@ -791,7 +791,7 @@ test(struct binheap *bh)
 	double start, end;
 	struct foo *fp;
 	unsigned u, n, key;
-	unsigned delete_count, insert_count, update_count;
+	unsigned delete_count, insert_count, reorder_count;
 
 	AZ(binheap_root(bh));
 	check_consistency(bh);
@@ -831,7 +831,7 @@ test(struct binheap *bh)
 	fprintf(stderr, "%u root replacements: %.3lfs, page_faults=%.lf OK\n",
 		M, end - start, (double) bh->m->page_faults);
 
-	/* Randomly update */
+	/* Randomly reorder */
 	start = TIM_mono();
 	clear_mem(bh->m);
 	for (u = 0; u < M; u++) {
@@ -841,13 +841,13 @@ test(struct binheap *bh)
 	}
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u random updates: %.3lfs, page_faults=%.lf OK\n", M,
+	fprintf(stderr, "%u random reorders: %.3lfs, page_faults=%.lf OK\n", M,
 		end - start, (double) bh->m->page_faults);
 
-	/* Randomly insert, delete and update */
+	/* Randomly insert, delete and reorder */
 	delete_count = 0;
 	insert_count = 0;
-	update_count = 0;
+	reorder_count = 0;
 	start = TIM_mono();
 	clear_mem(bh->m);
 	for (u = 0; u < M; u++) {
@@ -859,7 +859,7 @@ test(struct binheap *bh)
 				++delete_count;
 			} else {
 				foo_reorder(bh, fp);
-				++update_count;
+				++reorder_count;
 			}
 		} else {
 			foo_insert(bh, n);
@@ -870,9 +870,9 @@ test(struct binheap *bh)
 	check_consistency(bh);
 	end = TIM_mono();
 	fprintf(stderr,
-		"%u deletes, %u inserts, %u updates: %.3lfs, "
+		"%u deletes, %u inserts, %u reorders: %.3lfs, "
 		"page_faults=%.lf OK\n",
-		delete_count, insert_count, update_count, end - start,
+		delete_count, insert_count, reorder_count, end - start,
 		(double) bh->m->page_faults);
 
 	/* Then remove everything */
