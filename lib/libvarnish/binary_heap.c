@@ -111,10 +111,12 @@ static void
 init_mem(struct mem *m, unsigned resident_pages_count)
 {
 	CHECK_OBJ_NOTNULL(m, MEM_MAGIC);
-	assert(resident_pages_count > 0);
 	free(m->lru);
-	m->lru = calloc(resident_pages_count, sizeof(*m->lru));
-	XXXAN(m->lru);
+	m->lru = NULL;
+	if (resident_pages_count > 0) {
+		m->lru = calloc(resident_pages_count, sizeof(*m->lru));
+		XXXAN(m->lru);
+	}
 	m->pagefaults_count = 0;
 	m->resident_pages_count = resident_pages_count;
 }
