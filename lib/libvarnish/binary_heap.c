@@ -904,6 +904,7 @@ test(struct binheap *bh, unsigned items_count)
 	fprintf(stderr, "\n+ %u items, %u tests\n", items_count,
 		tests_count);
 	AZ(binheap_root(bh));
+	check_consistency(bh);
 	root_idx = ROOT_IDX(bh);
 	assert(root_idx != NOIDX);
 
