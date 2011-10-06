@@ -45,7 +45,7 @@ typedef void vas_f(const char *, const char *, int, const char *, int, int);
 extern vas_f *VAS_Fail;
 
 #ifdef WITHOUT_ASSERTS
-#define assert(e)	((void)0)
+#define assert(e)	((void)(e))
 #else /* WITH_ASSERTS */
 #define assert(e)							\
 do {									\
