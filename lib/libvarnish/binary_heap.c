@@ -579,10 +579,10 @@ vasfail(const char *func, const char *file, int line,
 
 vas_f *VAS_Fail = vasfail;
 
-#define PARENT_CHILD_TESTS_COUNT	1000000u
-#define MAX_ITEMS_COUNT 		1000000u
-#define TESTS_PER_ITEM			10u
-#define TEST_STEPS_COUNT 		10u
+#define PARENT_CHILD_TESTS_COUNT	1000000
+#define MAX_ITEMS_COUNT 		1000000
+#define TESTS_PER_ITEM			10
+#define TEST_STEPS_COUNT 		10
 
 /*
  * Pad foo so its' size is equivalent to the objcore size.
@@ -594,7 +594,7 @@ vas_f *VAS_Fail = vasfail;
 
 struct foo {
 	unsigned	magic;
-#define FOO_MAGIC	0x23239823
+#define FOO_MAGIC	0x23239823U
 	unsigned	idx;
 	unsigned	key;
 	unsigned	n;
@@ -637,7 +637,7 @@ check_consistency(const struct binheap *bh, unsigned items_count)
 	assert(bh->rows * ROW_WIDTH >= bh->length);
 	assert(bh->page_shift > 0);
 	assert(bh->page_shift <= ROW_SHIFT);
-	assert(bh->page_size == (1u << bh->page_shift));
+	assert(bh->page_size == (1 << bh->page_shift));
 	assert(bh->page_mask == bh->page_size - 1);
 	AN(bh->rows);
 	for (u = ROOT_IDX + 1; u < bh->next; u++) {
