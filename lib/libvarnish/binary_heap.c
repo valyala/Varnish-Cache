@@ -586,7 +586,7 @@ vasfail(const char *func, const char *file, int line,
 vas_f *VAS_Fail = vasfail;
 
 #define PARENT_CHILD_TESTS_COUNT	1000000
-#define MAX_ITEMS_COUNT 		100000
+#define MAX_ITEMS_COUNT 		1000000
 #define MIN_ITEMS_COUNT			1000
 #define TEST_STEPS_COUNT 		5
 #define MAX_RESIDENT_PAGES_COUNT	4096
