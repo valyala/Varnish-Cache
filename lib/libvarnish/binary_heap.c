@@ -54,8 +54,8 @@
  * Finally, but without practical significance: 16 bits should be
  * easier for the compiler to optimize.
  */
-#define ROW_SHIFT		16u
-#define ROW_WIDTH		(1u << ROW_SHIFT)
+#define ROW_SHIFT		16
+#define ROW_WIDTH		(1 << ROW_SHIFT)
 
 /*lint -emacro(572, ROW) shift 0 >> by 16 */
 /*lint -emacro(835, ROW) 0 left of >> */
@@ -65,9 +65,9 @@
 /*lint -emacro(835, A) 0 left of & */
 #define A(bh, n)		ROW(bh, n)[(n) & (ROW_WIDTH - 1)]
 
-#define R_IDX(page_shift)	((1u << (page_shift)) - 1)
+#define R_IDX(page_shift)	((1 << (page_shift)) - 1)
 #define ROOT_IDX(bh)		R_IDX((bh)->page_shift)
-#define NOIDX			0u
+#define NOIDX			0
 
 
 #ifdef TEST_DRIVER
@@ -76,7 +76,7 @@
  * The maximum number of resident pages in memory.
  * Other pages are swapped out in lru order.
  */
-#define RESIDENT_PAGES_COUNT	1u
+#define RESIDENT_PAGES_COUNT	1
 
 /* Memory model, which counts page faults */
 struct mem {
@@ -175,12 +175,12 @@ struct entry {
 
 struct binheap {
 	unsigned		magic;
-#define BINHEAP_MAGIC		0x8bd801f0u	/* from /dev/random */
+#define BINHEAP_MAGIC		0xf581581aU	/* from /dev/random */
 	struct entry		**rows;
 	struct binheap_entry	*free_list;
 	unsigned		next;
-	unsigned		rows_count;
 	unsigned		length;
+        unsigned                rows_count;
 	unsigned		page_shift;
 	TEST_DRIVER_DECLARE_MEM			/* no semicolon */
 };
@@ -242,8 +242,8 @@ alloc_row(unsigned page_shift)
 	assert(page_shift <= ROW_SHIFT);
 	entry_size = sizeof(*row);
 	AZ(entry_size & (entry_size - 1));	/* should be power of 2 */
-	assert((1u << page_shift) < UINT_MAX / entry_size);
-	alignment = (1u << page_shift) * entry_size;
+	assert((1 << page_shift) < UINT_MAX / entry_size);
+	alignment = (1 << page_shift) * entry_size;
 	assert(ROW_WIDTH <= SIZE_MAX / entry_size);
 	row = NULL;
 	rv = posix_memalign((void **) &row, alignment, entry_size * ROW_WIDTH);
@@ -274,7 +274,7 @@ binheap_new(void)
 		++page_shift;
 	}
 	assert(page_shift > 0);
-	page_size = 1u << page_shift;
+	page_size = 1 << page_shift;
 	xxxassert(page_size <= ROW_WIDTH);
 	XXXAZ(ROW_WIDTH % page_size);
 
@@ -295,8 +295,8 @@ binheap_new(void)
 	bh->rows = rows;
 	bh->free_list = NULL;
 	bh->next = R_IDX(page_shift);
-	bh->rows_count = 1;
 	bh->length = ROW_WIDTH;
+        bh->rows_count = 1;
 	bh->page_shift = page_shift;
 	TEST_DRIVER_CREATE_MEM(bh);
 
@@ -774,10 +774,10 @@ vasfail(const char *func, const char *file, int line,
 
 vas_f *VAS_Fail = vasfail;
 
-#define PARENT_CHILD_TESTS_COUNT	1000000u
-#define MAX_ITEMS_COUNT 		1000000u
-#define TESTS_PER_ITEM			10u
-#define TEST_STEPS_COUNT 		10u
+#define PARENT_CHILD_TESTS_COUNT	1000000
+#define MAX_ITEMS_COUNT 		1000000
+#define TESTS_PER_ITEM			10
+#define TEST_STEPS_COUNT 		10
 
 /*
  * Pad foo so its' size is equivalent to the objcore size.
@@ -795,7 +795,7 @@ vas_f *VAS_Fail = vasfail;
 
 struct foo {
 	unsigned		magic;
-#define FOO_MAGIC	0x23239823u
+#define FOO_MAGIC	0x23239823U
 	unsigned		key;
 	unsigned		n;
 	struct binheap_entry	*be;
