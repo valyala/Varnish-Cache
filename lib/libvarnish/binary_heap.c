@@ -587,6 +587,7 @@ vas_f *VAS_Fail = vasfail;
 
 #define PARENT_CHILD_TESTS_COUNT	1000000
 #define MAX_ITEMS_COUNT 		100000
+#define MIN_ITEMS_COUNT			1000
 #define TEST_STEPS_COUNT 		5
 #define MAX_RESIDENT_PAGES_COUNT	4096
 #define ITERATIONS_PER_TEST_COUNT	MAX_ITEMS_COUNT * 10
@@ -906,13 +907,19 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 static void
 run_tests(struct binheap *bh, unsigned resident_pages_count)
 {
+	double k;
 	unsigned u, items_count;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	assert(TEST_STEPS_COUNT > 0);
-	for (u = 1; u <= TEST_STEPS_COUNT; u++) {
-		items_count = (unsigned) (MAX_ITEMS_COUNT /
-			pow(2.0, (double) (TEST_STEPS_COUNT - u)));
+	assert(MIN_ITEMS_COUNT > 0);
+	assert(MAX_ITEMS_COUNT > MIN_ITEMS_COUNT);
+	k = log(((double) MAX_ITEMS_COUNT) / MIN_ITEMS_COUNT);
+        assert(TEST_STEPS_COUNT > 1);
+	k /= (TEST_STEPS_COUNT - 1);
+	for (u = 0; u < TEST_STEPS_COUNT; u++) {
+		items_count = (unsigned) (MIN_ITEMS_COUNT * exp(k * u));
+		if (items_count > MAX_ITEMS_COUNT)
+			items_count = MAX_ITEMS_COUNT;
 		test(bh, items_count, resident_pages_count);
 	}
 }
