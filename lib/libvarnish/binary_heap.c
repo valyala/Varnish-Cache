@@ -796,9 +796,9 @@ vas_f *VAS_Fail = vasfail;
 struct foo {
 	unsigned		magic;
 #define FOO_MAGIC	0x23239823U
+	struct binheap_entry	*be;
 	unsigned		key;
 	unsigned		n;
-	struct binheap_entry	*be;
 	char padding[PADDING];
 };
 
@@ -835,9 +835,9 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 	paranoia_check(bh);
 	assert(n < items_count);
 	fp = &ff[n];
+        AZ(fp->be);
 	AZ(fp->key);
 	AZ(fp->n);
-	AZ(fp->be);
 	key = (unsigned) random();
 	fp->magic = FOO_MAGIC;
 	fp->key = key;
@@ -864,9 +864,9 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 	assert(fp->be->idx == NOIDX);
 	assert(fp->key == key);
 	assert(fp->n == n);
+        fp->be = NULL;
 	fp->key = 0;
 	fp->n = 0;
-	fp->be = NULL;
 	paranoia_check(bh);
 }
 
