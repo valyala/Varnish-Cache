@@ -916,7 +916,7 @@ main(int argc, char **argv)
 	struct binheap *bh;
 	unsigned u;
 
-	srandom(0);	/* generate predictive results */
+	srandom(123);	/* generate predictive results */
 	for (u = 0; u < MAX_ITEMS_COUNT; u++)
 		ff[u].idx = BINHEAP_NOIDX;
 
