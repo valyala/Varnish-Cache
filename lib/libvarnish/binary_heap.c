@@ -916,12 +916,12 @@ run_tests(struct binheap *bh, unsigned resident_pages_count)
 	k = log(((double) MAX_ITEMS_COUNT) / MIN_ITEMS_COUNT);
         assert(TEST_STEPS_COUNT > 1);
 	k /= (TEST_STEPS_COUNT - 1);
-	for (u = 0; u < TEST_STEPS_COUNT; u++) {
+	test(bh, MIN_ITEMS_COUNT, resident_pages_count);
+	for (u = 1; u < TEST_STEPS_COUNT - 1; u++) {
 		items_count = (unsigned) (MIN_ITEMS_COUNT * exp(k * u));
-		if (items_count > MAX_ITEMS_COUNT)
-			items_count = MAX_ITEMS_COUNT;
 		test(bh, items_count, resident_pages_count);
 	}
+	test(bh, MAX_ITEMS_COUNT, resident_pages_count);
 }
 
 int
