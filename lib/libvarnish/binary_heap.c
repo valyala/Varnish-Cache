@@ -929,7 +929,8 @@ main(int argc, char **argv)
 	for (u = 1; u <= UINT_MAX / 2 && u <= MAX_RESIDENT_PAGES_COUNT; u *= 2)
 		run_tests(bh, u);
 
-	fprintf(stderr, "\n* Tests with pagefault counter disabled\n");
+	fprintf(stderr, "\n* Tests with pagefault counter disabled "
+			"(aka 'perftests')\n");
 	run_tests(bh, 0);
 	return (0);
 }
