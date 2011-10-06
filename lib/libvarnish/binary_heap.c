@@ -72,18 +72,14 @@
 
 #ifdef TEST_DRIVER
 
-/*
- * The maximum number of resident pages in memory.
- * Other pages are swapped out in lru order.
- */
-#define RESIDENT_PAGES_COUNT	1
-
 /* Memory model, which counts page faults */
 struct mem {
-	uintptr_t *lru;
-	uintptr_t page_mask;
-	uint64_t pagefaults_count;
-	unsigned is_enabled;
+	unsigned	magic;
+#define MEM_MAGIC	0xf07c9610U
+	uintptr_t	*lru;
+	uintptr_t	page_mask;
+	uint64_t	pagefaults_count;
+	unsigned	resident_pages_count;
 };
 
 static struct mem *
@@ -98,22 +94,24 @@ create_mem(void)
 
 	m = malloc(sizeof(*m));
 	XXXAN(m);
-	m->lru = calloc(RESIDENT_PAGES_COUNT, sizeof(*m->lru));
-	XXXAN(m->lru);
+	m->magic = MEM_MAGIC;
+	m->lru = NULL;
 	m->page_mask = ~(page_size - 1);
 	m->pagefaults_count = 0;
-	m->is_enabled = 0;
+	m->resident_pages_count = 0;
 	return m;
 }
 
 static void
-clear_mem(struct mem *m)
+init_mem(struct mem *m, unsigned resident_pages_count)
 {
-	unsigned u;
-
-	for (u = 0; u < RESIDENT_PAGES_COUNT; u++)
-		m->lru[u] = 0;
+	CHECK_OBJ_NOTNULL(m, MEM_MAGIC);
+	assert(resident_pages_count > 0);
+	free(m->lru);
+	m->lru = calloc(resident_pages_count, sizeof(*m->lru));
+	XXXAN(m->lru);
 	m->pagefaults_count = 0;
+	m->resident_pages_count = resident_pages_count;
 }
 
 static void
@@ -122,14 +120,15 @@ access_mem(struct mem *m, void *p)
 	uintptr_t addr, *lru;
 	unsigned u, v;
 
-	AN(m);
-	assert(RESIDENT_PAGES_COUNT > 0);
-	if (!m->is_enabled)
-		return;
+	CHECK_OBJ_NOTNULL(m, MEM_MAGIC);
+	if (m->resident_pages_count == 0)
+		return;	/* mem model is disabled */
+	if (p == NULL)
+		return;	/* access to NULL is forbidden */
 
 	addr = ((uintptr_t) p) & m->page_mask;
 	lru = m->lru;
-	for (u = 0; u < RESIDENT_PAGES_COUNT; u++) {
+	for (u = 0; u < m->resident_pages_count; u++) {
 		if (lru[u] == addr) {
 			for (v = u; v >= 1; v--)
 				lru[v] = lru[v - 1];
@@ -138,7 +137,7 @@ access_mem(struct mem *m, void *p)
 		}
 	}
 	m->pagefaults_count++;
-	for (v = RESIDENT_PAGES_COUNT - 1; v >= 1; v--)
+	for (v = m->resident_pages_count - 1; v >= 1; v--)
 		lru[v] = lru[v - 1];
 	lru[0] = addr;
 }
@@ -775,9 +774,10 @@ vasfail(const char *func, const char *file, int line,
 vas_f *VAS_Fail = vasfail;
 
 #define PARENT_CHILD_TESTS_COUNT	1000000
-#define MAX_ITEMS_COUNT 		1000000
+#define MAX_ITEMS_COUNT 		100000
 #define TESTS_PER_ITEM			10
-#define TEST_STEPS_COUNT 		10
+#define TEST_STEPS_COUNT 		2
+#define MAX_RESIDENT_PAGES_COUNT	4096
 
 /*
  * Pad foo so its' size is equivalent to the objcore size.
@@ -888,7 +888,7 @@ foo_reorder(struct binheap *bh, struct foo *fp, unsigned items_count)
 }
 
 static void
-test(struct binheap *bh, unsigned items_count)
+test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 {
 	double start, end;
 	struct foo *fp;
@@ -901,8 +901,8 @@ test(struct binheap *bh, unsigned items_count)
 	assert(items_count <= UINT_MAX / TESTS_PER_ITEM);
 	tests_count = items_count * TESTS_PER_ITEM;
 
-	fprintf(stderr, "\n+ %u items, %u tests\n", items_count,
-		tests_count);
+	fprintf(stderr, "\n+ %u items, %u tests, %u resident pages\n",
+		items_count, tests_count, resident_pages_count);
 	AZ(binheap_root(bh));
 	check_consistency(bh);
 	root_idx = ROOT_IDX(bh);
@@ -910,7 +910,7 @@ test(struct binheap *bh, unsigned items_count)
 
 	/* First insert our items */
 	start = TIM_mono();
-	clear_mem(bh->m);
+	init_mem(bh->m, resident_pages_count);
 	for (n = 0; n < items_count; n++) {
 		foo_insert(bh, n, items_count);
 		key = ff[n].key;
@@ -926,7 +926,7 @@ test(struct binheap *bh, unsigned items_count)
 
 	/* For M cycles, pick the root, insert new */
 	start = TIM_mono();
-	clear_mem(bh->m);
+	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < tests_count; u++) {
 		fp = binheap_root(bh);
 		foo_check(fp, items_count);
@@ -944,7 +944,7 @@ test(struct binheap *bh, unsigned items_count)
 
 	/* Randomly reorder */
 	start = TIM_mono();
-	clear_mem(bh->m);
+	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < tests_count; u++) {
 		n = random() % items_count;
 		fp = &ff[n];
@@ -960,7 +960,7 @@ test(struct binheap *bh, unsigned items_count)
 	insert_count = 0;
 	reorder_count = 0;
 	start = TIM_mono();
-	clear_mem(bh->m);
+	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < tests_count; u++) {
 		n = random() % items_count;
 		fp = &ff[n];
@@ -990,7 +990,7 @@ test(struct binheap *bh, unsigned items_count)
 	key = 0;
 	u = 0;
 	start = TIM_mono();
-	clear_mem(bh->m);
+	init_mem(bh->m, resident_pages_count);
 	while (1) {
 		fp = binheap_root(bh);
 		if (fp == NULL)
@@ -1011,13 +1011,14 @@ test(struct binheap *bh, unsigned items_count)
 }
 
 static void
-run_tests(struct binheap *bh)
+run_tests(struct binheap *bh, unsigned resident_pages_count)
 {
-	unsigned u;
+	unsigned u, tests_count;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	for (u = 1; u <= TEST_STEPS_COUNT; u++) {
-		test(bh, MAX_ITEMS_COUNT / TEST_STEPS_COUNT * u);
+		tests_count = MAX_ITEMS_COUNT / TEST_STEPS_COUNT * u;
+		test(bh, tests_count, resident_pages_count);
 	}
 }
 
@@ -1040,13 +1041,12 @@ main(int argc, char **argv)
 	AZ(binheap_root(bh));
 	check_consistency(bh);
         fprintf(stderr, "\n* Tests with pagefault counter enabled\n");
-	bh->m->is_enabled = 1;
-	run_tests(bh);
+	for (u = 1; u <= UINT_MAX / 2 && u <= MAX_RESIDENT_PAGES_COUNT; u *= 2)
+		run_tests(bh, u);
 
 	fprintf(stderr, "\n* Tests with pagefault counter disabled\n");
-	bh->m->is_enabled = 0;
 	while (1)
-		run_tests(bh);
-	return 0;
+		run_tests(bh, 0);
+	return (0);
 }
 #endif
