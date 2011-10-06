@@ -810,8 +810,8 @@ test(struct binheap *bh)
 	}
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u inserts: %.3lfs, page_faults=%lu OK\n", N,
-		end - start, bh->m->page_faults);
+	fprintf(stderr, "%u inserts: %.3lfs, page_faults=%.lf OK\n", N,
+		end - start, (double) bh->m->page_faults);
 
 	/* For M cycles, pick the root, insert new */
 	start = TIM_mono();
@@ -828,8 +828,8 @@ test(struct binheap *bh)
 	}
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u root replacements: %.3lfs, page_faults=%lu OK\n", M,
-		end - start, bh->m->page_faults);
+	fprintf(stderr, "%u root replacements: %.3lfs, page_faults=%.lf OK\n",
+		M, end - start, (double) bh->m->page_faults);
 
 	/* Randomly update */
 	start = TIM_mono();
@@ -841,8 +841,8 @@ test(struct binheap *bh)
 	}
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u random updates: %.3lfs, page_faults=%lu OK\n", M,
-		end - start, bh->m->page_faults);
+	fprintf(stderr, "%u random updates: %.3lfs, page_faults=%.lf OK\n", M,
+		end - start, (double) bh->m->page_faults);
 
 	/* Randomly insert, delete and update */
 	delete_count = 0;
@@ -871,9 +871,9 @@ test(struct binheap *bh)
 	end = TIM_mono();
 	fprintf(stderr,
 		"%u deletes, %u inserts, %u updates: %.3lfs, "
-		"page_faults=%lu OK\n",
+		"page_faults=%.lf OK\n",
 		delete_count, insert_count, update_count, end - start,
-		bh->m->page_faults);
+		(double) bh->m->page_faults);
 
 	/* Then remove everything */
 	key = 0;
@@ -895,8 +895,8 @@ test(struct binheap *bh)
 	AZ(binheap_root(bh));
 	check_consistency(bh);
 	end = TIM_mono();
-	fprintf(stderr, "%u deletes: %.3lfs, page_faults=%lu OK\n", u,
-		end - start, bh->m->page_faults);
+	fprintf(stderr, "%u deletes: %.3lfs, page_faults=%.lf OK\n", u,
+		end - start, (double) bh->m->page_faults);
 
 	disable_mem(bh->m);
 }
