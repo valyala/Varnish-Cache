@@ -30,6 +30,8 @@
  *
  */
 
+#include <limits.h>
+
 /* Public Interface --------------------------------------------------*/
 
 struct binheap;
@@ -66,11 +68,14 @@ void *binheap_root(const struct binheap *bh);
 	 * If the binheap is empty, returns NULL.
 	 */
 
-#define BINHEAP_TIME2KEY(t)	((unsigned) (t))
+#define BINHEAP_TIME2KEY(t)	((t) < 0 ? 0 : \
+	((t) > UINT_MAX ? UINT_MAX : (unsigned) ((t) + 0.5)))
 	/*
 	 * Converts time in seconds to a binheap_entry key.
-	 * Note that the resolution of the key is 1 second, while t resolution
-	 * can be much higher (nanoseconds).
-	 * TODO: deal with Y2038 problem?
-	 * http://en.wikipedia.org/wiki/Year_2038_problem
+	 * Take into account the following limitations:
+	 * - The resolution of the returned key is rounded to 1 second, while
+	 *   input resolution can be much higher (nanoseconds).
+	 * - Negative values are converted to 0, while values exceeding UINT_MAX
+	 *   are converted to UINT_MAX. For systems with 32-bit unsigned values
+	 *   this means that dates before 1970 and after 2038 are clipped.
 	 */
