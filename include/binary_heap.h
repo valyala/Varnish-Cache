@@ -64,7 +64,8 @@ void binheap_delete(struct binheap *bh, struct binheap_entry *be);
 
 void *binheap_root(const struct binheap *bh);
 	/*
-	 * Returns pointer associated with the binheap root entry.
+	 * Returns pointer associated with the binheap root entry,
+	 * i.e. the entry with minimal key.
 	 * If the binheap is empty, returns NULL.
 	 */
 

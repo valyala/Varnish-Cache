@@ -28,13 +28,30 @@
  *
  * Implementation of a binary heap API
  *
- * See also:
+ * The main feature of this binheap is minimizing the number of page faults
+ * under memory pressure. Memory shortage is typical for Varnish setups.
+ * Canonical binary heap (http://en.wikipedia.org/wiki/Binary_heap) isn't
+ * suitable for this workload, since it requires P=log2(2*N/M)/2 average page
+ * faults during binheap mutations, where N is the number of items in binheap
+ * and M is the number of items per page. For example, P=5.5 on x32 and P=6
+ * on x64 for N=2^20.
+ * 'Slightly' modified parent-child index calculations used in the implementation
+ * reduce average page faults count to P=log2(N)/log2(M/4)/2, i.e. P=1.25 on x32
+ * and P=1.43 on x64, which means more than 4x speedup comparing to canonical
+ * binary heap under memory pressure. See more details at:
  *	http://portal.acm.org/citation.cfm?doid=1785414.1785434
  *	(or: http://queue.acm.org/detail.cfm?id=1814327)
  *
- * Test driver can be built and started using the following commands:
+ * But that's only the half of the story. Though previous implementation
+ * already used enhanced parent-child index calculations, it had very serious
+ * flaw as seen from minimizing page faults POV - compare() and update()
+ * callbacks. Common binheap operations invoke 1.5*log2(N) such callbacks.
+ * But what's wrong with them?
+ *
+ * Test driver can be built and run using the following commands:
  * $ cc -DTEST_DRIVER -I../.. -I../../include -lrt -lm binary_heap.c
  * $ ./a.out
+ *
  */
 
 #include "config.h"
