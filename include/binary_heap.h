@@ -53,20 +53,22 @@ struct binheap_entry *binheap_insert(struct binheap *bh, void *p,
 
 void binheap_reorder(const struct binheap *bh, struct binheap_entry *be,
 	unsigned key);
-        /*
-         * Modifies key value for the given entry.
-         */
+	/*
+	 * Modifies key value for the given entry.
+	 */
 
 void binheap_delete(struct binheap *bh, struct binheap_entry *be);
-        /*
-         * Removes the entry from binheap.
-         */
+	/*
+	 * Removes the entry from binheap.
+	 */
 
-void *binheap_root(const struct binheap *bh);
+void *binheap_root(const struct binheap *bh, unsigned *key_ptr);
 	/*
 	 * Returns pointer associated with the binheap root entry,
-	 * i.e. the entry with minimal key.
-	 * If the binheap is empty, returns NULL.
+	 * i.e. the entry with the minimal key.
+	 * Sets *key_ptr to the key associated with the root entry.
+	 * key_ptr cannot be NULL.
+	 * If the binheap is empty, returns NULL and sets *key_ptr to 0.
 	 */
 
 #define BINHEAP_TIME2KEY(t)	((t) < 0 ? 0 : \

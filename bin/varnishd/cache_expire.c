@@ -340,6 +340,7 @@ exp_timer(struct sess *sp, void *priv)
 	struct lru *lru;
 	double t;
 	struct object *o;
+	unsigned key;
 
 	(void)priv;
 	t = TIM_real();
@@ -353,12 +354,14 @@ exp_timer(struct sess *sp, void *priv)
 		}
 
 		Lck_Lock(&exp_mtx);
-		oc = binheap_root(exp_heap);
+		oc = binheap_root(exp_heap, &key);
 		if (oc == NULL) {
+			AZ(key);
 			Lck_Unlock(&exp_mtx);
 			continue;
 		}
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
+		assert(BINHEAP_TIME2KEY(oc->timer_when) == key);
 
 		/*
 		 * We may have expired so many objects that our timestamp

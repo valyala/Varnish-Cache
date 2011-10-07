@@ -426,12 +426,14 @@ vev_schedule_one(struct vev_base *evb)
 	struct vev *e, *e2, *e3;
 	int i, j, tmo;
 	struct pollfd *pfd;
+	unsigned key;
 
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(evb->thread == pthread_self());
-	e = binheap_root(evb->binheap);
+	e = binheap_root(evb->binheap, &key);
 	if (e != NULL) {
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
+		assert(BINHEAP_TIME2KEY(e->__when) == key);
 		AN(e->__exp_entry);
 		t = TIM_mono();
 		if (e->__when <= t)
@@ -439,8 +441,10 @@ vev_schedule_one(struct vev_base *evb)
 		tmo = (int)((e->__when - t) * 1e3);
 		if (tmo == 0)
 			tmo = 1;
-	} else
+	} else {
+		AZ(key);
 		tmo = INFTIM;
+	}
 
 	if (evb->compact_pfd)
 		vev_compact_pfd(evb);

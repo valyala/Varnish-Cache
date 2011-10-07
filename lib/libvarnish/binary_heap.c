@@ -656,20 +656,23 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 }
 
 void *
-binheap_root(const struct binheap *bh)
+binheap_root(const struct binheap *bh, unsigned *key_ptr)
 {
-	struct binheap_entry *be;
+	struct entry *e;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	AN(key_ptr);
 	TEST_DRIVER_ACCESS_IDX(bh, ROOT_IDX(bh));
-	be = A(bh, ROOT_IDX(bh)).be;
-	if (be == NULL) {
+	e = &A(bh, ROOT_IDX(bh));
+	if (e->be == NULL) {
 		assert(bh->next == ROOT_IDX(bh));
+		*key_ptr = 0;
 		return NULL;
 	}
-	assert(be->idx == ROOT_IDX(bh));
-	AN(be->p);
-	return be->p;
+	assert(e->be->idx == ROOT_IDX(bh));
+	AN(e->be->p);
+	*key_ptr = e->key;
+	return e->be->p;
 }
 
 #ifdef TEST_DRIVER
@@ -925,7 +928,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 {
 	double start, end;
 	struct foo *fp;
-	unsigned u, n, key, root_idx;
+	unsigned u, n, key, deleted_key, root_idx;
 	unsigned delete_count, insert_count, reorder_count;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
@@ -934,7 +937,8 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 
 	fprintf(stderr, "\n+ %u items, %u iterations, %u resident pages\n",
 		items_count, ITERATIONS_PER_TEST_COUNT, resident_pages_count);
-	AZ(binheap_root(bh));
+	AZ(binheap_root(bh, &key));
+	AZ(key);
 	check_consistency(bh);
 	root_idx = ROOT_IDX(bh);
 	assert(root_idx != NOIDX);
@@ -944,11 +948,11 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	init_mem(bh->m, resident_pages_count);
 	for (n = 0; n < items_count; n++) {
 		foo_insert(bh, n, items_count);
-		key = ff[n].key;
-		fp = binheap_root(bh);
+		fp = binheap_root(bh, &key);
 		foo_check(fp, items_count);
+		assert(fp->key == key);
 		assert(fp->be->idx == root_idx);
-		assert(fp->key <= key);
+		assert(key <= ff[n].key);
 	}
 	check_consistency(bh);
 	end = TIM_mono();
@@ -956,17 +960,18 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		items_count, end - start, (double) bh->m->pagefaults_count);
 
 	/* For M cycles, pick the root, insert new */
+	n = 0;
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < ITERATIONS_PER_TEST_COUNT; u++) {
-		fp = binheap_root(bh);
+		fp = binheap_root(bh, &key);
 		foo_check(fp, items_count);
+		assert(fp->key == key);
 		assert(fp->be->idx == root_idx);
-		assert(fp->key <= key);
+		assert(key <= ff[n].key);
 		n = fp->n;
 		foo_delete(bh, fp, items_count);
 		foo_insert(bh, n, items_count);
-		key = ff[n].key;
 	}
 	check_consistency(bh);
 	end = TIM_mono();
@@ -1020,23 +1025,27 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		(double) bh->m->pagefaults_count);
 
 	/* Then remove everything */
-	key = 0;
+	deleted_key = 0;
 	u = 0;
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
 	while (1) {
-		fp = binheap_root(bh);
-		if (fp == NULL)
+		fp = binheap_root(bh, &key);
+		if (fp == NULL) {
+			AZ(key);
 			break;
+		}
 		foo_check(fp, items_count);
+		assert(fp->key == key);
 		assert(fp->be->idx == root_idx);
-		assert(fp->key >= key);
-		key = fp->key;
+		assert(key >= deleted_key);
+		deleted_key = key;
 		foo_delete(bh, fp, items_count);
 		++u;
 	}
 	assert(u == items_count - (delete_count - insert_count));
-	AZ(binheap_root(bh));
+	AZ(binheap_root(bh, &key));
+	AZ(key);
 	check_consistency(bh);
 	end = TIM_mono();
 	fprintf(stderr, "%u deletes: %.3lfs, pagefaults=%.lf OK\n", u,
@@ -1067,7 +1076,7 @@ int
 main(int argc, char **argv)
 {
 	struct binheap *bh;
-	unsigned u;
+	unsigned u, key;
 
 	srandom(123);	/* generate predictive results */
 	check_time2key();
@@ -1080,7 +1089,8 @@ main(int argc, char **argv)
 	fprintf(stderr, "%u parent-child tests OK\n", PARENT_CHILD_TESTS_COUNT);
 
 	bh = binheap_new();
-	AZ(binheap_root(bh));
+	AZ(binheap_root(bh, &key));
+	AZ(key);
 	check_consistency(bh);
         fprintf(stderr, "\n* Tests with pagefault counter enabled\n");
 	for (u = 1; u <= UINT_MAX / 2 && u <= MAX_RESIDENT_PAGES_COUNT; u *= 2)
