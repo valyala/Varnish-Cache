@@ -478,8 +478,9 @@ start_new_epoch(struct vev_base *evb)
 		AN(e);
 		assert(e->timeout > 0.0);
 		vev_add(evb, e);
-		free(vle);
-		vl_head = vl_head->next;
+		vle = vl_head->next;
+		free(vl_head);
+		vl_head = vle;
 	}
 	return (1);
 }
