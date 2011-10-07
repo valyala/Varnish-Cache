@@ -182,7 +182,7 @@ exp_insert(struct objcore *oc, struct lru *lru, double when)
 	Lck_AssertHeld(&lru->mtx);
 	Lck_AssertHeld(&exp_mtx);
 	AZ(oc->exp_entry);
-	oc->exp_entry = binheap_insert(exp_heap, oc, (float) when);
+	oc->exp_entry = binheap_insert(exp_heap, oc, BINHEAP_TIME2KEY(when));
 	AN(oc->exp_entry);
 	VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
 }
@@ -301,7 +301,6 @@ EXP_Rearm(const struct object *o)
 {
 	struct objcore *oc;
 	struct lru *lru;
-	double when;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
@@ -315,10 +314,9 @@ EXP_Rearm(const struct object *o)
 	 * The hang-man might have this object of the binheap while
 	 * tending to a timer.  If so, we do not muck with it here.
 	 */
-	if (oc->exp_entry != NULL) {
-		when = get_when(o);
-		binheap_reorder(exp_heap, oc->exp_entry, (float) when);
-	}
+	if (oc->exp_entry != NULL)
+		binheap_reorder(exp_heap, oc->exp_entry,
+				BINHEAP_TIME2KEY(get_when(o)));
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
@@ -336,7 +334,7 @@ exp_timer(struct sess *sp, void *priv)
 	struct lru *lru;
 	double t, when;
 	struct object *o;
-	float key;
+	unsigned key;
 
 	(void)priv;
 	t = TIM_real();
