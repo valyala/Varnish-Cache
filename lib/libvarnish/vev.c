@@ -254,7 +254,7 @@ vev_add(struct vev_base *evb, struct vev *e)
 	e->magic = VEV_MAGIC;	/* before binheap_insert() */
 
 	if (e->timeout != 0.0) {
-		e->__when += TIM_mono() + e->timeout;
+		e->__when = TIM_mono() + e->timeout;
 		AZ(e->__exp_entry);
 		e->__exp_entry = binheap_insert(evb->binheap, e,
 						BINHEAP_TIME2KEY(e->__when));
