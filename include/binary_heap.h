@@ -77,6 +77,8 @@ void *binheap_root(const struct binheap *bh);
 	 * - The resolution of the returned key is rounded to 1 second, while
 	 *   input resolution can be much higher (nanoseconds).
 	 * - Negative values are converted to 0, while values exceeding UINT_MAX
-	 *   are converted to UINT_MAX. For systems with 32-bit unsigned values
-	 *   this means that dates before 1970 and after 2038 are clipped.
+	 *   are converted to UINT_MAX. This means that the minimum key always
+	 *   corresponds to 1970 year, while the maximum key corresponds
+	 *   to 2106 year for systems with 32-bit unsigned types. Values higher
+	 *   and lower than these limits are clipped.
 	 */
