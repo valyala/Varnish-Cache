@@ -269,7 +269,7 @@ vev_add(struct vev_base *evb, struct vev *e)
 	AZ(e->__exp_entry);
 	if (e->timeout != 0.0) {
 		/* Timeouts smaller than 1ms are just silly */
-		assert(e->timeout > 1e-3);
+		assert(e->timeout >= 1e-3);
 		when = tim_epoch(evb, TIM_mono() + e->timeout);
 		e->__exp_entry = binheap_insert(evb->binheap, e,
 						BINHEAP_TIME2KEY(when));
