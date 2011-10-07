@@ -149,11 +149,11 @@ EXP_Ttl(const struct sess *sp, const struct object *o)
 }
 
 /*--------------------------------------------------------------------
- * When & why does the timer fire for this object ?
+ * Returns new key for o->objcore->exp_entry
  */
 
-static int
-update_object_when(const struct object *o)
+static unsigned
+get_exp_entry_key(const struct object *o)
 {
 	struct objcore *oc;
 	double when, w2;
@@ -168,16 +168,13 @@ update_object_when(const struct object *o)
 	if (w2 > when)
 		when = w2;
 	assert(!isnan(when));
-	if (when == oc->timer_when)
-		return (0);
-	oc->timer_when = when;
-	return (1);
+	return BINHEAP_TIME2KEY(when);
 }
 
 /*--------------------------------------------------------------------*/
 
 static void
-exp_insert(struct objcore *oc, struct lru *lru)
+exp_insert(struct objcore *oc, struct lru *lru, unsigned key)
 {
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
@@ -185,8 +182,7 @@ exp_insert(struct objcore *oc, struct lru *lru)
 	Lck_AssertHeld(&lru->mtx);
 	Lck_AssertHeld(&exp_mtx);
 	AZ(oc->exp_entry);
-	oc->exp_entry = binheap_insert(exp_heap, oc,
-				       BINHEAP_TIME2KEY(oc->timer_when));
+	oc->exp_entry = binheap_insert(exp_heap, oc, key);
 	AN(oc->exp_entry);
 	VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
 }
@@ -206,8 +202,7 @@ EXP_Inject(struct objcore *oc, struct lru *lru, double when)
 
 	Lck_Lock(&lru->mtx);
 	Lck_Lock(&exp_mtx);
-	oc->timer_when = when;
-	exp_insert(oc, lru);
+	exp_insert(oc, lru, BINHEAP_TIME2KEY(when));
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 }
@@ -224,6 +219,7 @@ EXP_Insert(struct object *o)
 {
 	struct objcore *oc;
 	struct lru *lru;
+	unsigned key;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
@@ -238,8 +234,8 @@ EXP_Insert(struct object *o)
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 	Lck_Lock(&lru->mtx);
 	Lck_Lock(&exp_mtx);
-	(void)update_object_when(o);
-	exp_insert(oc, lru);
+	key = get_exp_entry_key(o);
+	exp_insert(oc, lru, key);
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
@@ -305,6 +301,7 @@ EXP_Rearm(const struct object *o)
 {
 	struct objcore *oc;
 	struct lru *lru;
+	unsigned key;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
@@ -318,14 +315,19 @@ EXP_Rearm(const struct object *o)
 	 * The hang-man might have this object of the binheap while
 	 * tending to a timer.  If so, we do not muck with it here.
 	 */
-	if (oc->exp_entry != NULL && update_object_when(o)) {
-		AN(oc->exp_entry);
-		binheap_reorder(exp_heap, oc->exp_entry,
-				BINHEAP_TIME2KEY(oc->timer_when));
+	if (oc->exp_entry != NULL) {
+		key = get_exp_entry_key(o);
+		binheap_reorder(exp_heap, oc->exp_entry, key);
 	}
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
+}
+
+static unsigned
+get_current_key(void)
+{
+	return BINHEAP_TIME2KEY(TIM_real());
 }
 
 /*--------------------------------------------------------------------
@@ -338,38 +340,36 @@ exp_timer(struct sess *sp, void *priv)
 {
 	struct objcore *oc;
 	struct lru *lru;
-	double t;
 	struct object *o;
-	unsigned key;
+	unsigned root_key, current_key;
 
 	(void)priv;
-	t = TIM_real();
+	current_key = get_current_key();
 	oc = NULL;
 	while (1) {
 		if (oc == NULL) {
 			WSL_Flush(sp->wrk, 0);
 			WRK_SumStat(sp->wrk);
 			TIM_sleep(params->expiry_sleep);
-			t = TIM_real();
+			current_key = get_current_key();
 		}
 
 		Lck_Lock(&exp_mtx);
-		oc = binheap_root(exp_heap, &key);
+		oc = binheap_root(exp_heap, &root_key);
 		if (oc == NULL) {
-			AZ(key);
+			AZ(root_key);
 			Lck_Unlock(&exp_mtx);
 			continue;
 		}
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
-		assert(BINHEAP_TIME2KEY(oc->timer_when) == key);
 
 		/*
 		 * We may have expired so many objects that our timestamp
 		 * got out of date, refresh it and check again.
 		 */
-		if (oc->timer_when > t)
-			t = TIM_real();
-		if (oc->timer_when > t) {
+		if (root_key > current_key)
+			current_key = get_current_key();
+		if (root_key > current_key) {
 			Lck_Unlock(&exp_mtx);
 			oc = NULL;
 			continue;
@@ -407,8 +407,8 @@ exp_timer(struct sess *sp, void *priv)
 
 		CHECK_OBJ_NOTNULL(oc->objhead, OBJHEAD_MAGIC);
 		o = oc_getobj(sp->wrk, oc);
-		WSL(sp->wrk, SLT_ExpKill, 0, "%u %.0f",
-		    o->xid, EXP_Ttl(NULL, o) - t);
+		WSL(sp->wrk, SLT_ExpKill, 0, "%u %d", o->xid,
+		    (int) (BINHEAP_TIME2KEY(EXP_Ttl(NULL, o)) - current_key));
 		(void)HSH_Deref(sp->wrk, oc, NULL);
 	}
 	NEEDLESS_RETURN(NULL);

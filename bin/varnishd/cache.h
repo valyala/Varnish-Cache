@@ -435,7 +435,6 @@ struct objcore {
 	struct objhead		*objhead;
 	struct busyobj		*busyobj;
 	struct binheap_entry	*exp_entry;
-	double			timer_when;
 	unsigned		flags;
 #define OC_F_BUSY		(1<<1)
 #define OC_F_PASS		(1<<2)
