@@ -199,7 +199,7 @@ struct binheap_entry {
  * Code below expects sizeof(entry) is a power of two.
  */
 struct entry {
-	unsigned key;
+	float key;
 	struct binheap_entry *be;
 };
 
@@ -339,7 +339,7 @@ binheap_new(void)
 }
 
 static void
-assign(const struct binheap *bh, struct binheap_entry *be, unsigned key,
+assign(const struct binheap *bh, struct binheap_entry *be, float key,
 	unsigned idx)
 {
 	struct entry *e;
@@ -357,7 +357,7 @@ assign(const struct binheap *bh, struct binheap_entry *be, unsigned key,
 }
 
 static unsigned
-trickleup(const struct binheap *bh, unsigned key, unsigned u)
+trickleup(const struct binheap *bh, float key, unsigned u)
 {
 	struct entry *e;
 	unsigned v;
@@ -387,7 +387,7 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
 }
 
 static unsigned
-trickledown(const struct binheap *bh, unsigned key, unsigned u)
+trickledown(const struct binheap *bh, float key, unsigned u)
 {
 	struct entry *e1, *e2;
 	unsigned v;
@@ -509,7 +509,7 @@ release_be(struct binheap *bh, struct binheap_entry *be)
 }
 
 struct binheap_entry *
-binheap_insert(struct binheap *bh, void *p, unsigned key)
+binheap_insert(struct binheap *bh, void *p, float key)
 {
 	struct binheap_entry *be;
 	unsigned u, v;
@@ -541,7 +541,7 @@ binheap_insert(struct binheap *bh, void *p, unsigned key)
 }
 
 static unsigned
-reorder(const struct binheap *bh, unsigned key, unsigned u)
+reorder(const struct binheap *bh, float key, unsigned u)
 {
 	unsigned v;
 
@@ -562,7 +562,7 @@ reorder(const struct binheap *bh, unsigned key, unsigned u)
 
 void
 binheap_reorder(const struct binheap *bh, struct binheap_entry *be,
-	unsigned key)
+	float key)
 {
 	struct entry *e;
 	unsigned u, v;
@@ -608,7 +608,8 @@ void
 binheap_delete(struct binheap *bh, struct binheap_entry *be)
 {
 	struct entry *e;
-	unsigned u, v, key;
+	float key;
+	unsigned u, v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(bh->next > ROOT_IDX(bh));
@@ -656,7 +657,7 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 }
 
 void *
-binheap_root(const struct binheap *bh, unsigned *key_ptr)
+binheap_root(const struct binheap *bh, float *key_ptr)
 {
 	struct entry *e;
 
@@ -676,23 +677,6 @@ binheap_root(const struct binheap *bh, unsigned *key_ptr)
 }
 
 #ifdef TEST_DRIVER
-
-static void
-check_time2key(void)
-{
-	assert(BINHEAP_TIME2KEY(-1e9) == 0);
-	assert(BINHEAP_TIME2KEY(-1.0) == 0);
-	assert(BINHEAP_TIME2KEY(-0.1) == 0);
-	assert(BINHEAP_TIME2KEY(0.499) == 0);
-	assert(BINHEAP_TIME2KEY(0.501) == 1);
-	assert(BINHEAP_TIME2KEY(1.499) == 1);
-	assert(BINHEAP_TIME2KEY(UINT_MAX * 1.0 - 0.6) == UINT_MAX - 1);
-	assert(BINHEAP_TIME2KEY(UINT_MAX * 1.0 - 0.4) == UINT_MAX);
-	assert(BINHEAP_TIME2KEY(UINT_MAX * 1.0 + 0.4) == UINT_MAX);
-	assert(BINHEAP_TIME2KEY(UINT_MAX * 1.0 + 0.6) == UINT_MAX);
-	assert(BINHEAP_TIME2KEY(UINT_MAX * 2.0) == UINT_MAX);
-	assert(BINHEAP_TIME2KEY(UINT_MAX * 1000.0) == UINT_MAX);
-}
 
 static void
 check_consistency(const struct binheap *bh)
@@ -819,7 +803,7 @@ vas_f *VAS_Fail = vasfail;
  * Pad foo so its' size is equivalent to the objcore size.
  * Currently size of objcore is 120 bytes on x64 and 72 bytes
  * on x32. This means that the padding should be 96 for x64
- * and 56 for x32.
+ * and 52 for x32.
  */
 #define PADDING 96
 
@@ -833,7 +817,7 @@ struct foo {
 	unsigned		magic;
 #define FOO_MAGIC	0x23239823U
 	struct binheap_entry	*be;
-	unsigned		key;
+	float			key;
 	unsigned		n;
 	char padding[PADDING];
 };
@@ -866,7 +850,7 @@ static void
 foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 {
 	struct foo *fp;
-	unsigned key;
+	float key;
 
 	paranoia_check(bh);
 	assert(n < items_count);
@@ -874,7 +858,7 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
         AZ(fp->be);
 	AZ(fp->key);
 	AZ(fp->n);
-	key = (unsigned) random();
+	key = (float) random();
 	fp->magic = FOO_MAGIC;
 	fp->key = key;
 	fp->n = n;
@@ -888,7 +872,8 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 static void
 foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 {
-	unsigned key, n;
+	unsigned n;
+	float key;
 
 	paranoia_check(bh);
 	foo_check_existence(bh, fp, items_count);
@@ -909,11 +894,12 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 static void
 foo_reorder(struct binheap *bh, struct foo *fp, unsigned items_count)
 {
-	unsigned key, n;
+	unsigned n;
+	float key;
 
 	paranoia_check(bh);
 	foo_check_existence(bh, fp, items_count);
-	key = (unsigned) random();
+	key = (float) random();
 	n = fp->n;
 	fp->key = key;
 	binheap_reorder(bh, fp->be, key);
@@ -928,7 +914,8 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 {
 	double start, end;
 	struct foo *fp;
-	unsigned u, n, key, deleted_key, root_idx;
+	float key, deleted_key;
+	unsigned u, n, root_idx;
 	unsigned delete_count, insert_count, reorder_count;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
@@ -1003,7 +990,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		n = random() % items_count;
 		fp = &ff[n];
 		if (fp->be != NULL) {
-			if (fp->key & 1) {
+			if (((unsigned) fp->key) & 1) {
 				foo_delete(bh, fp, items_count);
 				++delete_count;
 			} else {
@@ -1076,12 +1063,10 @@ int
 main(int argc, char **argv)
 {
 	struct binheap *bh;
-	unsigned u, key;
+	unsigned u;
+	float key;
 
 	srandom(123);	/* generate predictive results */
-	check_time2key();
-	fprintf(stderr, "time2key test OK\n");
-
 	for (u = 1; u <= ROW_SHIFT; u++) {
 		check_parent_child(u, PARENT_CHILD_TESTS_COUNT);
 		check_parent_child_overflow(u, PARENT_CHILD_TESTS_COUNT);

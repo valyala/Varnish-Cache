@@ -149,11 +149,11 @@ EXP_Ttl(const struct sess *sp, const struct object *o)
 }
 
 /*--------------------------------------------------------------------
- * Returns new key for o->objcore->exp_entry
+ * Returns expiration time for the object.
  */
 
-static unsigned
-get_exp_entry_key(const struct object *o)
+static double
+get_when(const struct object *o)
 {
 	struct objcore *oc;
 	double when, w2;
@@ -168,13 +168,13 @@ get_exp_entry_key(const struct object *o)
 	if (w2 > when)
 		when = w2;
 	assert(!isnan(when));
-	return BINHEAP_TIME2KEY(when);
+	return when;
 }
 
 /*--------------------------------------------------------------------*/
 
 static void
-exp_insert(struct objcore *oc, struct lru *lru, unsigned key)
+exp_insert(struct objcore *oc, struct lru *lru, double when)
 {
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
@@ -182,7 +182,7 @@ exp_insert(struct objcore *oc, struct lru *lru, unsigned key)
 	Lck_AssertHeld(&lru->mtx);
 	Lck_AssertHeld(&exp_mtx);
 	AZ(oc->exp_entry);
-	oc->exp_entry = binheap_insert(exp_heap, oc, key);
+	oc->exp_entry = binheap_insert(exp_heap, oc, (float) when);
 	AN(oc->exp_entry);
 	VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
 }
@@ -202,7 +202,7 @@ EXP_Inject(struct objcore *oc, struct lru *lru, double when)
 
 	Lck_Lock(&lru->mtx);
 	Lck_Lock(&exp_mtx);
-	exp_insert(oc, lru, BINHEAP_TIME2KEY(when));
+	exp_insert(oc, lru, when);
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 }
@@ -219,7 +219,7 @@ EXP_Insert(struct object *o)
 {
 	struct objcore *oc;
 	struct lru *lru;
-	unsigned key;
+	double when;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
@@ -234,8 +234,8 @@ EXP_Insert(struct object *o)
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 	Lck_Lock(&lru->mtx);
 	Lck_Lock(&exp_mtx);
-	key = get_exp_entry_key(o);
-	exp_insert(oc, lru, key);
+	when = get_when(o);
+	exp_insert(oc, lru, when);
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
@@ -301,7 +301,7 @@ EXP_Rearm(const struct object *o)
 {
 	struct objcore *oc;
 	struct lru *lru;
-	unsigned key;
+	double when;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
@@ -316,18 +316,12 @@ EXP_Rearm(const struct object *o)
 	 * tending to a timer.  If so, we do not muck with it here.
 	 */
 	if (oc->exp_entry != NULL) {
-		key = get_exp_entry_key(o);
-		binheap_reorder(exp_heap, oc->exp_entry, key);
+		when = get_when(o);
+		binheap_reorder(exp_heap, oc->exp_entry, (float) when);
 	}
 	Lck_Unlock(&exp_mtx);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
-}
-
-static unsigned
-get_current_key(void)
-{
-	return BINHEAP_TIME2KEY(TIM_real());
 }
 
 /*--------------------------------------------------------------------
@@ -340,24 +334,26 @@ exp_timer(struct sess *sp, void *priv)
 {
 	struct objcore *oc;
 	struct lru *lru;
+	double t, when;
 	struct object *o;
-	unsigned root_key, current_key;
+	float key;
 
 	(void)priv;
-	current_key = get_current_key();
+	t = TIM_real();
 	oc = NULL;
 	while (1) {
 		if (oc == NULL) {
 			WSL_Flush(sp->wrk, 0);
 			WRK_SumStat(sp->wrk);
 			TIM_sleep(params->expiry_sleep);
-			current_key = get_current_key();
+			t = TIM_real();
 		}
 
 		Lck_Lock(&exp_mtx);
-		oc = binheap_root(exp_heap, &root_key);
+		oc = binheap_root(exp_heap, &key);
+		when = key;
 		if (oc == NULL) {
-			AZ(root_key);
+			AZ(when);
 			Lck_Unlock(&exp_mtx);
 			continue;
 		}
@@ -367,9 +363,9 @@ exp_timer(struct sess *sp, void *priv)
 		 * We may have expired so many objects that our timestamp
 		 * got out of date, refresh it and check again.
 		 */
-		if (root_key > current_key)
-			current_key = get_current_key();
-		if (root_key > current_key) {
+		if (when > t)
+			t = TIM_real();
+		if (when > t) {
 			Lck_Unlock(&exp_mtx);
 			oc = NULL;
 			continue;
@@ -407,8 +403,8 @@ exp_timer(struct sess *sp, void *priv)
 
 		CHECK_OBJ_NOTNULL(oc->objhead, OBJHEAD_MAGIC);
 		o = oc_getobj(sp->wrk, oc);
-		WSL(sp->wrk, SLT_ExpKill, 0, "%u %d", o->xid,
-		    (int) (BINHEAP_TIME2KEY(EXP_Ttl(NULL, o)) - current_key));
+		WSL(sp->wrk, SLT_ExpKill, 0, "%u %.0f",
+		    o->xid, EXP_Ttl(NULL, o) - t);
 		(void)HSH_Deref(sp->wrk, oc, NULL);
 	}
 	NEEDLESS_RETURN(NULL);

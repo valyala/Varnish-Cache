@@ -210,6 +210,7 @@ int
 vev_add(struct vev_base *evb, struct vev *e)
 {
 	struct vevsig *es;
+	double when;
 
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(e->magic != VEV_MAGIC);
@@ -253,15 +254,11 @@ vev_add(struct vev_base *evb, struct vev *e)
 
 	e->magic = VEV_MAGIC;	/* before binheap_insert() */
 
+	AZ(e->__exp_entry);
 	if (e->timeout != 0.0) {
-		e->__when = TIM_mono() + e->timeout;
-		AZ(e->__exp_entry);
-		e->__exp_entry = binheap_insert(evb->binheap, e,
-						BINHEAP_TIME2KEY(e->__when));
+		when = TIM_mono() + e->timeout;
+		e->__exp_entry = binheap_insert(evb->binheap, e, (float) when);
 		AN(e->__exp_entry);
-	} else {
-		e->__when = 0.0;
-		e->__exp_entry = NULL;
 	}
 
 	e->__vevb = evb;
@@ -382,15 +379,13 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 {
 	int i;
 
-
 	i = e->callback(e, 0);
 	if (i) {
 		vev_del(evb, e);
 		free(e);
 	} else {
-		e->__when = t + e->timeout;
-		binheap_reorder(evb->binheap, e->__exp_entry,
-				BINHEAP_TIME2KEY(e->__when));
+		t += e->timeout;
+		binheap_reorder(evb->binheap, e->__exp_entry, (float) t);
 	}
 	return (1);
 }
@@ -422,27 +417,27 @@ vev_sched_signal(struct vev_base *evb)
 int
 vev_schedule_one(struct vev_base *evb)
 {
-	double t;
+	double t, when;
 	struct vev *e, *e2, *e3;
 	int i, j, tmo;
 	struct pollfd *pfd;
-	unsigned key;
+	float key;
 
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(evb->thread == pthread_self());
 	e = binheap_root(evb->binheap, &key);
+	when = key;
 	if (e != NULL) {
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
-		assert(BINHEAP_TIME2KEY(e->__when) == key);
 		AN(e->__exp_entry);
 		t = TIM_mono();
-		if (e->__when <= t)
+		if (when <= t)
 			return (vev_sched_timeout(evb, e, t));
-		tmo = (int)((e->__when - t) * 1e3);
+		tmo = (int)((when - t) * 1e3);
 		if (tmo == 0)
 			tmo = 1;
 	} else {
-		AZ(key);
+		AZ(when);
 		tmo = INFTIM;
 	}
 
@@ -461,7 +456,7 @@ vev_schedule_one(struct vev_base *evb)
 	if (i == 0) {
 		assert(e != NULL);
 		t = TIM_mono();
-		if (e->__when <= t)
+		if (when <= t)
 			return (vev_sched_timeout(evb, e, t));
 	}
 	evb->disturbed = 0;
