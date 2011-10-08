@@ -666,6 +666,7 @@ check_consistency(const struct binheap *bh, unsigned items_count)
 	}
 }
 
+#define MQPS(t, q)		((t) ? (q) / (t) / 1e6 : 0)
 #define PAGEFAULTS_PER_ITERATION(bh, iterations_count)	\
 	((bh)->m->pagefaults_count / (double) iterations_count)
 
@@ -806,6 +807,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	check_consistency(bh, 0);
 
 	/* First insert our items */
+	key = 0;
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
 	for (n = 0; n < items_count; n++) {
@@ -818,8 +820,9 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	}
 	check_consistency(bh, items_count);
 	end = TIM_mono();
-	fprintf(stderr, "%u inserts: %.3lfs, pagefaults per iteration=%.3lf\n",
-		items_count, end - start,
+	fprintf(stderr, "%u inserts: %.3lf Mqps, "
+		"%.3lf pagefaults per iteration\n",
+		items_count, MQPS(end - start, items_count),
 		PAGEFAULTS_PER_ITERATION(bh, items_count));
 
 	/* For M cycles, pick the root, insert new */
@@ -837,9 +840,10 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	}
 	check_consistency(bh, items_count);
 	end = TIM_mono();
-	fprintf(stderr, "%u root replacements: %.3lfs, "
-		"pagefaults per iteration=%.3lf\n", iterations_count,
-		end - start, PAGEFAULTS_PER_ITERATION(bh, iterations_count));
+	fprintf(stderr, "%u root replacements: %.3lf Mqps, "
+		"%.3lf pagefaults per iteration\n", iterations_count,
+		MQPS(end - start, iterations_count),
+		PAGEFAULTS_PER_ITERATION(bh, iterations_count));
 
 	/* Randomly reorder */
 	start = TIM_mono();
@@ -851,9 +855,10 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	}
 	check_consistency(bh, items_count);
 	end = TIM_mono();
-	fprintf(stderr, "%u random reorders: %.3lfs, "
-		"pagefaults per iteration=%.3lf\n", iterations_count,
-		end - start, PAGEFAULTS_PER_ITERATION(bh, iterations_count));
+	fprintf(stderr, "%u random reorders: %.3lf Mqps, "
+		"%.3lf pagefaults per iteration\n", iterations_count,
+		MQPS(end - start, iterations_count),
+		PAGEFAULTS_PER_ITERATION(bh, iterations_count));
 
 	/* Randomly insert, delete and reorder */
 	delete_count = 0;
@@ -881,9 +886,10 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	check_consistency(bh, items_count);
 	end = TIM_mono();
 	fprintf(stderr,
-		"%u deletes, %u inserts, %u reorders: %.3lfs, "
-		"pagefaults per iteration=%.3lf\n",
-		delete_count, insert_count, reorder_count, end - start,
+		"%u deletes, %u inserts, %u reorders: %.3lf Mqps, "
+		"%.3lf pagefaults per iteration\n",
+		delete_count, insert_count, reorder_count,
+		MQPS(end - start, iterations_count),
 		PAGEFAULTS_PER_ITERATION(bh, iterations_count));
 
 	/* Then remove everything */
@@ -906,8 +912,9 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	AZ(binheap_root(bh));
 	check_consistency(bh, 0);
 	end = TIM_mono();
-	fprintf(stderr, "%u deletes: %.3lfs, pagefaults per iteration=%.3lf\n",
-		u, end - start, PAGEFAULTS_PER_ITERATION(bh, u));
+	fprintf(stderr, "%u deletes: %.3lf Mqps, "
+		"%.3lf pagefaults per iteration\n",
+		u, MQPS(end - start, u), PAGEFAULTS_PER_ITERATION(bh, u));
 }
 
 static void
