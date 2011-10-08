@@ -825,9 +825,9 @@ vas_f *VAS_Fail = vasfail;
 
 #define MQPS(t, q)		((t) ? (q) / (t) / 1e6 : 0)
 #define PF(bh)			\
-	((bh)->m->pagefaults_count - (bh)->m->resident_pages_count)
+	((double) (bh)->m->pagefaults_count - (bh)->m->resident_pages_count)
 #define PAGEFAULTS_PER_ITERATION(bh, iterations_count)	\
-	(PF(bh) > 0 ? PF(bh) / (double) iterations_count : 0)
+	(PF(bh) > 0 ? PF(bh) / iterations_count : 0)
 
 #ifdef PARANOIA
 #define paranoia_check(bh)	check_consistency(bh)
