@@ -806,9 +806,9 @@ vas_f *VAS_Fail = vasfail;
 
 /*
  * Pad foo so its' size is equivalent to the objcore size.
- * Currently size of objcore is 120 bytes on x64 and 72 bytes
+ * Currently size of objcore is 120 bytes on x64 and 56 bytes
  * on x32. This means that the padding should be 96 for x64
- * and 56 for x32.
+ * and 40 for x32.
  */
 #define PADDING 96
 
