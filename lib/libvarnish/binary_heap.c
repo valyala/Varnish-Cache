@@ -199,7 +199,7 @@ struct binheap {
 
 #ifdef VM_AWARE
 
-static	unsigned
+static  unsigned
 parent(const struct binheap *bh, unsigned u)
 {
 	unsigned po;
@@ -610,7 +610,7 @@ vas_f *VAS_Fail = vasfail;
 
 struct foo {
 	unsigned	magic;
-#define FOO_MAGIC	0x23239823U
+#define FOO_MAGIC	0x23239823
 	unsigned	idx;
 	unsigned	key;
 	unsigned	n;
