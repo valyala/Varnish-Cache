@@ -86,7 +86,14 @@
 
 #ifdef TEST_DRIVER
 
-/* Memory model, which counts page faults */
+/*
+ * The memory model is used by test driver in order to count an approximate
+ * number of page faults induced by binheap mutations.
+ * The model keeps recently accessed pages in lru list
+ * of resident_pages_count size.
+ * It uses dumb array for lru list implementation, since it is simple and
+ * it works quite fast for small sizes.
+ */
 struct mem {
 	unsigned	magic;
 #define MEM_MAGIC	0xf07c9610U
