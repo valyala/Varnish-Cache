@@ -586,17 +586,17 @@ vasfail(const char *func, const char *file, int line,
 vas_f *VAS_Fail = vasfail;
 
 #define PARENT_CHILD_TESTS_COUNT	1000000
-#define MAX_ITEMS_COUNT 		1000000
+#define MAX_ITEMS_COUNT			1000000
 #define MIN_ITEMS_COUNT			1000
-#define TEST_STEPS_COUNT 		5
+#define TEST_STEPS_COUNT		5
 #define MAX_RESIDENT_PAGES_COUNT	4096
 #define ITERATIONS_PER_ITEM_COUNT	10
 
 /*
  * Pad foo so its' size is equivalent to the objcore size.
- * Currently size of objcore is 120 bytes on x64 and 72 bytes
+ * Currently size of objcore is 120 bytes on x64 and 64 bytes
  * on x32. This means that the padding should be 104 for x64
- * and 56 for x32.
+ * and 48 for x32.
  */
 #define PADDING 104
 
@@ -929,7 +929,7 @@ run_tests(struct binheap *bh, unsigned resident_pages_count)
 	assert(MIN_ITEMS_COUNT > 0);
 	assert(MAX_ITEMS_COUNT > MIN_ITEMS_COUNT);
 	k = log(((double) MAX_ITEMS_COUNT) / MIN_ITEMS_COUNT);
-        assert(TEST_STEPS_COUNT > 1);
+	assert(TEST_STEPS_COUNT > 1);
 	k /= (TEST_STEPS_COUNT - 1);
 	test(bh, MIN_ITEMS_COUNT, resident_pages_count);
 	for (u = 1; u < TEST_STEPS_COUNT - 1; u++) {
@@ -955,7 +955,7 @@ main(int argc, char **argv)
 	check_parent_child(bh, PARENT_CHILD_TESTS_COUNT);
 	fprintf(stderr, "%u parent-child tests OK\n", PARENT_CHILD_TESTS_COUNT);
 
-        fprintf(stderr, "\n* Tests with pagefault counter enabled\n");
+	fprintf(stderr, "\n* Tests with pagefault counter enabled\n");
 	for (u = 1; u <= UINT_MAX / 2 && u <= MAX_RESIDENT_PAGES_COUNT; u *= 2)
 		run_tests(bh, u);
 
