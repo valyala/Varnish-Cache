@@ -299,7 +299,7 @@ binheap_new(void)
 	page_size = ((unsigned) getpagesize()) / sizeof(**rows);
 	xxxassert(page_size > 1);
 	xxxassert(page_size * sizeof(**rows) == getpagesize());
-	page_shift = 0u - 1;
+	page_shift = 0U - 1;
 	while (page_size) {
 		page_size >>= 1;
 		++page_shift;
@@ -773,7 +773,7 @@ check_parent_child_range(unsigned page_shift, unsigned n_min, unsigned n_max)
 		assert(u < n);
 		assert(u >= root_idx);
 		v = child(page_shift, u);
-		assert(v == (n & ~3u));
+		assert(v == (n & ~3U));
 	}
 }
 
