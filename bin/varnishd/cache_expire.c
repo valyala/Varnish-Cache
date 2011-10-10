@@ -334,6 +334,7 @@ exp_timer(struct sess *sp, void *priv)
 	struct lru *lru;
 	double t, when;
 	struct object *o;
+	struct binheap_entry *be;
 	unsigned key;
 
 	(void)priv;
@@ -348,13 +349,13 @@ exp_timer(struct sess *sp, void *priv)
 		}
 
 		Lck_Lock(&exp_mtx);
-		oc = binheap_root(exp_heap, &key);
-		when = key;
-		if (oc == NULL) {
-			AZ(when);
+		be = binheap_root(exp_heap);
+		if (be == NULL) {
 			Lck_Unlock(&exp_mtx);
 			continue;
 		}
+		oc = binheap_entry_unpack(exp_heap, be, &key);
+		when = key;
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 
 		/*

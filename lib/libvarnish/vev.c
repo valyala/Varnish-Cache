@@ -440,6 +440,7 @@ start_new_epoch(struct vev_base *evb)
 {
 	struct vev_list *vl_head, *vle;
 	struct vev *e;
+	struct binheap_entry *be;
 	unsigned key;
 	int i;
 
@@ -456,9 +457,11 @@ start_new_epoch(struct vev_base *evb)
 	 */
 	vl_head = NULL;
 	while (1) {
-		e = binheap_root(evb->binheap, &key);
+		be = binheap_root(evb->binheap);
 		if (e == NULL)
 			break;
+		e = binheap_entry_unpack(evb->binheap, be, &key);
+		AN(e);
 		i = e->callback(e, 0);
 		if (i) {
 			vev_del(evb, e);
@@ -472,7 +475,7 @@ start_new_epoch(struct vev_base *evb)
 		}
 	}
 	evb->epoch_start = TIM_mono();
-	AZ(binheap_root(evb->binheap, &key));
+	AZ(binheap_root(evb->binheap));
 	while (vl_head != NULL) {
 		e = vl_head->e;
 		AN(e);
@@ -492,13 +495,15 @@ vev_schedule_one(struct vev_base *evb)
 	struct vev *e, *e2, *e3;
 	int i, j, tmo;
 	struct pollfd *pfd;
+	struct binheap_entry *be;
 	unsigned key;
 
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(evb->thread == pthread_self());
-	e = binheap_root(evb->binheap, &key);
-	when = key;
-	if (e != NULL) {
+	be = binheap_root(evb->binheap);
+	if (be != NULL) {
+		e = binheap_entry_unpack(evb->binheap, be, &key);
+		when = key;
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
 		AN(e->__exp_entry);
 		t = tim_epoch(evb, TIM_mono());
@@ -512,10 +517,8 @@ vev_schedule_one(struct vev_base *evb)
 			tmo = (int) (when - t);
 		if (tmo == 0)
 			tmo = 1;
-	} else {
-		AZ(when);
+	} else
 		tmo = INFTIM;
-	}
 
 	if (evb->compact_pfd)
 		vev_compact_pfd(evb);

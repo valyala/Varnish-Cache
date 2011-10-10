@@ -375,7 +375,6 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
 		TEST_DRIVER_ACCESS_KEY(bh, v);
 		e = &A(bh, v);
 		AN(e->be);
-		AN(e->be->p);
 		assert(e->be->idx == v);
 		if (e->key < key)
 			break;	/* parent is smaller than the child */
@@ -413,7 +412,6 @@ trickledown(const struct binheap *bh, unsigned key, unsigned u)
 			TEST_DRIVER_ACCESS_KEY(bh, v + i);
 			e = &A(bh, v + i);
 			AN(e->be);
-			AN(e->be->p);
 			assert(e->be->idx == v + i);
 			if (e->key < min_key) {
 				min_key = e->key;
@@ -508,7 +506,6 @@ release_be(struct binheap *bh, struct binheap_entry *be)
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	AN(be);
 	assert(be->idx != NOIDX);
-	AN(be->p);
 	be->idx = NOIDX;
 	be->p = bh->free_list;
 	bh->free_list = be;
@@ -537,7 +534,6 @@ binheap_insert(struct binheap *bh, void *p, unsigned key)
 	unsigned u, v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	AN(p);
 	assert(bh->next >= ROOT_IDX(bh));
 	assert(bh->next <= bh->length);
 	if (bh->length == bh->next)
@@ -592,7 +588,6 @@ binheap_reorder(const struct binheap *bh, struct binheap_entry *be,
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(bh->next >= ROOT_IDX(bh));
 	AN(be);
-	AN(be->p);
 	u = be->idx;
 	assert(u != NOIDX);
 	assert(u >= ROOT_IDX(bh));
@@ -636,7 +631,6 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 	assert(bh->next > ROOT_IDX(bh));
 	assert(bh->next <= bh->length);
 	AN(be);
-	AN(be->p);
 	u = be->idx;
 	assert(u != NOIDX);
 	assert(u >= ROOT_IDX(bh));
@@ -654,7 +648,6 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 		key = e->key;
 		be = e->be;
 		AN(be);
-		AN(be->p);
 		assert(be->idx == bh->next);
 		e->key = 0;
 		e->be = NULL;
@@ -679,24 +672,34 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 		free_be_memory(bh);
 }
 
+struct binheap_entry *
+binheap_root(const struct binheap *bh)
+{
+	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	if (bh->next == ROOT_IDX(bh))
+		return NULL;
+	TEST_DRIVER_ACCESS_KEY(bh, ROOT_IDX(bh));
+	return A(bh, ROOT_IDX(bh)).be;
+}
+
 void *
-binheap_root(const struct binheap *bh, unsigned *key_ptr)
+binheap_entry_unpack(const struct binheap *bh, const struct binheap_entry *be,
+	unsigned *key_ptr)
 {
 	struct entry *e;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	AN(be);
+	assert(be->idx != NOIDX);
+	assert(be->idx >= ROOT_IDX(bh));
+	assert(be->idx < bh->next);
 	AN(key_ptr);
-	TEST_DRIVER_ACCESS_IDX(bh, ROOT_IDX(bh));
-	e = &A(bh, ROOT_IDX(bh));
-	if (e->be == NULL) {
-		assert(bh->next == ROOT_IDX(bh));
-		*key_ptr = 0;
-		return NULL;
-	}
-	assert(e->be->idx == ROOT_IDX(bh));
-	AN(e->be->p);
+
+	TEST_DRIVER_ACCESS_IDX(bh, be->idx);
+	e = &A(bh, be->idx);
+	assert(e->be == be);
 	*key_ptr = e->key;
-	return e->be->p;
+	return be->p;
 }
 
 #ifdef TEST_DRIVER
@@ -743,10 +746,8 @@ check_consistency(const struct binheap *bh)
 		e2 = &A(bh, v);
 		assert(e2->key <= e1->key);
 		AN(e2->be);
-		AN(e2->be->p);
 		assert(e1->be->idx == u);
 		AN(e2->be);
-		AN(e2->be->p);
 		assert(e2->be->idx == v);
 	}
 }
@@ -823,6 +824,7 @@ vasfail(const char *func, const char *file, int line,
 vas_f *VAS_Fail = vasfail;
 
 #define PARENT_CHILD_TESTS_COUNT	1000000
+#define NULL_TESTS_COUNT		1000000
 #define MAX_ITEMS_COUNT			1000000
 #define MIN_ITEMS_COUNT			1000
 #define TEST_STEPS_COUNT		5
@@ -944,6 +946,7 @@ static void
 test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 {
 	double start, end;
+	struct binheap_entry *be;
 	struct foo *fp;
 	unsigned u, n, key, deleted_key, root_idx, iterations_count;
 	unsigned delete_count, insert_count, reorder_count;
@@ -956,19 +959,20 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 
 	fprintf(stderr, "\n+ %u items, %u iterations, %u resident pages\n",
 		items_count, iterations_count, resident_pages_count);
-	AZ(binheap_root(bh, &key));
-	AZ(key);
+	AZ(binheap_root(bh));
 	check_consistency(bh);
 	root_idx = ROOT_IDX(bh);
 	assert(root_idx != NOIDX);
 
-	/* First insert our items */
+	/* Insert our items */
 	key = 0;
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
 	for (n = 0; n < items_count; n++) {
 		foo_insert(bh, n, items_count);
-		fp = binheap_root(bh, &key);
+		be = binheap_root(bh);
+		AN(be);
+		fp = binheap_entry_unpack(bh, be, &key);
 		foo_check(fp, items_count);
 		assert(fp->key == key);
 		assert(fp->be->idx == root_idx);
@@ -986,7 +990,9 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
-		fp = binheap_root(bh, &key);
+		be = binheap_root(bh);
+		AN(be);
+		fp = binheap_entry_unpack(bh, be, &key);
 		foo_check(fp, items_count);
 		assert(fp->key == key);
 		assert(fp->be->idx == root_idx);
@@ -1055,11 +1061,10 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	start = TIM_mono();
 	init_mem(bh->m, resident_pages_count);
 	while (1) {
-		fp = binheap_root(bh, &key);
-		if (fp == NULL) {
-			AZ(key);
+		be = binheap_root(bh);
+		if (be == NULL)
 			break;
-		}
+		fp = binheap_entry_unpack(bh, be, &key);
 		foo_check(fp, items_count);
 		assert(fp->key == key);
 		assert(fp->be->idx == root_idx);
@@ -1069,8 +1074,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		++u;
 	}
 	assert(u == items_count - (delete_count - insert_count));
-	AZ(binheap_root(bh, &key));
-	AZ(key);
+	AZ(binheap_root(bh));
 	check_consistency(bh);
 	end = TIM_mono();
 	fprintf(stderr, "%u deletes: %.3lf Mqps, "
@@ -1098,11 +1102,42 @@ run_tests(struct binheap *bh, unsigned resident_pages_count)
 	test(bh, MAX_ITEMS_COUNT, resident_pages_count);
 }
 
+static void
+null_test(struct binheap *bh, unsigned iterations_count)
+{
+	struct binheap_entry *be;
+	void *p;
+	unsigned u, key1, key2;
+
+	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+
+	/* First check is it possible to insert NULLs */
+	for (u = 0; u < iterations_count; u++) {
+		key1 = (unsigned) random();
+		be = binheap_insert(bh, NULL, key1);
+		p = binheap_entry_unpack(bh, be, &key2);
+		AZ(p);
+		assert(key1 == key2);
+	}
+	check_consistency(bh);
+	u = 0;
+	while (1) {
+		be = binheap_root(bh);
+		if (be == NULL)
+			break;
+		binheap_delete(bh, be);
+		++u;
+	}
+	assert(u == iterations_count);
+	AZ(binheap_root(bh));
+	check_consistency(bh);
+}
+
 int
 main(int argc, char **argv)
 {
 	struct binheap *bh;
-	unsigned u, key;
+	unsigned u;
 
 	srandom(123);	/* generate predictive results */
 	check_time2key();
@@ -1114,9 +1149,12 @@ main(int argc, char **argv)
 	fprintf(stderr, "%u parent-child tests OK\n", PARENT_CHILD_TESTS_COUNT);
 
 	bh = binheap_new();
-	AZ(binheap_root(bh, &key));
-	AZ(key);
+	AZ(binheap_root(bh));
 	check_consistency(bh);
+
+	null_test(bh, NULL_TESTS_COUNT);
+	fprintf(stderr, "%u null tests OK\n", NULL_TESTS_COUNT);
+
 	fprintf(stderr, "\n* Tests with pagefault counter enabled\n");
 	for (u = 1; u <= UINT_MAX / 2 && u <= MAX_RESIDENT_PAGES_COUNT; u *= 2)
 		run_tests(bh, u);

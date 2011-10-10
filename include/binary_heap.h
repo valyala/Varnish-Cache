@@ -46,9 +46,10 @@ struct binheap_entry *binheap_insert(struct binheap *bh, void *p,
 	unsigned key);
 	/*
 	 * Inserts the pointer p with the given key into binheap.
-	 * p cannot be NULL.
+	 * The pointer CAN be NULL. Actually it can contain arbitrary payload,
+	 * which fits into sizeof(p).
 	 * Returns a pointer to opaque object, which can be passed
-	 * to binheap_reorder() or binheap_delete().
+	 * to binheap_reorder(), binheap_delete() or binheap_entry_unpack().
 	 */
 
 void binheap_reorder(const struct binheap *bh, struct binheap_entry *be,
@@ -62,13 +63,18 @@ void binheap_delete(struct binheap *bh, struct binheap_entry *be);
 	 * Removes the entry from binheap.
 	 */
 
-void *binheap_root(const struct binheap *bh, unsigned *key_ptr);
+struct binheap_entry *binheap_root(const struct binheap *bh);
 	/*
-	 * Returns pointer associated with the binheap root entry,
-	 * i.e. the entry with the minimal key.
-	 * Sets *key_ptr to the key associated with the root entry.
+	 * Returns binheap root entry, i.e. the entry with the minimal key.
+	 * Returns NULL if binheap is empty.
+	 */
+
+void *binheap_entry_unpack(const struct binheap *bh,
+	const struct binheap_entry *be, unsigned *key_ptr);
+	/*
+	 * Returns a pointer and sets *key_ptr to the key associated
+	 * with the given entry.
 	 * key_ptr cannot be NULL.
-	 * If the binheap is empty, returns NULL and sets *key_ptr to 0.
 	 */
 
 #define BINHEAP_TIME2KEY(t)	((t) < 0 ? 0 : \
