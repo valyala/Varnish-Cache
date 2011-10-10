@@ -361,7 +361,7 @@ assign(const struct binheap *bh, struct binheap_entry *be, unsigned key,
 static unsigned
 trickleup(const struct binheap *bh, unsigned key, unsigned u)
 {
-	struct entry *e;
+	const struct entry *e;
 	unsigned v;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
@@ -390,7 +390,7 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
 static unsigned
 trickledown(const struct binheap *bh, unsigned key, unsigned u)
 {
-	struct entry *e;
+	const struct entry *e;
 	unsigned v, i, j, last, min_key;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
