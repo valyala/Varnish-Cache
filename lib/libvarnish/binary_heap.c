@@ -216,13 +216,24 @@ struct binheap {
 	TEST_DRIVER_DECLARE_MEM			/* no semicolon */
 };
 
+/* Minimum page shift should be enough for storing 4 children in 4-heap */
+#define MIN_PAGE_SHIFT		2
+
+/*
+ * Maximum page shift is limited by bitsize of unsigned type,
+ * so (1 << page_shift) should fit into unsigned variable.
+ * 31 is enough for both x32 and x64.
+ * Actually calculated page_shift usually doesn't exceed 10.
+ */
+#define MAX_PAGE_SHIFT		31
+
 static unsigned
 parent(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_leaves;
 
-	assert(page_shift >= 2);
-	assert(page_shift <= ROW_SHIFT);
+	assert(page_shift >= MIN_PAGE_SHIFT);
+	assert(page_shift <= MAX_PAGE_SHIFT);
 	page_mask = R_IDX(page_shift);
 	AZ(page_mask & (page_mask + 1));
 	assert(u > page_mask);
@@ -244,8 +255,8 @@ child(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_leaves;
 
-	assert(page_shift >= 2);
-	assert(page_shift <= ROW_SHIFT);
+	assert(page_shift >= MIN_PAGE_SHIFT);
+	assert(page_shift <= MAX_PAGE_SHIFT);
 	assert(u < UINT_MAX);
 	page_mask = R_IDX(page_shift);
 	AZ(page_mask & (page_mask + 1));
@@ -269,8 +280,8 @@ alloc_row(unsigned page_shift)
 	unsigned u;
 	int rv;
 
-	assert(page_shift >= 2);
-	assert(page_shift <= ROW_SHIFT);
+	assert(page_shift >= MIN_PAGE_SHIFT);
+	assert(page_shift <= MAX_PAGE_SHIFT);
 	entry_size = sizeof(*row);
 	AZ(entry_size & (entry_size - 1));	/* should be power of 2 */
 	assert((1 << page_shift) < UINT_MAX / entry_size);
@@ -304,7 +315,8 @@ binheap_new(void)
 		page_size >>= 1;
 		++page_shift;
 	}
-	assert(page_shift >= 2);
+	assert(page_shift >= MIN_PAGE_SHIFT);
+	xxxassert(page_shift <= MAX_PAGE_SHIFT);
 	page_size = 1 << page_shift;
 	xxxassert(page_size <= ROW_WIDTH);
 	XXXAZ(ROW_WIDTH % page_size);
@@ -735,8 +747,8 @@ check_consistency(const struct binheap *bh)
 	assert(bh->rows_count >= 1);
 	assert(bh->rows_count <= UINT_MAX / ROW_WIDTH);
 	assert(bh->rows_count * ROW_WIDTH >= bh->length);
-	assert(bh->page_shift >= 2);
-	assert(bh->page_shift <= ROW_SHIFT);
+	assert(bh->page_shift >= MIN_PAGE_SHIFT);
+	assert(bh->page_shift <= MAX_PAGE_SHIFT);
 	AN(bh->rows);
 	for (u = ROOT_IDX(bh) + 1; u < bh->next; u++) {
 		v = parent(bh->page_shift, u);
@@ -757,7 +769,8 @@ check_parent_child_range(unsigned page_shift, unsigned n_min, unsigned n_max)
 {
 	unsigned n, u, v, i, root_idx;
 
-	assert(page_shift >= 2);
+	assert(page_shift >= MIN_PAGE_SHIFT);
+	assert(page_shift <= MAX_PAGE_SHIFT);
 	root_idx = R_IDX(page_shift);
 	assert(n_min > root_idx);
 	for (n = n_min; n < n_max; n++) {
@@ -783,7 +796,8 @@ check_parent_child(unsigned page_shift, unsigned checks_count)
 {
 	unsigned n_min, n_max;
 
-	assert(page_shift >= 2);
+	assert(page_shift >= MIN_PAGE_SHIFT);
+	assert(page_shift <= MAX_PAGE_SHIFT);
 	/* check lower end of index range */
 	assert(R_IDX(page_shift) < UINT_MAX - 1);
 	n_min = 1 + R_IDX(page_shift);
@@ -1143,7 +1157,7 @@ main(int argc, char **argv)
 	check_time2key();
 	fprintf(stderr, "time2key test OK\n");
 
-	for (u = 2; u <= ROW_SHIFT; u++) {
+	for (u = MIN_PAGE_SHIFT; u <= MAX_PAGE_SHIFT; u++) {
 		check_parent_child(u, PARENT_CHILD_TESTS_COUNT);
 	}
 	fprintf(stderr, "%u parent-child tests OK\n", PARENT_CHILD_TESTS_COUNT);
