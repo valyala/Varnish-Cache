@@ -210,7 +210,7 @@ struct binheap {
 	struct binheap_entry	*free_list;
 	unsigned		next;
 	unsigned		length;
-        unsigned                rows_count;
+	unsigned		rows_count;
 	unsigned		page_shift;
 	TEST_DRIVER_DECLARE_MEM			/* no semicolon */
 };
@@ -218,45 +218,45 @@ struct binheap {
 static unsigned
 parent(unsigned page_shift, unsigned u)
 {
-	unsigned v, page_mask, page_size, page_children;
+	unsigned v, page_mask, page_size, page_leaves;
 
-	assert(page_shift > 0);
+	assert(page_shift >= 2);
 	assert(page_shift <= ROW_SHIFT);
 	page_mask = R_IDX(page_shift);
 	AZ(page_mask & (page_mask + 1));
-	assert(u >= page_mask);
-	if (u == page_mask)
-		return u;	/* there is no parent for root */
-	if (u <= page_mask + 2)
+	assert(u > page_mask);
+	if (u <= page_mask + 4)
 		return page_mask;
 	v = u & page_mask;
-	if (v > 1)
-		return u - v + v / 2 - 1;
+	if (v >= 4)
+		return u - v + v / 4 - 1;
 	page_size = page_mask + 1;
-	page_children = page_size / 2 + 1;
+	page_leaves = page_size - page_size / 4 + 1;
+	assert((u >> page_shift) >= 2);
 	v = (u >> page_shift) - 2;
-	u = v / page_children + 2;
-	return u * page_size + (v % page_children) - page_children;
+	u = v / page_leaves + 2;
+	return u * page_size + (v % page_leaves) - page_leaves;
 }
 
 static unsigned
 child(unsigned page_shift, unsigned u)
 {
-	unsigned v, page_mask, page_size, page_children;
+	unsigned v, page_mask, page_size, page_leaves;
 
-	assert(page_shift > 0);
+	assert(page_shift >= 2);
 	assert(page_shift <= ROW_SHIFT);
+	assert(u < UINT_MAX);
 	page_mask = R_IDX(page_shift);
 	AZ(page_mask & (page_mask + 1));
 	assert(u >= page_mask);
-	v = (u & page_mask) + 2;
+	v = u & page_mask;
 	page_size = page_mask + 1;
-	page_children = page_size / 2 + 1;
-	if (v < page_children)
-		return u + v;
-	v += (u >> page_shift) * page_children - page_size;
+	if (v + 1 < page_size / 4)
+		return u - v + (v + 1) * 4;
+	page_leaves = page_size - page_size / 4 + 1;
+	v += (u >> page_shift) * page_leaves + 2 - page_size;
 	if (v > (UINT_MAX >> page_shift))
-		return u;	/* child index is overflown */
+		return UINT_MAX;	/* child index is overflown */
 	return page_size * v;
 }
 
@@ -268,7 +268,7 @@ alloc_row(unsigned page_shift)
 	unsigned u;
 	int rv;
 
-	assert(page_shift > 0);
+	assert(page_shift >= 2);
 	assert(page_shift <= ROW_SHIFT);
 	entry_size = sizeof(*row);
 	AZ(entry_size & (entry_size - 1));	/* should be power of 2 */
@@ -303,7 +303,7 @@ binheap_new(void)
 		page_size >>= 1;
 		++page_shift;
 	}
-	assert(page_shift > 0);
+	assert(page_shift >= 2);
 	page_size = 1 << page_shift;
 	xxxassert(page_size <= ROW_WIDTH);
 	XXXAZ(ROW_WIDTH % page_size);
@@ -326,7 +326,7 @@ binheap_new(void)
 	bh->free_list = NULL;
 	bh->next = R_IDX(page_shift);
 	bh->length = ROW_WIDTH;
-        bh->rows_count = 1;
+	bh->rows_count = 1;
 	bh->page_shift = page_shift;
 	TEST_DRIVER_CREATE_MEM(bh);
 
@@ -389,8 +389,8 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
 static unsigned
 trickledown(const struct binheap *bh, unsigned key, unsigned u)
 {
-	struct entry *e1, *e2;
-	unsigned v;
+	struct entry *e;
+	unsigned v, i, j, last, min_key;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(u >= ROOT_IDX(bh));
@@ -398,36 +398,35 @@ trickledown(const struct binheap *bh, unsigned key, unsigned u)
 
 	while (1) {
 		v = child(bh->page_shift, u);
-		assert(v > ROOT_IDX(bh));
-		assert(v >= u);
-		if (v == u)
-			break;		/* index overflow */
+		assert(v > u);
 		if (v >= bh->next)
-			break;		/* reached the end of heap */
-		TEST_DRIVER_ACCESS_KEY(bh, v);
-		e1 = &A(bh, v);
-		AN(e1->be);
-		AN(e1->be->p);
-		assert(e1->be->idx == v);
-		if (v + 1 < bh->next) {
-			TEST_DRIVER_ACCESS_KEY(bh, v + 1);
-			e2 = &A(bh, v + 1);
-			AN(e2->be);
-			AN(e2->be->p);
-			assert(e2->be->idx == v + 1);
-			if (e2->key < e1->key) {
-				++v;
-				e1 = e2;
+			break;	/* reached the end of heap */
+		assert(bh->next > v);
+		last = bh->next - v;
+		if (last > 4)
+			last = 4;
+		j = 4;
+		min_key = key;
+		for (i = 0; i < last; i++) {
+			TEST_DRIVER_ACCESS_KEY(bh, v + i);
+			e = &A(bh, v + i);
+			AN(e->be);
+			AN(e->be->p);
+			assert(e->be->idx == v + i);
+			if (e->key < min_key) {
+				min_key = e->key;
+				j = i;
 			}
 		}
-		assert(v < bh->next);
-		if (key < e1->key)
-			break;	/* parent is smaller than children */
-		assign(bh, e1->be, e1->key, u);
-		assert(e1->be->idx == u);
-		assert(A(bh, u).be == e1->be);
-		assert(A(bh, u).key == e1->key);
-		u = v;
+		if (min_key == key)
+			break;
+		assert(j < 4);
+		e = &A(bh, v + j);
+		assign(bh, e->be, e->key, u);
+		assert(e->be->idx == u);
+		assert(A(bh, u).be == e->be);
+		assert(A(bh, u).key == e->key);
+		u = v + j;
 	}
 	return u;
 }
@@ -708,7 +707,7 @@ check_consistency(const struct binheap *bh)
 	assert(bh->rows_count >= 1);
 	assert(bh->rows_count <= UINT_MAX / ROW_WIDTH);
 	assert(bh->rows_count * ROW_WIDTH >= bh->length);
-	assert(bh->page_shift > 0);
+	assert(bh->page_shift >= 2);
 	assert(bh->page_shift <= ROW_SHIFT);
 	AN(bh->rows);
 	for (u = ROOT_IDX(bh) + 1; u < bh->next; u++) {
@@ -728,59 +727,49 @@ check_consistency(const struct binheap *bh)
 }
 
 static void
-check_parent_child(unsigned page_shift, unsigned n_max)
+check_parent_child_range(unsigned page_shift, unsigned n_min, unsigned n_max)
 {
-	unsigned n, u, v, root_idx;
+	unsigned n, u, v, i, root_idx;
 
-	assert(page_shift > 0);
-	assert(page_shift <= ROW_SHIFT);
+	assert(page_shift >= 2);
 	root_idx = R_IDX(page_shift);
-	for (n = root_idx; n < n_max; n++) {
+	assert(n_min > root_idx);
+	for (n = n_min; n < n_max; n++) {
 		u = child(page_shift, n);
-		assert(u >= n);
-		assert(u > root_idx);
-		if (u == n)
+		assert(u > n);
+		if (u == UINT_MAX)
 			continue;	/* child index is too big */
-		v = parent(page_shift, u);
-		assert(v == n);
-		v = parent(page_shift, u + 1);
-		assert(v == n);
-
-		u = parent(page_shift, n);
-		assert(u <= n);
-		if (u == n) {
-			assert(u == root_idx);
-			continue;
+		for (i = 0; i < 4; i++) {
+			v = parent(page_shift, u + i);
+			assert(v == n);
 		}
-		v = child(page_shift, u);
-		assert(v == n || v == n - 1);
-	}
-}
 
-static void
-check_parent_child_overflow(unsigned page_shift, unsigned n_max)
-{
-	unsigned n, u, v, root_idx;
-
-	assert(page_shift > 0);
-	assert(page_shift <= ROW_SHIFT);
-	root_idx = R_IDX(page_shift);
-	n = UINT_MAX - n_max;
-	while (n++ < UINT_MAX) {
 		u = parent(page_shift, n);
 		assert(u < n);
 		assert(u >= root_idx);
 		v = child(page_shift, u);
-		assert(v == n || v == n - 1);
-
-		u = child(page_shift, n);
-		assert(u >= n);
-		assert(u >= root_idx);
-		if (u == n)
-			continue;	/* overflow */
-		v = parent(page_shift, u);
-		assert(v == n || v == n - 1);
+		assert(v == (n & ~3u));
 	}
+}
+
+static void
+check_parent_child(unsigned page_shift, unsigned checks_count)
+{
+	unsigned n_min, n_max;
+
+	assert(page_shift >= 2);
+	/* check lower end of index range */
+	assert(R_IDX(page_shift) < UINT_MAX - 1);
+	n_min = 1 + R_IDX(page_shift);
+	assert(checks_count < UINT_MAX - n_min);
+	n_max = n_min + checks_count;
+	check_parent_child_range(page_shift, n_min, n_max);
+
+	/* check higher end of index range */
+	n_min = UINT_MAX - checks_count;
+	n_max = n_min + checks_count;
+	assert(n_max == UINT_MAX);
+	check_parent_child_range(page_shift, n_min, n_max);
 }
 
 /* Test driver -------------------------------------------------------*/
@@ -809,9 +798,9 @@ vasfail(const char *func, const char *file, int line,
 vas_f *VAS_Fail = vasfail;
 
 #define PARENT_CHILD_TESTS_COUNT	1000000
-#define MAX_ITEMS_COUNT 		1000000
+#define MAX_ITEMS_COUNT			1000000
 #define MIN_ITEMS_COUNT			1000
-#define TEST_STEPS_COUNT 		5
+#define TEST_STEPS_COUNT		5
 #define MAX_RESIDENT_PAGES_COUNT	4096
 #define ITERATIONS_PER_ITEM_COUNT	10
 
@@ -877,7 +866,7 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 	paranoia_check(bh);
 	assert(n < items_count);
 	fp = &ff[n];
-        AZ(fp->be);
+	AZ(fp->be);
 	AZ(fp->key);
 	AZ(fp->n);
 	key = (unsigned) random();
@@ -906,7 +895,7 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 	assert(fp->be->idx == NOIDX);
 	assert(fp->key == key);
 	assert(fp->n == n);
-        fp->be = NULL;
+	fp->be = NULL;
 	fp->key = 0;
 	fp->n = 0;
 	paranoia_check(bh);
@@ -1077,7 +1066,7 @@ run_tests(struct binheap *bh, unsigned resident_pages_count)
 	assert(MIN_ITEMS_COUNT > 0);
 	assert(MAX_ITEMS_COUNT > MIN_ITEMS_COUNT);
 	k = log(((double) MAX_ITEMS_COUNT) / MIN_ITEMS_COUNT);
-        assert(TEST_STEPS_COUNT > 1);
+	assert(TEST_STEPS_COUNT > 1);
 	k /= (TEST_STEPS_COUNT - 1);
 	test(bh, MIN_ITEMS_COUNT, resident_pages_count);
 	for (u = 1; u < TEST_STEPS_COUNT - 1; u++) {
@@ -1097,9 +1086,8 @@ main(int argc, char **argv)
 	check_time2key();
 	fprintf(stderr, "time2key test OK\n");
 
-	for (u = 1; u <= ROW_SHIFT; u++) {
+	for (u = 2; u <= ROW_SHIFT; u++) {
 		check_parent_child(u, PARENT_CHILD_TESTS_COUNT);
-		check_parent_child_overflow(u, PARENT_CHILD_TESTS_COUNT);
 	}
 	fprintf(stderr, "%u parent-child tests OK\n", PARENT_CHILD_TESTS_COUNT);
 
@@ -1107,7 +1095,7 @@ main(int argc, char **argv)
 	AZ(binheap_root(bh, &key));
 	AZ(key);
 	check_consistency(bh);
-        fprintf(stderr, "\n* Tests with pagefault counter enabled\n");
+	fprintf(stderr, "\n* Tests with pagefault counter enabled\n");
 	for (u = 1; u <= UINT_MAX / 2 && u <= MAX_RESIDENT_PAGES_COUNT; u *= 2)
 		run_tests(bh, u);
 
