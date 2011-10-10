@@ -26,8 +26,12 @@
  * SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include <pthread.h>
-#include "libvarnish.h"
+#include <unistd.h>
+
+#include "vas.h"
 #include "vmb.h"
 
 #ifdef VMB_NEEDS_PTHREAD_WORKAROUND_THIS_IS_BAD_FOR_PERFORMANCE

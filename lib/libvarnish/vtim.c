@@ -48,13 +48,16 @@
 
 #include <sys/time.h>
 
+#include <errno.h>
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <math.h>
 
-#include "libvarnish.h"
+#include "vas.h"
+#include "vtim.h"
 
 /*
  * Note on Solaris: for some reason, clock_gettime(CLOCK_MONOTONIC, &ts) is not
@@ -63,7 +66,7 @@
  */
 
 double
-TIM_mono(void)
+VTIM_mono(void)
 {
 #ifdef HAVE_GETHRTIME
 	return (gethrtime() * 1e-9);
@@ -81,7 +84,7 @@ TIM_mono(void)
 }
 
 double
-TIM_real(void)
+VTIM_real(void)
 {
 #ifdef HAVE_CLOCK_GETTIME
 	struct timespec ts;
@@ -97,14 +100,14 @@ TIM_real(void)
 }
 
 void
-TIM_format(double t, char *p)
+VTIM_format(double t, char *p)
 {
 	struct tm tm;
 	time_t tt;
 
 	tt = (time_t) t;
 	(void)gmtime_r(&tt, &tm);
-	AN(strftime(p, TIM_FORMAT_SIZE, "%a, %d %b %Y %T GMT", &tm));
+	AN(strftime(p, VTIM_FORMAT_SIZE, "%a, %d %b %Y %T GMT", &tm));
 }
 
 /* XXX: add statistics ? */
@@ -116,10 +119,10 @@ static const char *fmts[] = {
 	NULL
 };
 
-time_t
-TIM_parse(const char *p)
+double
+VTIM_parse(const char *p)
 {
-	time_t t;
+	double t;
 	struct tm tm;
 	const char **r;
 
@@ -156,12 +159,12 @@ TIM_parse(const char *p)
 }
 
 void
-TIM_sleep(double t)
+VTIM_sleep(double t)
 {
 #ifdef HAVE_NANOSLEEP
 	struct timespec ts;
 
-	ts = TIM_timespec(t);
+	ts = VTIM_timespec(t);
 
 	(void)nanosleep(&ts, NULL);
 #else
@@ -177,7 +180,7 @@ TIM_sleep(double t)
 }
 
 struct timeval
-TIM_timeval(double t)
+VTIM_timeval(double t)
 {
 	struct timeval tv;
 
@@ -187,7 +190,7 @@ TIM_timeval(double t)
 }
 
 struct timespec
-TIM_timespec(double t)
+VTIM_timespec(double t)
 {
 	struct timespec tv;
 
@@ -198,8 +201,6 @@ TIM_timespec(double t)
 
 
 #ifdef TEST_DRIVER
-
-#include <stdlib.h>
 
 /*
  * Compile with:
@@ -217,8 +218,8 @@ tst(const char *s, time_t good)
 	time_t t;
 	char buf[BUFSIZ];
 
-	t = TIM_parse(s);
-	TIM_format(t, buf);
+	t = VTIM_parse(s);
+	VTIM_format(t, buf);
 	printf("%-30s -> %12jd -> %s\n", s, (intmax_t)t, buf);
 	if (t != good) {
 		printf("Parse error! Got: %jd should have %jd diff %jd\n",
@@ -255,14 +256,14 @@ tst_delta()
 	const double ref = 1;
 	int err = 0;
 
-	r_begin = TIM_real();
-	m_begin = TIM_mono();
-	TIM_sleep(ref);
-	r_end = TIM_real();
-	m_end = TIM_mono();
+	r_begin = VTIM_real();
+	m_begin = VTIM_mono();
+	VTIM_sleep(ref);
+	r_end = VTIM_real();
+	m_end = VTIM_mono();
 
-	err += tst_delta_check("TIM_mono", m_begin, m_end, ref);
-	err += tst_delta_check("TIM_real", r_begin, r_end, ref);
+	err += tst_delta_check("VTIM_mono", m_begin, m_end, ref);
+	err += tst_delta_check("VTIM_real", r_begin, r_end, ref);
 
 	if (err) {
 		printf("%d time delta test errrors\n", err);
@@ -278,8 +279,8 @@ main(int argc, char **argv)
 
 	time(&t);
 	memset(buf, 0x55, sizeof buf);
-	TIM_format(t, buf);
-	printf("scan = %d <%s>\n", TIM_parse(buf), buf);
+	VTIM_format(t, buf);
+	printf("scan = %d <%s>\n", VTIM_parse(buf), buf);
 
 	/* Examples from RFC2616 section 3.3.1 */
 	tst("Sun, 06 Nov 1994 08:49:37 GMT", 784111777);

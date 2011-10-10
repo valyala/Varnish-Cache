@@ -29,9 +29,6 @@
 
 #include "config.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include <grp.h>
 #include <limits.h>
 #include <pwd.h>
@@ -40,17 +37,18 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "vcli.h"
-#include "cli_priv.h"
-#include "cli_common.h"
 #include "mgt.h"
-#include "mgt_cli.h"
 
-#include "heritage.h"
-#include "vparam.h"
 #include "cache_waiter.h"
-
+#include "heritage.h"
+#include "vav.h"
+#include "vcli.h"
+#include "vcli_common.h"
+#include "vcli_priv.h"
+#include "vparam.h"
 #include "vss.h"
+
+#include "mgt_cli.h"
 
 #define MAGIC_INIT_STRING	"\001"
 struct params master;

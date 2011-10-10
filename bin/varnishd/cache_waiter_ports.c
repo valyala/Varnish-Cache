@@ -33,18 +33,17 @@
 
 #if defined(HAVE_PORT_CREATE)
 
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <math.h>
-
-#include <port.h>
 #include <sys/time.h>
 
+#include <math.h>
+#include <port.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cache.h"
+
 #include "cache_waiter.h"
+#include "vtim.h"
 
 #define MAX_EVENTS 256
 
@@ -197,7 +196,7 @@ vws_thread(void *priv)
 			vws_port_ev(vws, ev + ei);
 
 		/* check for timeouts */
-		now = TIM_real();
+		now = VTIM_real();
 		deadline = now - params->sess_timeout;
 
 		/*
@@ -236,7 +235,7 @@ vws_thread(void *priv)
 			} else if (tmo > max_t) {
 				timeout = &max_ts;
 			} else {
-				ts = TIM_timespec(tmo);
+				ts = VTIM_timespec(tmo);
 				timeout = &ts;
 			}
 		} else {

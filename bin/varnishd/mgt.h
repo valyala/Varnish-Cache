@@ -30,12 +30,7 @@
 
 #include <stdint.h>
 
-#include "vqueue.h"
-
 #include "common.h"
-#include "miniobj.h"
-
-#include "libvarnish.h"
 
 struct cli;
 
@@ -91,6 +86,7 @@ extern const char *mgt_vcl_dir;
 extern const char *mgt_vmod_dir;
 extern unsigned mgt_vcc_err_unref;
 
+
 #define REPORT0(pri, fmt)				\
 	do {						\
 		fprintf(stderr, fmt "\n");		\
@@ -107,3 +103,7 @@ extern unsigned mgt_vcc_err_unref;
 #define VSM_Free(a)		VSM__Free(a)
 #define VSM_Clean()		VSM__Clean()
 
+
+#if defined(PTHREAD_CANCELED) || defined(PTHREAD_MUTEX_DEFAULT)
+#error "Keep pthreads out of in manager process"
+#endif

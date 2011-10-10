@@ -86,22 +86,27 @@
 
 #include "config.h"
 
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-#include "vsc.h"
-#include "vsl.h"
+#include <fcntl.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "mgt.h"
-#include "heritage.h"
-#include "vmb.h"
-#include "vsm.h"
+
 #include "flopen.h"
+#include "heritage.h"
+#include "vapi/vsc_int.h"
+#include "vapi/vsl_int.h"
+#include "vapi/vsm_int.h"
+#include "vav.h"
+#include "vmb.h"
+#include "vnum.h"
 
 #ifndef MAP_HASSEMAPHORE
 #define MAP_HASSEMAPHORE 0 /* XXX Linux */
@@ -242,7 +247,7 @@ mgt_SHM_Init(const char *l_arg)
 
 	/* Size of SHMLOG */
 	if (*ap != NULL && **ap != '\0') {
-		q = str2bytes(*ap, &s1, 0);
+		q = VNUM_2bytes(*ap, &s1, 0);
 		if (q != NULL)
 			ARGV_ERR("\t-l[1] ...:  %s\n", q);
 	} else {
@@ -253,7 +258,7 @@ mgt_SHM_Init(const char *l_arg)
 
 	/* Size of space for other stuff */
 	if (*ap != NULL && **ap != '\0') {
-		q = str2bytes(*ap, &s2, 0);
+		q = VNUM_2bytes(*ap, &s2, 0);
 		if (q != NULL)
 			ARGV_ERR("\t-l[2] ...:  %s\n", q);
 	} else {

@@ -32,18 +32,14 @@
 
 #include "config.h"
 
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <poll.h>
-
-#include <sys/socket.h>
+#include <stdlib.h>
 
 #include "cache.h"
+
 #include "cache_backend.h"
 #include "vrt.h"
+#include "vtcp.h"
 
 /*--------------------------------------------------------------------
  * The "simple" director really isn't, since thats where all the actual

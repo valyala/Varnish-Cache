@@ -31,17 +31,13 @@
 
 #include "config.h"
 
-#include <sys/types.h>
-
-#include <stdio.h>
-#include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
 
-#include "vrt.h"
-#include "vre.h"
-#include "vcl.h"
 #include "cache.h"
+
+#include "vre.h"
+#include "vrt.h"
 
 void
 VRT_re_init(void **rep, const char *re)

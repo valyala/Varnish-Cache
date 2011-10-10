@@ -31,9 +31,6 @@
 
 #include "config.h"
 
-#include <sys/types.h>
-#include <sys/wait.h>
-
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -41,18 +38,16 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "vsb.h"
+#include "mgt.h"
 
 #include "libvcl.h"
-#include "vcli.h"
-#include "cli_priv.h"
-#include "cli_common.h"
-
-#include "mgt.h"
-#include "mgt_cli.h"
-#include "heritage.h"
-
 #include "vcl.h"
+#include "vcli.h"
+#include "vcli_priv.h"
+#include "vfil.h"
+#include "vsub.h"
+
+#include "mgt_cli.h"
 
 struct vclprog {
 	VTAILQ_ENTRY(vclprog)	list;
@@ -234,7 +229,7 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 	struct vcc_priv vp;
 
 	/* Create temporary C source file */
-	sfd = vtmpfile(sf);
+	sfd = VFIL_tmpfile(sf);
 	if (sfd < 0) {
 		VSB_printf(sb, "Failed to create %s: %s", sf, strerror(errno));
 		return (NULL);
@@ -246,13 +241,13 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 	vp.magic = VCC_PRIV_MAGIC;
 	vp.sf = sf;
 	vp.vcl = vcl;
-	if (SUB_run(sb, run_vcc, &vp, "VCC-compiler", -1)) {
+	if (VSUB_run(sb, run_vcc, &vp, "VCC-compiler", -1)) {
 		(void)unlink(sf);
 		return (NULL);
 	}
 
 	if (C_flag) {
-		csrc = vreadfile(NULL, sf, NULL);
+		csrc = VFIL_readfile(NULL, sf, NULL);
 		XXXAN(csrc);
 		(void)fputs(csrc, stdout);
 		free(csrc);
@@ -269,13 +264,13 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 	cmdsb = mgt_make_cc_cmd(sf, of);
 
 	/* Run the C-compiler in a sub-shell */
-	i = SUB_run(sb, run_cc, VSB_data(cmdsb), "C-compiler", 10);
+	i = VSUB_run(sb, run_cc, VSB_data(cmdsb), "C-compiler", 10);
 
 	(void)unlink(sf);
 	VSB_delete(cmdsb);
 
 	if (!i)
-		i = SUB_run(sb, run_dlopen, of, "dlopen", 10);
+		i = VSUB_run(sb, run_dlopen, of, "dlopen", 10);
 
 	if (i) {
 		(void)unlink(of);
@@ -524,7 +519,7 @@ mcf_config_load(struct cli *cli, const char * const *av, void *priv)
 		return;
 	}
 
-	vcl = vreadfile(mgt_vcl_dir, av[3], NULL);
+	vcl = VFIL_readfile(mgt_vcl_dir, av[3], NULL);
 	if (vcl == NULL) {
 		VCLI_Out(cli, "Cannot open '%s'", av[3]);
 		VCLI_SetResult(cli, CLIS_PARAM);

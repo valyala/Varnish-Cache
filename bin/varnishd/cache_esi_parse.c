@@ -34,11 +34,11 @@
 #include <stdlib.h>
 
 #include "cache.h"
+
 #include "cache_esi.h"
-#include "vend.h"
 #include "vct.h"
+#include "vend.h"
 #include "vgz.h"
-#include "stevedore.h"
 
 //#define Debug(fmt, ...) printf(fmt, __VA_ARGS__)
 #define Debug(fmt, ...) /**/

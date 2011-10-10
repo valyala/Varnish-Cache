@@ -28,25 +28,19 @@
 
 #include "config.h"
 
-#include <poll.h>
-#include <stdio.h>
-#include <poll.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "libvarnish.h"
-#include "vct.h"
-#include "miniobj.h"
-#include "vsb.h"
+#include <poll.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "vtc.h"
 
+#include "vct.h"
 #include "vgz.h"
+#include "vtcp.h"
 
 #define MAX_HDR		50
 

@@ -31,20 +31,15 @@
 
 #include "config.h"
 
-#include <sys/param.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 
-#include <errno.h>
-#include <limits.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include "cache.h"
-#include "stevedore.h"
+#include "storage.h"
+
+#include "vnum.h"
 
 #ifndef MAP_NOCORE
 #define MAP_NOCORE 0 /* XXX Linux */
@@ -138,7 +133,7 @@ smf_init(struct stevedore *parent, int ac, char * const *av)
 		size = av[1];
 	if (ac > 2 && *av[2] != '\0') {
 
-		r = str2bytes(av[2], &page_size, 0);
+		r = VNUM_2bytes(av[2], &page_size, 0);
 		if (r != NULL)
 			ARGV_ERR("(-sfile) granularity \"%s\": %s\n", av[2], r);
 	}

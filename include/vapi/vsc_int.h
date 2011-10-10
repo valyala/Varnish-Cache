@@ -1,5 +1,6 @@
 /*-
- * Copyright (c) 2010 Varnish Software AS
+ * Copyright (c) 2006 Verdens Gang AS
+ * Copyright (c) 2006-2010 Varnish Software AS
  * All rights reserved.
  *
  * Author: Poul-Henning Kamp <phk@phk.freebsd.dk>
@@ -27,34 +28,21 @@
  *
  */
 
+#define VSC_CLASS          "Stat"
 
+#define VSC_TYPE_MAIN		""
+#define VSC_TYPE_SMA	"SMA"
+#define VSC_TYPE_SMF	"SMF"
+#define VSC_TYPE_VBE	"VBE"
+#define VSC_TYPE_LCK	"LCK"
 
-VSC_DO(LCK, lck, VSC_TYPE_LCK)
-#define VSC_DO_LCK
-#include "vsc_fields.h"
-#undef VSC_DO_LCK
-VSC_DONE(LCK, lck, VSC_TYPE_LCK)
+#define VSC_F(n, t, l, f, e, d)	t n;
 
-VSC_DO(MAIN, main, VSC_TYPE_MAIN)
-#define VSC_DO_MAIN
-#include "vsc_fields.h"
-#undef VSC_DO_MAIN
-VSC_DONE(MAIN, main, VSC_TYPE_MAIN)
+#define VSC_DO(u,l,t) struct VSC_C_##l {
+#define VSC_DONE(u,l,t) };
 
-VSC_DO(SMA, sma, VSC_TYPE_SMA)
-#define VSC_DO_SMA
-#include "vsc_fields.h"
-#undef VSC_DO_SMA
-VSC_DONE(SMA, sma, VSC_TYPE_SMA)
+#include "tbl/vsc_all.h"
 
-VSC_DO(SMF, smf, VSC_TYPE_SMF)
-#define VSC_DO_SMF
-#include "vsc_fields.h"
-#undef VSC_DO_SMF
-VSC_DONE(SMF, smf, VSC_TYPE_SMF)
-
-VSC_DO(VBE, vbe, VSC_TYPE_VBE)
-#define VSC_DO_VBE
-#include "vsc_fields.h"
-#undef VSC_DO_VBE
-VSC_DONE(VBE, vbe, VSC_TYPE_VBE)
+#undef VSC_DO
+#undef VSC_F
+#undef VSC_DONE

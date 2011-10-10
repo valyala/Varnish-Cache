@@ -35,17 +35,17 @@
 
 #if defined(HAVE_KQUEUE)
 
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include <sys/types.h>
+#include <sys/event.h>
+
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <sys/event.h>
-
 #include "cache.h"
+
 #include "cache_waiter.h"
+#include "vtim.h"
 
 #define NKEV	100
 
@@ -186,7 +186,7 @@ vwk_thread(void *priv)
 		 * would not know we meant "the old fd of this number".
 		 */
 		vwk_kq_flush(vwk);
-		deadline = TIM_real() - params->sess_timeout;
+		deadline = VTIM_real() - params->sess_timeout;
 		for (;;) {
 			sp = VTAILQ_FIRST(&vwk->sesshead);
 			if (sp == NULL)

@@ -29,31 +29,33 @@
 
 #include "config.h"
 
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
+#include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "vas.h"
-#include "vsm.h"
-#include "vsl.h"
-#include "vre.h"
-#include "vbm.h"
 #include "miniobj.h"
-#include "varnishapi.h"
+#include "vas.h"
 
-#include "vsm_api.h"
-#include "vsl_api.h"
+#include "vapi/vsl.h"
+#include "vapi/vsm.h"
+#include "vapi/vsm_int.h"
+#include "vbm.h"
 #include "vmb.h"
+#include "vre.h"
+#include "vsl_api.h"
+#include "vsm_api.h"
 
 /*--------------------------------------------------------------------*/
 
 const char *VSL_tags[256] = {
 #define SLTM(foo)       [SLT_##foo] = #foo,
-#include "vsl_tags.h"
+#include "tbl/vsl_tags.h"
 #undef SLTM
 };
 
@@ -215,7 +217,6 @@ VSL_NextLog(const struct VSM_data *vd, uint32_t **pp, uint64_t *bits)
 	struct vsl *vsl;
 	uint32_t *p;
 	unsigned char t;
-	unsigned u;
 	int i;
 
 	CHECK_OBJ_NOTNULL(vd, VSM_MAGIC);
@@ -226,7 +227,6 @@ VSL_NextLog(const struct VSM_data *vd, uint32_t **pp, uint64_t *bits)
 		i = vsl_nextlog(vsl, &p);
 		if (i != 1)
 			return (i);
-		u = VSL_ID(p);
 		t = VSL_TAG(p);
 		if (vsl->skip) {
 			--vsl->skip;

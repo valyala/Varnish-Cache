@@ -31,29 +31,28 @@
 
 #include "config.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#ifdef HAVE_SYS_MOUNT_H
+#  include <sys/mount.h>
+#endif
+#ifdef HAVE_SYS_STATVFS_H
+#  include <sys/statvfs.h>
+#endif
+#ifdef HAVE_SYS_VFS_H
+#  include <sys/vfs.h>
+#endif
+
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/param.h>
-#include <sys/stat.h>
-
-#ifdef HAVE_SYS_MOUNT_H
-#include <sys/mount.h>
-#endif
-
-#ifdef HAVE_SYS_STATVFS_H
-#include <sys/statvfs.h>
-#endif
-
-#ifdef HAVE_SYS_VFS_H
-#include <sys/vfs.h>
-#endif
 
 #include "mgt.h"
-#include "stevedore.h"
+
+#include "storage.h"
+#include "vnum.h"
 
 #ifndef O_LARGEFILE
 #define O_LARGEFILE	0
@@ -198,7 +197,7 @@ STV_FileSize(int fd, const char *size, unsigned *granularity, const char *ctx)
 		l = st.st_size;
 	} else {
 		AN(size);
-		q = str2bytes(size, &l, fssize);
+		q = VNUM_2bytes(size, &l, fssize);
 
 		if (q != NULL)
 			ARGV_ERR("(%s) size \"%s\": %s\n", size, ctx, q);

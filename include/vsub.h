@@ -1,6 +1,6 @@
 /*-
  * Copyright (c) 2006 Verdens Gang AS
- * Copyright (c) 2006-2009 Varnish Software AS
+ * Copyright (c) 2006-2011 Varnish Software AS
  * All rights reserved.
  *
  * Author: Poul-Henning Kamp <phk@phk.freebsd.dk>
@@ -26,18 +26,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Stuff shared between main.c and fixed_token.c
  */
 
-#include "vcc_token_defs.h"
+/* from libvarnish/subproc.c */
+typedef void vsub_func_f(void*);
 
-struct vsb;
-
-#define isident1(c) (isalpha(c))
-#define isident(c) (isalpha(c) || isdigit(c) || (c) == '_' || (c) == '-')
-#define isvar(c) (isident(c) || (c) == '.')
-unsigned vcl_fixed_token(const char *p, const char **q);
-extern const char * const vcl_tnames[256];
-void vcl_output_lang_h(struct vsb *sb);
-
-#define PF(t)	(int)((t)->e - (t)->b), (t)->b
+int VSUB_run(struct vsb *sb, vsub_func_f *func, void *priv, const char *name,
+    int maxlines);

@@ -28,29 +28,6 @@
  *
  */
 
-#include <errno.h>
-#include <time.h>
-#include <stdint.h>
-#include <sys/types.h>
-
-#include "vas.h"
-
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
-
-struct vsb;
-
-#include "vav.h"
-
-/* from libvarnish/num.c */
-const char *str2bytes(const char *p, uintmax_t *r, uintmax_t rel);
-
-/* from libvarnish/subproc.c */
-typedef void sub_func_f(void*);
-int SUB_run(struct vsb *sb, sub_func_f *func, void *priv, const char *name,
-    int maxlines);
-
 /* from libvarnish/tcp.c */
 /* NI_MAXHOST and NI_MAXSERV are ridiculously long for numeric format */
 #define VTCP_ADDRBUFSIZE		64
@@ -75,6 +52,7 @@ int VTCP_filter_http(int sock);
 int VTCP_blocking(int sock);
 int VTCP_nonblocking(int sock);
 int VTCP_linger(int sock, int linger);
+
 #ifdef SOL_SOCKET
 int VTCP_port(const struct sockaddr_storage *addr);
 void VTCP_name(const struct sockaddr_storage *addr, unsigned l, char *abuf,
@@ -84,36 +62,3 @@ int VTCP_connect(int s, const struct sockaddr_storage *name, socklen_t namelen,
 void VTCP_close(int *s);
 void VTCP_set_read_timeout(int s, double seconds);
 #endif
-
-/* from libvarnish/time.c */
-#define TIM_FORMAT_SIZE 30
-void TIM_format(double t, char *p);
-time_t TIM_parse(const char *p);
-double TIM_mono(void);
-double TIM_real(void);
-void TIM_sleep(double t);
-struct timespec TIM_timespec(double t);
-struct timeval TIM_timeval(double t);
-
-/* from libvarnish/version.c */
-void VCS_Message(const char *);
-
-/* from libvarnish/vtmpfile.c */
-int seed_random(void);
-int vtmpfile(char *);
-char *vreadfile(const char *pfx, const char *fn, ssize_t *sz);
-char *vreadfd(int fd, ssize_t *sz);
-
-/* Safe printf into a fixed-size buffer */
-#define bprintf(buf, fmt, ...)						\
-	do {								\
-		assert(snprintf(buf, sizeof buf, fmt, __VA_ARGS__)	\
-		    < sizeof buf);					\
-	} while (0)
-
-/* Safe printf into a fixed-size buffer */
-#define vbprintf(buf, fmt, ap)						\
-	do {								\
-		assert(vsnprintf(buf, sizeof buf, fmt, ap)		\
-		    < sizeof buf);					\
-	} while (0)

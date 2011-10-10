@@ -34,16 +34,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <poll.h>
-
-#include <sys/socket.h>
 
 #include "cache.h"
-#include "vrt.h"
+
 #include "cache_backend.h"
-#include "cli_priv.h"
+#include "vcli_priv.h"
+#include "vrt.h"
 
 struct lock VBE_mtx;
 
