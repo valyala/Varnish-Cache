@@ -31,35 +31,34 @@
 
 #include "config.h"
 
-#include <sys/types.h>
+#include <sys/socket.h>
 
+#include <fcntl.h>
+#include <poll.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <fcntl.h>
 #include <stdlib.h>
-#include <syslog.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
-#include <sys/socket.h>
+
+#include "mgt.h"
+
+#include "heritage.h"
+#include "vcli.h"
+#include "vcli_common.h"
+#include "vcli_priv.h"
+#include "vcli_serve.h"
+#include "vev.h"
+#include "vlu.h"
+#include "vss.h"
+#include "vtcp.h"
+
+#include "mgt_cli.h"
 
 #ifndef HAVE_SRANDOMDEV
 #include "compat/srandomdev.h"
 #endif
-
-#include "cli_priv.h"
-#include "vcli.h"
-#include "vsb.h"
-#include "cli_common.h"
-#include "cli_serve.h"
-#include "vev.h"
-#include "vsc.h"
-#include "vlu.h"
-#include "vss.h"
-
-
-#include "mgt.h"
-#include "heritage.h"
-#include "mgt_cli.h"
 
 static int		cli_i = -1, cli_o = -1;
 static struct VCLS	*cls;

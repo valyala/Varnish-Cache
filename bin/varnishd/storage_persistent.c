@@ -35,22 +35,22 @@
 
 #include "config.h"
 
-#include <errno.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/param.h>
 #include <sys/mman.h>
 
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "cache.h"
-#include "stevedore.h"
+#include "storage.h"
+
 #include "hash_slinger.h"
-#include "vsha256.h"
 #include "vcli.h"
-#include "cli_priv.h"
+#include "vcli_priv.h"
 #include "vend.h"
+#include "vsha256.h"
 
 #include "persistent.h"
 #include "storage_persistent.h"

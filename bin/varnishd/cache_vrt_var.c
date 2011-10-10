@@ -31,14 +31,16 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <stdarg.h>
 #include <stdlib.h>
 
-#include "vrt.h"
-#include "vrt_obj.h"
 #include "cache.h"
+
 #include "cache_backend.h"
 #include "hash_slinger.h"
+#include "vrt.h"
+#include "vrt_obj.h"
+#include "vtcp.h"
+#include "vtim.h"
 
 static char vrt_hostname[255] = "";
 
@@ -534,7 +536,7 @@ VRT_r_obj_lastuse(const struct sess *sp)
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(sp->obj, OBJECT_MAGIC);	/* XXX */
-	return (TIM_real() - sp->obj->last_use);
+	return (VTIM_real() - sp->obj->last_use);
 }
 
 unsigned

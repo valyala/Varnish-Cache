@@ -31,29 +31,32 @@
 
 #include "config.h"
 
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <syslog.h>
-#include <errno.h>
-#include <poll.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
+
 #include "mgt.h"
-#include "vsm.h"
+
 #include "heritage.h"
+#include "vapi/vsm_int.h"
+#include "vbm.h"
 #include "vcli.h"
-#include "cli_priv.h"
-#include "mgt_cli.h"
+#include "vcli_priv.h"
 #include "vev.h"
 #include "vlu.h"
-#include "vsb.h"
 #include "vss.h"
-#include "vbm.h"
+#include "vtcp.h"
+#include "vtim.h"
+
+#include "mgt_cli.h"
 
 pid_t		child_pid = -1;
 
@@ -440,7 +443,7 @@ mgt_save_panic(void)
 		VSB_delete(child_panic);
 	child_panic = VSB_new_auto();
 	XXXAN(child_panic);
-	TIM_format(TIM_real(), time_str);
+	VTIM_format(VTIM_real(), time_str);
 	VSB_printf(child_panic, "Last panic at: %s\n", time_str);
 	VSB_cat(child_panic, VSM_head->panicstr);
 	AZ(VSB_finish(child_panic));
@@ -478,7 +481,7 @@ mgt_sigchld(const struct vev *e, int what)
 	vsb = VSB_new_auto();
 	XXXAN(vsb);
 	VSB_printf(vsb, "Child (%d) %s", r, status ? "died" : "ended");
-	if (!WIFEXITED(status) && WEXITSTATUS(status)) {
+	if (WIFEXITED(status) && WEXITSTATUS(status)) {
 		VSB_printf(vsb, " status=%d", WEXITSTATUS(status));
 		exit_status |= 0x20;
 	}

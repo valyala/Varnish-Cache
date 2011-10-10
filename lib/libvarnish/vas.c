@@ -1,6 +1,6 @@
 /*-
  * Copyright (c) 2006 Verdens Gang AS
- * Copyright (c) 2006-2010 Varnish Software AS
+ * Copyright (c) 2006-2011 Varnish Software AS
  * All rights reserved.
  *
  * Author: Poul-Henning Kamp <phk@phk.freebsd.dk>
@@ -26,25 +26,37 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * This is the default backend function for libvarnish' assert facilities.
  */
 
-#include <stdint.h>
+#include "config.h"
 
-#define VSC_CLASS          "Stat"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define VSC_TYPE_MAIN		""
-#define VSC_TYPE_SMA	"SMA"
-#define VSC_TYPE_SMF	"SMF"
-#define VSC_TYPE_VBE	"VBE"
-#define VSC_TYPE_LCK	"LCK"
+#include "vas.h"
 
-#define VSC_F(n, t, l, f, e, d)	t n;
+static void
+VAS_Fail_default(const char *func, const char *file, int line,
+    const char *cond, int err, int xxx)
+{
 
-#define VSC_DO(u,l,t) struct VSC_C_##l {
-#define VSC_DONE(u,l,t) };
+	if (xxx) {
+		fprintf(stderr,
+		    "Missing errorhandling code in %s(), %s line %d:\n"
+		    "  Condition(%s) not true.\n",
+		    func, file, line, cond);
+	} else {
+		fprintf(stderr,
+		    "Assert error in %s(), %s line %d:\n"
+		    "  Condition(%s) not true.\n",
+		    func, file, line, cond);
+	}
+	if (err)
+		fprintf(stderr,
+		    "  errno = %d (%s)\n", err, strerror(err));
+	abort();
+}
 
-#include "vsc_all.h"
-
-#undef VSC_DO
-#undef VSC_F
-#undef VSC_DONE
+vas_f *VAS_Fail = VAS_Fail_default;

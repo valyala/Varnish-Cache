@@ -35,21 +35,19 @@
 
 #if defined(HAVE_EPOLL_CTL)
 
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include <sys/epoll.h>
+
 #include <fcntl.h>
 #include <stdlib.h>
-#include <unistd.h>
 
-#include <sys/epoll.h>
+#include "cache.h"
+
+#include "cache_waiter.h"
+#include "vtim.h"
 
 #ifndef EPOLLRDHUP
 #  define EPOLLRDHUP 0
 #endif
-
-#include "cache.h"
-#include "cache_waiter.h"
 
 #define NEEV	100
 
@@ -190,7 +188,7 @@ vwe_thread(void *priv)
 			continue;
 
 		/* check for timeouts */
-		deadline = TIM_real() - params->sess_timeout;
+		deadline = VTIM_real() - params->sess_timeout;
 		for (;;) {
 			sp = VTAILQ_FIRST(&vwe->sesshead);
 			if (sp == NULL)
@@ -219,7 +217,7 @@ vwe_sess_timeout_ticker(void *priv)
 	while (1) {
 		/* ticking */
 		assert(write(vwe->timer_pipes[1], &ticker, 1));
-		TIM_sleep(100 * 1e-3);
+		VTIM_sleep(100 * 1e-3);
 	}
 	return NULL;
 }

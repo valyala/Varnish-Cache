@@ -39,11 +39,13 @@
 #include "config.h"
 
 #include <ctype.h>
-#include <stdlib.h>
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "libvarnish.h"
+#include "vas.h"
+#include "vav.h"
 
 int
 VAV_BackSlash(const char *s, char *res)

@@ -31,24 +31,20 @@
 
 #include "config.h"
 
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
-#include "vsb.h"
-
-#include "vcc_priv.h"
 #include "vcc_compile.h"
-#include "libvarnish.h"
 
 static const char *
 vcc_Type(enum var_type fmt)
 {
 	switch(fmt) {
 #define VCC_TYPE(a)	case a: return(#a);
-#include "vcc_types.h"
+#include "tbl/vcc_types.h"
 #undef VCC_TYPE
 	default:
 		assert("Unknwon Type");
@@ -405,7 +401,7 @@ vcc_arg_type(const char **p)
 {
 
 #define VCC_TYPE(a) if (!strcmp(#a, *p)) { *p += strlen(#a) + 1; return (a);}
-#include "vcc_types.h"
+#include "tbl/vcc_types.h"
 #undef VCC_TYPE
 	return (VOID);
 }

@@ -29,19 +29,22 @@
 
 #include "config.h"
 
-#include <stdio.h>
 #include <errno.h>
 #include <poll.h>
-#include <time.h>
-#include <signal.h>
-#include <string.h>
-#include <stdlib.h>
 #include <pthread.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
-#include "libvarnish.h"
-#include "vev.h"
 #include "miniobj.h"
+#include "vas.h"
+
 #include "binary_heap.h"
+#include "vqueue.h"
+#include "vev.h"
+#include "vtim.h"
 
 #undef DEBUG_EVENTS
 
@@ -171,7 +174,7 @@ vev_new_base(void)
 	evb->binheap = binheap_new();
 	AN(evb->binheap);
 	evb->thread = pthread_self();
-	evb->epoch_start = TIM_mono();
+	evb->epoch_start = VTIM_mono();
 #ifdef DEBUG_EVENTS
 	evb->debug = fopen("/tmp/_.events", "w");
 	AN(evb->debug);
@@ -270,7 +273,7 @@ vev_add(struct vev_base *evb, struct vev *e)
 	if (e->timeout != 0.0) {
 		/* Timeouts smaller than 1ms are just silly */
 		assert(e->timeout >= 1e-3);
-		when = tim_epoch(evb, TIM_mono() + e->timeout);
+		when = tim_epoch(evb, VTIM_mono() + e->timeout);
 		e->__exp_entry = binheap_insert(evb->binheap, e,
 						BINHEAP_TIME2KEY(when));
 		AN(e->__exp_entry);
@@ -450,7 +453,7 @@ start_new_epoch(struct vev_base *evb)
 	 * occurs every 49 days on systems with 32-bit unsigned type.
 	 * If we will continue pushing timer callbacks to binheap at this point,
 	 * vev_schedule_one() will infinitely fire the last timer.
-	 * So we need starting new epoch. Simple 'ebv->epoch_start = TIM_mono()'
+	 * So we need starting new epoch. Just 'ebv->epoch_start = VTIM_mono()'
 	 * will never fire already pushed timers. So let's pop all the timers
 	 * from binheap and fire them before starting new epoch. After that
 	 * we can safely re-arm remaining timers into empty binheap.
@@ -474,7 +477,7 @@ start_new_epoch(struct vev_base *evb)
 			vl_head = vle;
 		}
 	}
-	evb->epoch_start = TIM_mono();
+	evb->epoch_start = VTIM_mono();
 	AZ(binheap_root(evb->binheap));
 	while (vl_head != NULL) {
 		e = vl_head->e;
@@ -506,7 +509,7 @@ vev_schedule_one(struct vev_base *evb)
 		when = key;
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
 		AN(e->__exp_entry);
-		t = tim_epoch(evb, TIM_mono());
+		t = tim_epoch(evb, VTIM_mono());
 		if (t >= UINT_MAX)
 			return (start_new_epoch(evb));
 		if (when <= t)
@@ -534,7 +537,7 @@ vev_schedule_one(struct vev_base *evb)
 		return (vev_sched_signal(evb));
 	if (i == 0) {
 		assert(e != NULL);
-		t = tim_epoch(evb, TIM_mono());
+		t = tim_epoch(evb, VTIM_mono());
 		if (when <= t)
 			return (vev_sched_timeout(evb, e, t));
 	}

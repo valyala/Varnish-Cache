@@ -35,13 +35,11 @@
 
 #include "config.h"
 
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
-#include <sys/uio.h>
-#include <sys/socket.h>
+#include <stdlib.h>
 
 #include "cache.h"
+
 #include "cache_waiter.h"
 
 /*--------------------------------------------------------------------*/
@@ -86,7 +84,7 @@ SES_Charge(struct sess *sp)
 	sp->wrk->stats.s_##foo += a->foo;	\
 	sp->acct_ses.foo += a->foo;		\
 	a->foo = 0;
-#include "acct_fields.h"
+#include "tbl/acct_fields.h"
 #undef ACCT
 }
 

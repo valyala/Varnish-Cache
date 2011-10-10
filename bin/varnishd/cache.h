@@ -34,8 +34,11 @@
  */
 #define VARNISH_CACHE_CHILD	1
 
-#include <sys/time.h>
-#include <sys/uio.h>
+#include "common.h"
+
+#include "vapi/vsc_int.h"
+#include "vapi/vsl_int.h"
+
 #include <sys/socket.h>
 
 #include <pthread.h>
@@ -43,7 +46,6 @@
 #include <pthread_np.h>
 #endif
 #include <stdarg.h>
-#include <stdint.h>
 #include <string.h>
 #include <limits.h>
 #include <unistd.h>
@@ -52,22 +54,12 @@
 #include <sys/epoll.h>
 #endif
 
-#include "vqueue.h"
 
-#include "vsb.h"
-
-#include "libvarnish.h"
-
-#include "common.h"
 #include "heritage.h"
-#include "miniobj.h"
-
-#include "vsc.h"
-#include "vsl.h"
 
 enum body_status {
 #define BODYSTATUS(U,l)	BS_##U,
-#include "body_status.h"
+#include "tbl/body_status.h"
 #undef BODYSTATUS
 };
 
@@ -76,7 +68,7 @@ body_status(enum body_status e)
 {
 	switch(e) {
 #define BODYSTATUS(U,l)	case BS_##U: return (#l);
-#include "body_status.h"
+#include "tbl/body_status.h"
 #undef BODYSTATUS
 	default:
 		return ("?");
@@ -99,7 +91,9 @@ enum {
 	HTTP_HDR_FIRST,
 };
 
+struct iovec;
 struct cli;
+struct exp;
 struct vsb;
 struct sess;
 struct director;
@@ -143,7 +137,7 @@ typedef struct {
 
 enum step {
 #define STEP(l, u)	STP_##u,
-#include "steps.h"
+#include "tbl/steps.h"
 #undef STEP
 };
 
@@ -213,7 +207,7 @@ struct http_conn {
 struct acct {
 	double			first;
 #define ACCT(foo)	uint64_t	foo;
-#include "acct_fields.h"
+#include "tbl/acct_fields.h"
 #undef ACCT
 };
 
@@ -224,7 +218,7 @@ struct acct {
 #define VSC_F(n, t, l, f, e,d)	L##l(t, n)
 #define VSC_DO_MAIN
 struct dstat {
-#include "vsc_fields.h"
+#include "tbl/vsc_fields.h"
 };
 #undef VSC_F
 #undef VSC_DO_MAIN
@@ -383,6 +377,15 @@ struct worker {
 
 	/* Temporary accounting */
 	struct acct		acct_tmp;
+};
+
+/* LRU ---------------------------------------------------------------*/
+
+struct lru {
+	unsigned		magic;
+#define LRU_MAGIC		0x3fec7bb0
+	VTAILQ_HEAD(,objcore)	lru_head;
+	struct lock		mtx;
 };
 
 /* Storage -----------------------------------------------------------*/
@@ -803,7 +806,7 @@ ssize_t HTC_Read(struct http_conn *htc, void *d, size_t len);
 int HTC_Complete(struct http_conn *htc);
 
 #define HTTPH(a, b, c, d, e, f, g) extern char b[];
-#include "http_headers.h"
+#include "tbl/http_headers.h"
 #undef HTTPH
 
 /* cache_main.c */
@@ -833,7 +836,7 @@ int Lck_CondWait(pthread_cond_t *cond, struct lock *lck, struct timespec *ts);
 #define Lck_AssertHeld(a) Lck__Assert(a, 1)
 
 #define LOCK(nam) extern struct VSC_C_lck *lck_##nam;
-#include "locks.h"
+#include "tbl/locks.h"
 #undef LOCK
 
 /* cache_panic.c */
@@ -923,7 +926,7 @@ void VCL_Rel(struct VCL_conf **vcc);
 void VCL_Poll(void);
 
 #define VCL_MET_MAC(l,u,b) void VCL_##l##_method(struct sess *);
-#include "vcl_returns.h"
+#include "tbl/vcl_returns.h"
 #undef VCL_MET_MAC
 
 /* cache_vrt.c */
@@ -966,9 +969,20 @@ enum body_status RFC2616_Body(const struct sess *sp);
 unsigned RFC2616_Req_Gzip(const struct sess *sp);
 int RFC2616_Do_Cond(const struct sess *sp);
 
+/* stevedore.c */
+struct object *STV_NewObject(struct sess *sp, const char *hint, unsigned len,
+    struct exp *, uint16_t nhttp);
+struct storage *STV_alloc(const struct sess *sp, size_t size);
+void STV_trim(struct storage *st, size_t size);
+void STV_free(struct storage *st);
+void STV_open(void);
+void STV_close(void);
+void STV_Freestore(struct object *o);
+
 /* storage_synth.c */
 struct vsb *SMS_Makesynth(struct object *obj);
 void SMS_Finish(struct object *obj);
+void SMS_Init(void);
 
 /* storage_persistent.c */
 void SMP_Init(void);

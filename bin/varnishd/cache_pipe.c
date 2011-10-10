@@ -31,14 +31,13 @@
 
 #include "config.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 #include <poll.h>
-#include <stdlib.h>
-#include <sys/socket.h>
+#include <stdio.h>
 
 #include "cache.h"
+
+#include "vtcp.h"
+#include "vtim.h"
 
 static int
 rdf(int fd0, int fd1)
@@ -93,7 +92,7 @@ PipeSession(struct sess *sp)
 		return;
 	}
 
-	sp->t_resp = TIM_real();
+	sp->t_resp = VTIM_real();
 
 	memset(fds, 0, sizeof fds);
 

@@ -28,17 +28,18 @@
  * A Crit Bit tree based hash
  */
 
-#undef PHK
+// #define PHK
 
 #include "config.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "cache.h"
+
 #include "hash_slinger.h"
-#include "cli_priv.h"
+#include "vcli_priv.h"
 #include "vmb.h"
+#include "vtim.h"
 
 static struct lock hcb_mtx;
 
@@ -368,7 +369,7 @@ hcb_cleaner(void *priv)
 		VTAILQ_CONCAT(&dead_h, &cool_h, hoh_list);
 		Lck_Unlock(&hcb_mtx);
 		WRK_SumStat(&ww);
-		TIM_sleep(params->critbit_cooloff);
+		VTIM_sleep(params->critbit_cooloff);
 	}
 	NEEDLESS_RETURN(NULL);
 }

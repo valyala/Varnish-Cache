@@ -30,13 +30,11 @@
 
 #include "config.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "cache.h"
+
 #include "cache_esi.h"
-#include "vct.h"
-#include "stevedore.h"
 
 /*---------------------------------------------------------------------
  * Read some bytes.

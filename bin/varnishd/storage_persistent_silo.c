@@ -34,16 +34,15 @@
 
 #include "config.h"
 
-#include <math.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <sys/mman.h>
 
 #include "cache.h"
-#include "stevedore.h"
+#include "storage.h"
+
 #include "hash_slinger.h"
 #include "vsha256.h"
+#include "vtim.h"
 
 #include "persistent.h"
 #include "storage_persistent.h"
@@ -125,7 +124,7 @@ smp_load_seg(const struct sess *sp, const struct smp_sc *sc,
 	struct smp_object *so;
 	struct objcore *oc;
 	uint32_t no;
-	double t_now = TIM_real();
+	double t_now = VTIM_real();
 	struct smp_signctx ctx[1];
 
 	ASSERT_SILO_THREAD(sc);

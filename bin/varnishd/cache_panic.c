@@ -29,24 +29,23 @@
 
 #include "config.h"
 
-#include <signal.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <pthread.h>
-
 #ifndef HAVE_EXECINFO_H
 #include "compat/execinfo.h"
 #else
 #include <execinfo.h>
 #endif
+
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cache.h"
-#include "vsm.h"
+
+#include "vapi/vsm_int.h"
+
 #include "cache_backend.h"
 #include "cache_waiter.h"
-#include "vcl.h"
 #include "libvcl.h"
+#include "vcl.h"
 
 /*
  * The panic string is constructed in memory, then copied to the
@@ -223,7 +222,7 @@ pan_sess(const struct sess *sp)
 	    sp->port ? sp->port : "?");
 	switch (sp->step) {
 #define STEP(l, u) case STP_##u: stp = "STP_" #u; break;
-#include "steps.h"
+#include "tbl/steps.h"
 #undef STEP
 		default: stp = NULL;
 	}

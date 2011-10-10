@@ -35,12 +35,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "cache.h"
-#include "stevedore.h"
-#include "hash_slinger.h"
-#include "cli_priv.h"
+
+#include "storage.h"
+#include "vav.h"
+#include "vcli_priv.h"
+#include "vrt.h"
 #include "vrt_obj.h"
 
 static VTAILQ_HEAD(, stevedore)	stevedores =
@@ -561,8 +562,6 @@ struct cli_proto cli_stv[] = {
  * VRT functions for stevedores
  */
 
-#include "vrt.h"
-
 static const struct stevedore *
 stv_find(const char *nm)
 {
@@ -599,5 +598,5 @@ VRT_Stv_##nm(const char *nm)			\
 	return (stv->var_##nm(stv));		\
 }
 
-#include "vrt_stv_var.h"
+#include "tbl/vrt_stv_var.h"
 #undef VRTSTVVAR
