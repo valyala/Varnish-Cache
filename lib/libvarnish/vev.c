@@ -402,6 +402,7 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 		vev_del(evb, e);
 		free(e);
 	} else {
+		assert(e->timeout >= 1e-3);	/* catch silly timeouts */
 		t += e->timeout * 1e3;
 		binheap_reorder(evb->binheap, e->__exp_entry,
 				BINHEAP_TIME2KEY(t));
