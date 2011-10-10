@@ -858,14 +858,14 @@ struct foo {
 	char padding[PADDING];
 };
 
-static struct foo ff[MAX_ITEMS_COUNT];
+static struct foo *ff[MAX_ITEMS_COUNT];
 
 static void
 foo_check(const struct foo *fp, unsigned items_count)
 {
 	CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
 	assert(fp->n < items_count);
-	assert(fp == &ff[fp->n]);
+	assert(fp == ff[fp->n]);
 }
 
 static void
@@ -890,10 +890,9 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 
 	paranoia_check(bh);
 	assert(n < items_count);
-	fp = &ff[n];
-	AZ(fp->be);
-	AZ(fp->key);
-	AZ(fp->n);
+	AZ(ff[n]);
+	fp = ff[n] = malloc(sizeof(*fp));
+	XXXAN(fp);
 	key = (unsigned) random();
 	fp->magic = FOO_MAGIC;
 	fp->key = key;
@@ -919,9 +918,8 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 	AN(fp->be);
 	assert(fp->key == key);
 	assert(fp->n == n);
-	fp->be = NULL;
-	fp->key = 0;
-	fp->n = 0;
+	free(fp);
+	ff[n] = NULL;
 	paranoia_check(bh);
 }
 
@@ -974,7 +972,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		foo_check(fp, items_count);
 		assert(fp->key == key);
 		assert(fp->be->idx == root_idx);
-		assert(key <= ff[n].key);
+		assert(key <= ff[n]->key);
 	}
 	check_consistency(bh);
 	end = TIM_mono();
@@ -992,7 +990,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		foo_check(fp, items_count);
 		assert(fp->key == key);
 		assert(fp->be->idx == root_idx);
-		assert(key <= ff[n].key);
+		assert(key <= ff[n]->key);
 		n = fp->n;
 		foo_delete(bh, fp, items_count);
 		foo_insert(bh, n, items_count);
@@ -1009,7 +1007,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
-		fp = &ff[n];
+		fp = ff[n];
 		foo_reorder(bh, fp, items_count);
 	}
 	check_consistency(bh);
@@ -1027,8 +1025,8 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
-		fp = &ff[n];
-		if (fp->be != NULL) {
+		fp = ff[n];
+		if (fp != NULL) {
 			if (fp->key & 1) {
 				foo_delete(bh, fp, items_count);
 				++delete_count;
