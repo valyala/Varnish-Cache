@@ -26,27 +26,32 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Implementation of a binary heap API
+ * Implementation of a binheap API.
  *
  * The main feature of this binheap is minimizing the number of page faults
  * under memory pressure. Memory shortage is typical for Varnish setups.
- * Canonical binary heap (http://en.wikipedia.org/wiki/Binary_heap) isn't
- * suitable for this workload, since it requires P=log2(2*N/M)/2 average page
- * faults during binheap mutations, where N is the number of items in binheap
- * and M is the number of items per page. For example, P=5.5 on x32 and P=6
- * on x64 for N=2^20.
- * 'Slightly' modified parent-child index calculations used in the implementation
- * reduce average page faults count to P=log2(N)/log2(M/4)/2, i.e. P=1.25 on x32
- * and P=1.43 on x64, which means more than 4x speedup comparing to canonical
- * binary heap under memory pressure. See more details at:
+ * Canonical implementation (http://en.wikipedia.org/wiki/Binary_heap) isn't
+ * suitable for this workload, since it induces too many page faults during
+ * binheap mutations.
+ * This implementation uses the following techniques:
+ * - VM-aware parent-child index calculation, which tries packing binheap
+ *   subtrees on a single page. This reduces the number of pagefaults during
+ *   binheap traversals.
+ * - Keys are embedded into binheap array. Though this reduces binheap
+ *   flexibility comparing to generic cmp() callback, this also reduces
+ *   the number of accesses to random external pages while traversing the heap.
+ * - 4-heap instead of 2-heap (D=4 for http://en.wikipedia.org/wiki/D-ary_heap).
+ *   This reduces the number of swaps and index updates. Since the probability
+ *   of pagefault for each index update is quite high for large heaps,
+ *   the number of these operations should be reduced.
+ * - Entry index, which is required for 'reorder' and 'delete' operations,
+ *   is stored inside a structure controlled by binheap. We can minimize
+ *   the number of pagefaults during index update operations by minimizing
+ *   the size of this structure and tightly packing these structures in memory.
+ *
+ *   See also:
  *	http://portal.acm.org/citation.cfm?doid=1785414.1785434
  *	(or: http://queue.acm.org/detail.cfm?id=1814327)
- *
- * But that's only the half of the story. Though previous implementation
- * already used enhanced parent-child index calculations, it had very serious
- * flaw as seen from minimizing page faults POV - compare() and update()
- * callbacks. Common binheap operations invoke 1.5*log2(N) such callbacks.
- * But what's wrong with them?
  *
  * Test driver can be built and run using the following commands:
  * $ cc -DTEST_DRIVER -I../.. -I../../include -lrt -lm binary_heap.c
@@ -199,6 +204,21 @@ access_mem(struct mem *m, void *p)
 	TEST_DRIVER_ACCESS_MEM(bh, A(bh, u).be); \
 } while (0)
 
+/*
+ * This structure holds a reference to a binheap entry, so external
+ * caller could perform 'reorder', 'delete' and 'unpack' operations.
+ *
+ * The idx value cannot be passed to external caller as-is, because it
+ * can be changed during binheap mutations. Though external caller could
+ * provide us a callback for updating externally stored index, this isn't
+ * optimal from the pagefaults minimization PoV, because external caller
+ * would embed index storage into large structures (such as objcore),
+ * which will increase the probability of pagefault per each index update.
+ *
+ * It is also convenient to store a pointer associated with the entry here
+ * (though it could be stored elsewhere). This pointer is overloaded with other
+ * functionality when the binheap_entry is empty - see alloc_be_row().
+ */
 struct binheap_entry {
 	unsigned idx;
 	void *p;
@@ -206,8 +226,12 @@ struct binheap_entry {
 
 /*
  * Storing key near p should improve memory locality
- * for hot paths during binheap mutations.
+ * for hot paths during binheap traversals.
+ *
  * Code below expects sizeof(entry) is a power of two.
+ * This restriction can be easily lifted, but in this case perfect entries'
+ * alignment inside a page will be lost. Also fast paths in parent() and child()
+ * would require potentially expensive modulo operation (%).
  */
 struct entry {
 	unsigned key;
@@ -238,21 +262,53 @@ struct binheap {
  */
 #define MAX_PAGE_SHIFT		31
 
+/*
+ * Binheap tree layout can be represented in the following way:
+ *
+ * page_size = (1 << page_shift) - the number of items per page.
+ *
+ * +------------------------------------------+
+ * |		empty space		      |
+ * |..........................................|    page=-1
+ * |		 root_idx=page_size-1	      |
+ * |		   n=page_leaves-1	      | <- contains only one root
+ * +------------------------------------------+    (binheap root)
+ *			 |
+ * +------------------------------------------+
+ * |   0       1	   2	       3      |
+ * | / | \   / |  \    /   |   \   /   |   \  |    page=0
+ * |4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 |
+ * |..........................................|
+ * |page_size/4-1      ...	 page_size-1  | <- roots for lower pages
+ * |   n=0	       ...     n=page_leaves-1|
+ * +------------------------------------------+
+ *	|
+ * +--------------------------------+
+ * |page=parent_page*page_leaves+n+1| ...
+ * +--------------------------------+
+ *
+ * Implementation detail:
+ * - Since page=-1 contains a lot of empty space, binheap structure is embedded
+ *   into the beginning of the page. This has a side effect that access to
+ *   the root entry is free from additional pagefaults.
+ */
 static unsigned
 parent(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_leaves;
 
+	/* don't use expensive calculations in fast path */
 	assert(page_shift >= MIN_PAGE_SHIFT);
 	assert(page_shift <= MAX_PAGE_SHIFT);
 	page_mask = R_IDX(page_shift);
 	AZ(page_mask & (page_mask + 1));
 	assert(u > page_mask);
 	if (u <= page_mask + 4)
-		return page_mask;
+		return page_mask;	/* parent is root */
 	v = u & page_mask;
 	if (v >= 4)
 		return u - v + v / 4 - 1;
+	/* slow path */
 	page_size = page_mask + 1;
 	page_leaves = page_size - page_size / 4 + 1;
 	assert((u >> page_shift) >= 2);
@@ -266,6 +322,7 @@ child(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_leaves;
 
+	/* don't use expensive calculations in fast path */
 	assert(page_shift >= MIN_PAGE_SHIFT);
 	assert(page_shift <= MAX_PAGE_SHIFT);
 	assert(u < UINT_MAX);
@@ -276,6 +333,7 @@ child(unsigned page_shift, unsigned u)
 	page_size = page_mask + 1;
 	if (v + 1 < page_size / 4)
 		return u - v + (v + 1) * 4;
+	/* slow path */
 	page_leaves = page_size - page_size / 4 + 1;
 	v += (u >> page_shift) * page_leaves + 2 - page_size;
 	if (v > (UINT_MAX >> page_shift))
@@ -303,7 +361,7 @@ alloc_row(unsigned page_shift)
 	XXXAZ(rv);
 	AN(row);
 	AZ(((uintptr_t) row) & (alignment - 1));
-	/* null out entries */
+	/* Null out entries. */
 	for (u = 0; u < ROW_WIDTH; u++) {
 		row[u].key = 0;
 		row[u].be = NULL;
@@ -319,7 +377,7 @@ binheap_new(void)
 	unsigned page_size, page_shift;
 
 	page_size = ((unsigned) getpagesize()) / sizeof(**rows);
-	xxxassert(page_size > 1);
+	xxxassert(page_size >= (1 << MIN_PAGE_SHIFT));
 	xxxassert(page_size * sizeof(**rows) == getpagesize());
 	page_shift = 0U - 1;
 	while (page_size) {
@@ -339,8 +397,8 @@ binheap_new(void)
 	/*
 	 * Since the first memory page in the first row is almost empty
 	 * (except the row[R_IDX(page_shift)] at the end of the page),
-	 * so let's embed binheap structure into the beginning of the page.
-	 * This should also improve locality of reference.
+	 * binheap structure is embedded into the beginning of the page.
+	 * This should also improve locality of reference when accessing root.
 	 */
 	rows[0] = alloc_row(page_shift);
 	AN(rows[0]);
@@ -486,7 +544,7 @@ alloc_be_row(struct binheap_entry *prev_malloc_list)
 	struct binheap_entry *row;
 	unsigned u;
 
-	/* TODO: determine the best row width */
+	/* XXX: determine the best row width */
 	assert(ROW_WIDTH >= 2);
 	row = calloc(ROW_WIDTH, sizeof(*row));
 	XXXAN(row);
@@ -532,6 +590,21 @@ release_be(struct binheap *bh, struct binheap_entry *be)
 	be->idx = NOIDX;
 	be->p = bh->free_list;
 	bh->free_list = be;
+	/*
+	 * XXX: defragment/shrink free_list?
+	 * Currently free_list is completely defragmented and shrunk only when
+	 * binheap becomes empty (see free_be_memory() callsite).
+	 * Highly fragmented and too large free_list can become a trouble
+	 * when the average binheap size is quite small, but sometimes it can
+	 * be significantly grown (by an order of magnitude) and then shrunk
+	 * to the original size. In this case we end up with a lot of wasted
+	 * memory and potentially expensive binheap_entry allocations resulting
+	 * to pagefaults with high probability.
+	 *
+	 * Currently the only workaround for such a case is to remove all
+	 * the entries from binheap (so free_be_memory() will be called) and
+	 * then re-push entries to binheap again.
+	 */
 }
 
 static void
@@ -732,6 +805,7 @@ binheap_entry_unpack(const struct binheap *bh, const struct binheap_entry *be,
 }
 
 #ifdef TEST_DRIVER
+/* Test driver -------------------------------------------------------*/
 
 static void
 check_time2key(void)
@@ -828,8 +902,6 @@ check_parent_child(unsigned page_shift, unsigned checks_count)
 	assert(n_max == UINT_MAX);
 	check_parent_child_range(page_shift, n_min, n_max);
 }
-
-/* Test driver -------------------------------------------------------*/
 
 double
 VTIM_mono(void)
