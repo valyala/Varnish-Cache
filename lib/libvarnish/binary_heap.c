@@ -208,6 +208,7 @@ struct binheap {
 #define BINHEAP_MAGIC		0xf581581aU	/* from /dev/random */
 	struct entry		**rows;
 	struct binheap_entry	*free_list;
+	struct binheap_entry	*malloc_list;
 	unsigned		next;
 	unsigned		length;
 	unsigned		rows_count;
@@ -324,6 +325,7 @@ binheap_new(void)
 	bh->magic = BINHEAP_MAGIC;
 	bh->rows = rows;
 	bh->free_list = NULL;
+	bh->malloc_list = NULL;
 	bh->next = R_IDX(page_shift);
 	bh->length = ROW_WIDTH;
 	bh->rows_count = 1;
@@ -458,21 +460,26 @@ add_row(struct binheap *bh)
 }
 
 static struct binheap_entry *
-alloc_bi_row(void)
+alloc_bi_row(struct binheap_entry *prev_malloc_list)
 {
 	struct binheap_entry *row;
 	unsigned u;
 
 	/* TODO: determine the best row width */
+	assert(ROW_WIDTH >= 2);
 	row = calloc(ROW_WIDTH, sizeof(*row));
 	XXXAN(row);
 
-	/* construct freelist from entries in the row */
-	for (u = 0; u < ROW_WIDTH; u++) {
+	/*
+	 * Construct freelist from entries 1..ROW_WIDTH-1, while using
+	 * the first entry for storing pointer to prev_malloc_list.
+	 */
+	for (u = 1; u < ROW_WIDTH; u++) {
 		row[u].idx = NOIDX;
 		row[u].p = row + u + 1;
 	}
 	row[ROW_WIDTH - 1].p = NULL;
+	row->p = prev_malloc_list;
 	return row;
 }
 
@@ -483,8 +490,9 @@ acquire_be(struct binheap *bh)
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	if (bh->free_list == NULL) {
-		bh->free_list = alloc_bi_row();
-		AN(bh->free_list);
+		bh->malloc_list = alloc_bi_row(bh->malloc_list);
+		AN(bh->malloc_list);
+		bh->free_list = bh->malloc_list + 1;
 	}
 	be = bh->free_list;
 	bh->free_list = be->p;
@@ -504,7 +512,22 @@ release_be(struct binheap *bh, struct binheap_entry *be)
 	be->idx = NOIDX;
 	be->p = bh->free_list;
 	bh->free_list = be;
-	/* TODO: free up memory? */
+}
+
+static void
+free_be_memory(struct binheap *bh)
+{
+	struct binheap_entry *be;
+
+	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
+	/* memory can be freed up only on empty binheap */
+	assert(bh->next == ROOT_IDX(bh));
+	while (bh->malloc_list) {
+		be = bh->malloc_list;
+		bh->malloc_list = be->p;
+		free(be);
+	}
+	bh->free_list = NULL;
 }
 
 struct binheap_entry *
@@ -624,7 +647,6 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 	e->key = 0;
 	e->be = NULL;
 	release_be(bh, be);
-	assert(be->idx == NOIDX);
 	assert(bh->next > 0);
 	if (u < --bh->next) {
 		TEST_DRIVER_ACCESS_KEY(bh, bh->next);
@@ -652,6 +674,9 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 		remove_row(bh);
 		assert(bh->next + 2 * ROW_WIDTH > bh->length);
 	}
+
+	if (bh->next == ROOT_IDX(bh))
+		free_be_memory(bh);
 }
 
 void *
@@ -892,7 +917,6 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 	binheap_delete(bh, fp->be);
 	foo_check(fp, items_count);
 	AN(fp->be);
-	assert(fp->be->idx == NOIDX);
 	assert(fp->key == key);
 	assert(fp->n == n);
 	fp->be = NULL;
