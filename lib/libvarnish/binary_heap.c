@@ -609,7 +609,7 @@ struct foo {
 	char		padding[PADDING];
 };
 
-static struct foo ff[MAX_ITEMS_COUNT];
+static struct foo *ff[MAX_ITEMS_COUNT];
 
 static int
 cmp(void *priv, void *a, void *b)
@@ -661,8 +661,8 @@ check_consistency(const struct binheap *bh, unsigned items_count)
 		assert(fp2->idx == v);
 		assert(fp1->n < items_count);
 		assert(fp2->n < items_count);
-		assert(&ff[fp1->n] == fp1);
-		assert(&ff[fp2->n] == fp2);
+		assert(ff[fp1->n] == fp1);
+		assert(ff[fp2->n] == fp2);
 	}
 }
 
@@ -716,7 +716,7 @@ foo_check(const struct foo *fp, unsigned items_count)
 {
 	CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
 	assert(fp->n < items_count);
-	assert(fp == &ff[fp->n]);
+	assert(fp == ff[fp->n]);
 }
 
 static void
@@ -738,10 +738,9 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 
 	paranoia_check(bh);
 	assert(n < items_count);
-	fp = &ff[n];
-	AZ(fp->key);
-	AZ(fp->n);
-	assert(fp->idx == BINHEAP_NOIDX);
+	AZ(ff[n]);
+	fp = ff[n] = malloc(sizeof(*fp));
+	XXXAN(fp);
 	key = (unsigned) random();
 	fp->magic = FOO_MAGIC;
 	fp->key = key;
@@ -767,8 +766,8 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 	assert(fp->idx == BINHEAP_NOIDX);
 	assert(fp->key == key);
 	assert(fp->n == n);
-	fp->key = 0;
-	fp->n = 0;
+	free(fp);
+	ff[n] = NULL;
 	paranoia_check(bh);
 }
 
@@ -814,7 +813,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	init_mem(bh->m, resident_pages_count);
 	for (n = 0; n < items_count; n++) {
 		foo_insert(bh, n, items_count);
-		key = ff[n].key;
+		key = ff[n]->key;
 		fp = binheap_root(bh);
 		foo_check(fp, items_count);
 		assert(fp->idx == ROOT_IDX);
@@ -838,7 +837,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		n = fp->n;
 		foo_delete(bh, fp, items_count);
 		foo_insert(bh, n, items_count);
-		key = ff[n].key;
+		key = ff[n]->key;
 	}
 	check_consistency(bh, items_count);
 	end = TIM_mono();
@@ -852,7 +851,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
-		fp = &ff[n];
+		fp = ff[n];
 		foo_reorder(bh, fp, items_count);
 	}
 	check_consistency(bh, items_count);
@@ -870,8 +869,8 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
-		fp = &ff[n];
-		if (fp->idx != BINHEAP_NOIDX) {
+		fp = ff[n];
+		if (fp != NULL) {
 			if (fp->key & 1) {
 				foo_delete(bh, fp, items_count);
 				++delete_count;
@@ -946,8 +945,6 @@ main(int argc, char **argv)
 	unsigned u;
 
 	srandom(123);	/* generate predictive results */
-	for (u = 0; u < MAX_ITEMS_COUNT; u++)
-		ff[u].idx = BINHEAP_NOIDX;
 
 	bh = binheap_new(NULL, cmp, update);
 	AZ(binheap_root(bh));
