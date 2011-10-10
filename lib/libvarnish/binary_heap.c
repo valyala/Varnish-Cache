@@ -680,7 +680,13 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 		assert(bh->next + 2 * ROW_WIDTH > bh->length);
 	}
 
-	if (bh->next == ROOT_IDX(bh))
+	/*
+	 * Free up binheap_entry memory only if binheap size was greater
+	 * than ROW_WIDTH (rows_count > 1) to avoid silly behaviour
+	 * for small binheaps, which never grow outside one row,
+	 * such as vev_base::binheap.
+	 */
+	if (bh->next == ROOT_IDX(bh) && bh->rows_count > 1)
 		free_be_memory(bh);
 }
 
