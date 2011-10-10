@@ -66,7 +66,7 @@
 #include <unistd.h>
 
 #include "binary_heap.h"
-#include "miniobj.h"		// for testcase
+#include "miniobj.h"
 #include "vas.h"
 
 /* Parameters --------------------------------------------------------*/
