@@ -823,13 +823,13 @@ vasfail(const char *func, const char *file, int line,
 
 vas_f *VAS_Fail = vasfail;
 
+#define ITERATIONS_PER_TEST_COUNT	10000000
 #define PARENT_CHILD_TESTS_COUNT	1000000
 #define NULL_TESTS_COUNT		1000000
 #define MAX_ITEMS_COUNT			1000000
 #define MIN_ITEMS_COUNT			1000
 #define TEST_STEPS_COUNT		5
 #define MAX_RESIDENT_PAGES_COUNT	4096
-#define ITERATIONS_PER_ITEM_COUNT	10
 
 /*
  * Pad foo so its' size is equivalent to the objcore size.
@@ -954,8 +954,8 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(items_count >= MIN_ITEMS_COUNT);
 	assert(items_count <= MAX_ITEMS_COUNT);
-	assert(items_count <= UINT_MAX / ITERATIONS_PER_ITEM_COUNT);
-	iterations_count = items_count * ITERATIONS_PER_ITEM_COUNT;
+	iterations_count = ITERATIONS_PER_TEST_COUNT;
+	assert(iterations_count >= items_count);
 
 	fprintf(stderr, "\n+ %u items, %u iterations, %u resident pages\n",
 		items_count, iterations_count, resident_pages_count);
