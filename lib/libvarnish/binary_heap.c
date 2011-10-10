@@ -1153,7 +1153,6 @@ main(int argc, char **argv)
 	struct binheap *bh;
 	unsigned u;
 
-	srandom(123);	/* generate predictive results */
 	check_time2key();
 	fprintf(stderr, "time2key test OK\n");
 
@@ -1169,6 +1168,7 @@ main(int argc, char **argv)
 	null_test(bh, NULL_TESTS_COUNT);
 	fprintf(stderr, "%u null tests OK\n", NULL_TESTS_COUNT);
 
+	srandom(123);	/* generate predictive results */
 	fprintf(stderr, "\n* Tests with pagefault counter enabled\n");
 	for (u = 1; u <= UINT_MAX / 2 && u <= MAX_RESIDENT_PAGES_COUNT; u *= 2)
 		run_tests(bh, u);
