@@ -460,7 +460,7 @@ add_row(struct binheap *bh)
 }
 
 static struct binheap_entry *
-alloc_bi_row(struct binheap_entry *prev_malloc_list)
+alloc_be_row(struct binheap_entry *prev_malloc_list)
 {
 	struct binheap_entry *row;
 	unsigned u;
@@ -490,7 +490,7 @@ acquire_be(struct binheap *bh)
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	if (bh->free_list == NULL) {
-		bh->malloc_list = alloc_bi_row(bh->malloc_list);
+		bh->malloc_list = alloc_be_row(bh->malloc_list);
 		AN(bh->malloc_list);
 		bh->free_list = bh->malloc_list + 1;
 	}
