@@ -122,7 +122,6 @@
 #define ROOT_IDX(bh)		R_IDX((bh)->page_shift)
 #define NOIDX			0
 
-
 #ifdef TEST_DRIVER
 
 /*
@@ -130,7 +129,7 @@
  * number of page faults induced by binheap mutations.
  * The model keeps recently accessed pages in lru list
  * of resident_pages_count size.
- * It uses dumb array for lru list implementation, since it is simple and
+ * It uses flat array for lru list implementation, since it is simple and
  * it works quite fast for small sizes.
  */
 struct mem {
@@ -235,8 +234,8 @@ access_mem(struct mem *m, void *p)
  * functionality when the binheap_entry is empty - see alloc_be_row().
  */
 struct binheap_entry {
-	unsigned idx;
-	void *p;
+	unsigned		idx;
+	void			*p;
 };
 
 /*
@@ -251,8 +250,8 @@ struct binheap_entry {
  * would require potentially expensive modulo operation (%).
  */
 struct entry {
-	unsigned key;
-	struct binheap_entry *be;
+	unsigned		key;
+	struct binheap_entry	*be;
 };
 
 struct binheap {
@@ -624,7 +623,7 @@ free_be_memory(struct binheap *bh)
 	struct binheap_entry *be;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
-	/* memory can be freed up only on empty binheap */
+	/* It is safe to free up memory only for empty binheap. */
 	assert(bh->next == ROOT_IDX(bh));
 	while (bh->malloc_list) {
 		be = bh->malloc_list;
@@ -922,7 +921,7 @@ check_parent_child(unsigned page_shift, unsigned checks_count)
 	check_parent_child_range(page_shift, n_min, n_max);
 }
 
-double
+static double
 get_time(void)
 {
 	struct timespec ts;
