@@ -520,9 +520,9 @@ add_row(struct binheap *bh)
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	AN(bh->rows);
 	assert(bh->rows_count > 0);
-	assert(&ROW(bh, bh->length) <= bh->rows + bh->rows_count);
+	assert(((bh->length - 1) >> ROW_SHIFT) < bh->rows_count);
 	/* First make sure we have space for another row */
-	if (&ROW(bh, bh->length) == bh->rows + bh->rows_count) {
+	if ((bh->length >> ROW_SHIFT) == bh->rows_count) {
 		rows_count = bh->rows_count * 2;
 		bh->rows = realloc(bh->rows, sizeof(*bh->rows) * rows_count);
 		XXXAN(bh->rows);
@@ -530,6 +530,7 @@ add_row(struct binheap *bh)
 		while (bh->rows_count < rows_count)
 			bh->rows[bh->rows_count++] = NULL;
 	}
+	assert((bh->length >> ROW_SHIFT) < bh->rows_count);
 	AZ(ROW(bh, bh->length));
 	ROW(bh, bh->length) = alloc_row(bh->page_shift);
 	AN(ROW(bh, bh->length));
@@ -709,8 +710,7 @@ remove_row(struct binheap *bh)
 	assert(bh->length >= 2 * ROW_WIDTH);
 	u = bh->length - 1;
 	AN(bh->rows);
-	assert(bh->rows_count > 0);
-	assert(&ROW(bh, u) < bh->rows + bh->rows_count);
+	assert(bh->rows_count > (u >> ROW_SHIFT));
 	AN(ROW(bh, u));
 	free(ROW(bh, u));
 	ROW(bh, u) = NULL;
