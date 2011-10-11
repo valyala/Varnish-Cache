@@ -507,7 +507,7 @@ vev_schedule_one(struct vev_base *evb)
 	be = binheap_root(evb->binheap);
 	if (be != NULL) {
 		e = binheap_entry_unpack(evb->binheap, be, &key);
-		when = key;
+		when = BINHEAP_KEY2TIME(key);
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
 		AN(e->__exp_entry);
 		t = tim_epoch(evb, VTIM_mono());

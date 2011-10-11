@@ -825,6 +825,15 @@ check_time2key(void)
 }
 
 static void
+check_key2time(void)
+{
+	unsigned u;
+
+	for (u = 0; u < 1000; u++)
+		assert(fabs(BINHEAP_KEY2TIME(u) - u) < 1e-3);
+}
+
+static void
 check_consistency(const struct binheap *bh)
 {
 	struct entry *e1, *e2;
@@ -1245,6 +1254,8 @@ main(int argc, char **argv)
 
 	check_time2key();
 	fprintf(stderr, "time2key test OK\n");
+	check_key2time();
+	fprintf(stderr, "key2time test OK\n");
 
 	for (u = MIN_PAGE_SHIFT; u <= MAX_PAGE_SHIFT; u++) {
 		check_parent_child(u, PARENT_CHILD_TESTS_COUNT);
