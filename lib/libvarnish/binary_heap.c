@@ -159,7 +159,7 @@ create_mem(void)
 	m->page_mask = ~(page_size - 1);
 	m->pagefaults_count = 0;
 	m->resident_pages_count = 0;
-	return m;
+	return (m);
 }
 
 static void
@@ -310,17 +310,17 @@ parent(unsigned page_shift, unsigned u)
 	AZ(page_mask & (page_mask + 1));
 	assert(u > page_mask);
 	if (u <= page_mask + 4)
-		return page_mask;	/* parent is root */
+		return (page_mask);	/* parent is root */
 	v = u & page_mask;
 	if (v >= 4)
-		return u - v + v / 4 - 1;
+		return (u - v + v / 4 - 1);
 	/* slow path */
 	page_size = page_mask + 1;
 	page_leaves = page_size - page_size / 4 + 1;
 	assert((u >> page_shift) >= 2);
 	v = (u >> page_shift) - 2;
 	u = v / page_leaves + 2;
-	return u * page_size + (v % page_leaves) - page_leaves;
+	return (u * page_size + (v % page_leaves) - page_leaves);
 }
 
 static unsigned
@@ -338,13 +338,13 @@ child(unsigned page_shift, unsigned u)
 	v = u & page_mask;
 	page_size = page_mask + 1;
 	if (v + 1 < page_size / 4)
-		return u - v + (v + 1) * 4;
+		return (u - v + (v + 1) * 4);
 	/* slow path */
 	page_leaves = page_size - page_size / 4 + 1;
 	v += (u >> page_shift) * page_leaves + 2 - page_size;
 	if (v > (UINT_MAX >> page_shift))
-		return UINT_MAX;	/* child index is overflown */
-	return page_size * v;
+		return (UINT_MAX);	/* child index is overflown */
+	return (page_size * v);
 }
 
 static struct entry *
@@ -376,7 +376,7 @@ alloc_row(unsigned page_shift)
 		row[u].key = 0;
 		row[u].be = NULL;
 	}
-	return row;
+	return (row);
 }
 
 struct binheap *
@@ -428,7 +428,7 @@ binheap_new(void)
 	 * binheap entries, which start from R_IDX(page_shift) index.
 	 */
 	xxxassert(sizeof(*bh) <= sizeof(**rows) * R_IDX(page_shift));
-	return bh;
+	return (bh);
 }
 
 static void
@@ -475,7 +475,7 @@ trickleup(const struct binheap *bh, unsigned key, unsigned u)
 		assert(A(bh, u).key == e->key);
 		u = v;
 	}
-	return u;
+	return (u);
 }
 
 static unsigned
@@ -519,7 +519,7 @@ trickledown(const struct binheap *bh, unsigned key, unsigned u)
 		assert(A(bh, u).key == e->key);
 		u = v + j;
 	}
-	return u;
+	return (u);
 }
 
 static void
@@ -570,7 +570,7 @@ alloc_be_row(struct binheap_entry *prev_malloc_list)
 	}
 	row[ROW_WIDTH - 1].p = NULL;
 	row->p = prev_malloc_list;
-	return row;
+	return (row);
 }
 
 static struct binheap_entry *
@@ -589,7 +589,7 @@ acquire_be(struct binheap *bh)
 	AN(be);
 	assert(be->idx == NOIDX);
 	be->p = NULL;
-	return be;
+	return (be);
 }
 
 static void
@@ -662,7 +662,7 @@ binheap_insert(struct binheap *bh, void *p, unsigned key)
 	assert(be->idx == v);
 	assert(A(bh, v).be == be);
 	assert(A(bh, v).key == key);
-	return be;
+	return (be);
 }
 
 static unsigned
@@ -682,7 +682,7 @@ reorder(const struct binheap *bh, unsigned key, unsigned u)
 		assert(v >= u);
 		assert(v < bh->next);
 	}
-	return v;
+	return (v);
 }
 
 void
@@ -789,9 +789,9 @@ binheap_root(const struct binheap *bh)
 {
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	if (bh->next == ROOT_IDX(bh))
-		return NULL;
+		return (NULL);
 	TEST_DRIVER_ACCESS_KEY(bh, ROOT_IDX(bh));
-	return A(bh, ROOT_IDX(bh)).be;
+	return (A(bh, ROOT_IDX(bh)).be);
 }
 
 void *
@@ -811,7 +811,7 @@ binheap_entry_unpack(const struct binheap *bh, const struct binheap_entry *be,
 	e = &A(bh, be->idx);
 	assert(e->be == be);
 	*key_ptr = e->key;
-	return be->p;
+	return (be->p);
 }
 
 #ifdef TEST_DRIVER
