@@ -573,7 +573,7 @@ binheap_reorder(const struct binheap *bh, unsigned idx)
 #ifdef TEST_DRIVER
 /* Test driver -------------------------------------------------------*/
 
-double
+static double
 get_time(void)
 {
 	struct timespec ts;
