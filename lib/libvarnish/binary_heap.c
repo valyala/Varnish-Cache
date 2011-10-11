@@ -4,6 +4,7 @@
  * All rights reserved.
  *
  * Author: Poul-Henning Kamp <phk@phk.freebsd.dk>
+ * Author: Aliaksandr Valialkin <valyala@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,12 +29,12 @@
  *
  * Implementation of a binheap API.
  *
- * The main feature of this binheap is minimizing the number of page faults
- * under memory pressure. Memory shortage is typical for Varnish setups.
+ * This binheap tries minimizing the number of page faults under memory
+ * pressure, which is quite typical for Varnish setups.
  * Canonical implementation (http://en.wikipedia.org/wiki/Binary_heap) isn't
  * suitable for this workload, since it induces too many page faults during
  * binheap mutations.
- * This implementation uses the following techniques:
+ * This implementation uses the following tricks:
  * - VM-aware parent-child index calculation, which tries packing binheap
  *   subtrees on a single page. This reduces the number of pagefaults during
  *   binheap traversals.
@@ -41,9 +42,9 @@
  *   flexibility comparing to generic cmp() callback, this also reduces
  *   the number of accesses to random external pages while traversing the heap.
  * - 4-heap instead of 2-heap (D=4 for http://en.wikipedia.org/wiki/D-ary_heap).
- *   This reduces the number of swaps and index updates. Since the probability
- *   of pagefault for each index update is quite high for large heaps,
- *   the number of these operations should be reduced.
+ *   This reduces the number of entry swaps and index updates. Since
+ *   the probability of a pagefault for each index update is quite high for
+ *   large heaps, the number of these operations should be reduced.
  * - Entry index, which is required for 'reorder' and 'delete' operations,
  *   is stored inside a structure controlled by binheap. We can minimize
  *   the number of pagefaults during index update operations by minimizing
