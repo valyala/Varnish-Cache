@@ -120,7 +120,7 @@ create_mem(void)
 	m->page_mask = ~(page_size - 1);
 	m->pagefaults_count = 0;
 	m->resident_pages_count = 0;
-	return m;
+	return (m);
 }
 
 static void
