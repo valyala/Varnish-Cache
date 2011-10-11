@@ -77,17 +77,32 @@
 /* Parameters --------------------------------------------------------*/
 
 /*
+ * Binheap array is split into rows of size (1 << ROW_SHIFT) entries each.
+ * Though this incurs additional memory dereference during entry access
+ * comparing to flat array, this reduces array growth complexity from O(n)
+ * to O(1).
+ *
  * The number of elements in a row has to be a compromise between
  * wasted space and number of memory allocations.
  * With 64k objects per row, there will be at least 5...10 seconds
  * between row additions on a very busy server.
  * At the same time, the worst case amount of wasted memory is kept
- * at a reasonable 1 MB -- two rows on 64bit system.
+ * at a reasonable 2MiB - two rows on 64bit system.
  * Finally, but without practical significance: 16 bits should be
  * easier for the compiler to optimize.
  */
 #define ROW_SHIFT		16
 
+/* Minimum page shift should be enough for storing 4 children in 4-heap. */
+#define MIN_PAGE_SHIFT		2
+
+/*
+ * Maximum page shift is limited by bitsize of unsigned type,
+ * so (1 << page_shift) should fit into unsigned variable.
+ * 31 is enough for both x32 and x64.
+ * Actually calculated page_shift usually doesn't exceed 10.
+ */
+#define MAX_PAGE_SHIFT		31
 
 #undef PARANOIA
 
@@ -225,8 +240,10 @@ struct binheap_entry {
 };
 
 /*
- * Storing key near p should improve memory locality
- * for hot paths during binheap traversals.
+ * Binheap array entry.
+ *
+ * Storing key here instead of binheap_entry should improve memory locality
+ * during binheap traversals.
  *
  * Code below expects sizeof(entry) is a power of two.
  * This restriction can be easily lifted, but in this case perfect entries'
@@ -251,17 +268,6 @@ struct binheap {
 	TEST_DRIVER_DECLARE_MEM			/* no semicolon */
 };
 
-/* Minimum page shift should be enough for storing 4 children in 4-heap */
-#define MIN_PAGE_SHIFT		2
-
-/*
- * Maximum page shift is limited by bitsize of unsigned type,
- * so (1 << page_shift) should fit into unsigned variable.
- * 31 is enough for both x32 and x64.
- * Actually calculated page_shift usually doesn't exceed 10.
- */
-#define MAX_PAGE_SHIFT		31
-
 /*
  * Binheap tree layout can be represented in the following way:
  *
@@ -271,8 +277,8 @@ struct binheap {
  * |		empty space		      |
  * |..........................................|    page=-1
  * |		 root_idx=page_size-1	      |
- * |		   n=page_leaves-1	      | <- contains only one root
- * +------------------------------------------+    (binheap root)
+ * |		   n=page_leaves-1	      | <- contains only a binheap root
+ * +------------------------------------------+
  *			 |
  * +------------------------------------------+
  * |   0       1	   2	       3      |
@@ -297,7 +303,7 @@ parent(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_leaves;
 
-	/* don't use expensive calculations in fast path */
+	/* avoid expensive calculations in fast path */
 	assert(page_shift >= MIN_PAGE_SHIFT);
 	assert(page_shift <= MAX_PAGE_SHIFT);
 	page_mask = R_IDX(page_shift);
@@ -322,7 +328,7 @@ child(unsigned page_shift, unsigned u)
 {
 	unsigned v, page_mask, page_size, page_leaves;
 
-	/* don't use expensive calculations in fast path */
+	/* avoid expensive calculations in fast path */
 	assert(page_shift >= MIN_PAGE_SHIFT);
 	assert(page_shift <= MAX_PAGE_SHIFT);
 	assert(u < UINT_MAX);
@@ -349,6 +355,10 @@ alloc_row(unsigned page_shift)
 	unsigned u;
 	int rv;
 
+	/*
+	 * Align row on a page boundary in order to avoid pagefaults during
+	 * binheap subtree traversal inside each page.
+	 */
 	assert(page_shift >= MIN_PAGE_SHIFT);
 	assert(page_shift <= MAX_PAGE_SHIFT);
 	entry_size = sizeof(*row);

@@ -352,7 +352,7 @@ exp_timer(struct sess *sp, void *priv)
 			continue;
 		}
 		oc = binheap_entry_unpack(exp_heap, be, &key);
-		when = key;
+		when = BINHEAP_KEY2TIME(key);
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 
 		/*

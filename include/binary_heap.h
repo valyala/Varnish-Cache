@@ -90,3 +90,10 @@ void *binheap_entry_unpack(const struct binheap *bh,
 	 *   to 2106 year for systems with 32-bit unsigned types. Values higher
 	 *   and lower than these limits are clipped.
 	 */
+
+#define BINHEAP_KEY2TIME(t)	((double) (t))
+	/*
+	 * Converts binheap key to time in seconds. Note that it doesn't restore
+	 * exact value passed to BINHEAP_TIME2KEY(). Instead it returns value
+	 * rounded to 1 second.
+	 */
