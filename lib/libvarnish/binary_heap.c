@@ -936,10 +936,10 @@ vas_f *VAS_Fail = vasfail;
 /*
  * Pad foo so its' size is equivalent to the objcore size.
  * Currently size of objcore is 120 bytes on x64 and 56 bytes
- * on x32. This means that the padding should be 96 for x64
- * and 40 for x32.
+ * on x32. This means that the padding should be 92 for x64
+ * and 36 for x32.
  */
-#define PADDING 96
+#define PADDING 92
 
 #define MQPS(t, q)		((t) ? (q) / (t) / 1e6 : 0)
 #define PF(bh)			\
@@ -957,7 +957,7 @@ struct foo {
 	unsigned		magic;
 #define FOO_MAGIC	0x23239823U
 	struct binheap_entry	*be;
-	unsigned		key;
+	double			key;
 	unsigned		n;
 	char padding[PADDING];
 };
@@ -983,25 +983,25 @@ foo_check_existence(struct binheap *bh, const struct foo *fp,
 	assert(fp->be->idx < bh->next);
 	assert(fp->be->p == fp);
 	assert(fp->be == A(bh, fp->be->idx).be);
-	assert(fp->key == A(bh, fp->be->idx).key);
+	assert(BINHEAP_TIME2KEY(fp->key) == A(bh, fp->be->idx).key);
 }
 
 static void
 foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 {
 	struct foo *fp;
-	unsigned key;
+	double key;
 
 	paranoia_check(bh);
 	assert(n < items_count);
 	AZ(ff[n]);
 	fp = ff[n] = malloc(sizeof(*fp));
 	XXXAN(fp);
-	key = (unsigned) random();
+	key = random();
 	fp->magic = FOO_MAGIC;
 	fp->key = key;
 	fp->n = n;
-	fp->be = binheap_insert(bh, fp, key);
+	fp->be = binheap_insert(bh, fp, BINHEAP_TIME2KEY(key));
 	foo_check_existence(bh, fp, items_count);
 	assert(fp->key == key);
 	assert(fp->n == n);
@@ -1011,7 +1011,8 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 static void
 foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 {
-	unsigned key, n;
+	double key;
+	unsigned n;
 
 	paranoia_check(bh);
 	foo_check_existence(bh, fp, items_count);
@@ -1030,14 +1031,15 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 static void
 foo_reorder(struct binheap *bh, struct foo *fp, unsigned items_count)
 {
-	unsigned key, n;
+	double key;
+	unsigned n;
 
 	paranoia_check(bh);
 	foo_check_existence(bh, fp, items_count);
-	key = (unsigned) random();
+	key = random();
 	n = fp->n;
 	fp->key = key;
-	binheap_reorder(bh, fp->be, key);
+	binheap_reorder(bh, fp->be, BINHEAP_TIME2KEY(key));
 	foo_check_existence(bh, fp, items_count);
 	assert(fp->key == key);
 	assert(fp->n == n);
@@ -1047,10 +1049,10 @@ foo_reorder(struct binheap *bh, struct foo *fp, unsigned items_count)
 static void
 test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 {
-	double start, end;
+	double start, end, dkey;
 	struct binheap_entry *be;
 	struct foo *fp;
-	unsigned u, n, key, deleted_key, root_idx, iterations_count;
+	unsigned u, n, ukey, root_idx, iterations_count;
 	unsigned delete_count, insert_count, reorder_count;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
@@ -1067,18 +1069,18 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	assert(root_idx != NOIDX);
 
 	/* Insert our items */
-	key = 0;
+	ukey = 0;
 	start = get_time();
 	init_mem(bh->m, resident_pages_count);
 	for (n = 0; n < items_count; n++) {
 		foo_insert(bh, n, items_count);
 		be = binheap_root(bh);
 		AN(be);
-		fp = binheap_entry_unpack(bh, be, &key);
+		fp = binheap_entry_unpack(bh, be, &ukey);
 		foo_check(fp, items_count);
-		assert(fp->key == key);
+		assert(BINHEAP_TIME2KEY(fp->key) == ukey);
 		assert(fp->be->idx == root_idx);
-		assert(key <= ff[n]->key);
+		assert(fp->key <= ff[n]->key);
 	}
 	check_consistency(bh);
 	end = get_time();
@@ -1094,11 +1096,11 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	for (u = 0; u < iterations_count; u++) {
 		be = binheap_root(bh);
 		AN(be);
-		fp = binheap_entry_unpack(bh, be, &key);
+		fp = binheap_entry_unpack(bh, be, &ukey);
 		foo_check(fp, items_count);
-		assert(fp->key == key);
+		assert(BINHEAP_TIME2KEY(fp->key) == ukey);
 		assert(fp->be->idx == root_idx);
-		assert(key <= ff[n]->key);
+		assert(fp->key <= ff[n]->key);
 		n = fp->n;
 		foo_delete(bh, fp, items_count);
 		foo_insert(bh, n, items_count);
@@ -1135,7 +1137,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		n = random() % items_count;
 		fp = ff[n];
 		if (fp != NULL) {
-			if (fp->key & 1) {
+			if (((unsigned) fp->key) & 1) {
 				foo_delete(bh, fp, items_count);
 				++delete_count;
 			} else {
@@ -1158,7 +1160,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		PF_PER_ITERATION(bh, iterations_count));
 
 	/* Then remove everything */
-	deleted_key = 0;
+	dkey = 0;
 	u = 0;
 	start = get_time();
 	init_mem(bh->m, resident_pages_count);
@@ -1166,12 +1168,12 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		be = binheap_root(bh);
 		if (be == NULL)
 			break;
-		fp = binheap_entry_unpack(bh, be, &key);
+		fp = binheap_entry_unpack(bh, be, &ukey);
 		foo_check(fp, items_count);
-		assert(fp->key == key);
+		assert(BINHEAP_TIME2KEY(fp->key) == ukey);
 		assert(fp->be->idx == root_idx);
-		assert(key >= deleted_key);
-		deleted_key = key;
+		assert(fp->key >= dkey);
+		dkey = fp->key;
 		foo_delete(bh, fp, items_count);
 		++u;
 	}
