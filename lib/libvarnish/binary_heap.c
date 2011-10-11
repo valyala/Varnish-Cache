@@ -605,16 +605,16 @@ vas_f *VAS_Fail = vasfail;
 /*
  * Pad foo so its' size is equivalent to the objcore size.
  * Currently size of objcore is 120 bytes on x64 and 64 bytes
- * on x32. This means that the padding should be 104 for x64
- * and 48 for x32.
+ * on x32. This means that the padding should be 100 for x64
+ * and 44 for x32.
  */
-#define PADDING 104
+#define PADDING 100
 
 struct foo {
 	unsigned	magic;
 #define FOO_MAGIC	0x23239823
 	unsigned	idx;
-	unsigned	key;
+	double		key;
 	unsigned	n;
 	char		padding[PADDING];
 };
@@ -744,14 +744,14 @@ static void
 foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 {
 	struct foo *fp;
-	unsigned key;
+	double key;
 
 	paranoia_check(bh);
 	assert(n < items_count);
 	AZ(ff[n]);
 	fp = ff[n] = malloc(sizeof(*fp));
 	XXXAN(fp);
-	key = (unsigned) random();
+	key = random();
 	fp->magic = FOO_MAGIC;
 	fp->key = key;
 	fp->n = n;
@@ -765,7 +765,8 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 static void
 foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 {
-	unsigned key, n;
+	double key;
+	unsigned n;
 
 	paranoia_check(bh);
 	foo_check_existence(bh, fp, items_count);
@@ -784,11 +785,12 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 static void
 foo_reorder(struct binheap *bh, struct foo *fp, unsigned items_count)
 {
-	unsigned key, n;
+	double key;
+	unsigned n;
 
 	paranoia_check(bh);
 	foo_check_existence(bh, fp, items_count);
-	key = (unsigned) random();
+	key = random();
 	n = fp->n;
 	fp->key = key;
 	binheap_reorder(bh, fp->idx);
@@ -801,9 +803,9 @@ foo_reorder(struct binheap *bh, struct foo *fp, unsigned items_count)
 static void
 test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 {
-	double start, end;
+	double start, end, key;
 	struct foo *fp;
-	unsigned u, n, key, iterations_count;
+	unsigned u, n, iterations_count;
 	unsigned delete_count, insert_count, reorder_count;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
@@ -881,7 +883,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		n = random() % items_count;
 		fp = ff[n];
 		if (fp != NULL) {
-			if (fp->key & 1) {
+			if (((unsigned) fp->key) & 1) {
 				foo_delete(bh, fp, items_count);
 				++delete_count;
 			} else {
