@@ -574,11 +574,13 @@ binheap_reorder(const struct binheap *bh, unsigned idx)
 /* Test driver -------------------------------------------------------*/
 
 double
-VTIM_mono(void)
+get_time(void)
 {
 	struct timespec ts;
+	int rv;
 
-	XXXAZ(clock_gettime(CLOCK_MONOTONIC, &ts));
+	rv = clock_gettime(CLOCK_MONOTONIC, &ts);
+	XXXAZ(rv);
 	return (ts.tv_sec + 1e-9 * ts.tv_nsec);
 }
 
@@ -817,7 +819,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 
 	/* First insert our items */
 	key = 0;
-	start = VTIM_mono();
+	start = get_time();
 	init_mem(bh->m, resident_pages_count);
 	for (n = 0; n < items_count; n++) {
 		foo_insert(bh, n, items_count);
@@ -828,14 +830,14 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		assert(fp->key <= key);
 	}
 	check_consistency(bh, items_count);
-	end = VTIM_mono();
+	end = get_time();
 	fprintf(stderr, "%u inserts: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n",
 		items_count, MQPS(end - start, items_count),
 		PF_PER_ITERATION(bh, items_count));
 
 	/* For M cycles, pick the root, insert new */
-	start = VTIM_mono();
+	start = get_time();
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		fp = binheap_root(bh);
@@ -848,14 +850,14 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		key = ff[n]->key;
 	}
 	check_consistency(bh, items_count);
-	end = VTIM_mono();
+	end = get_time();
 	fprintf(stderr, "%u root replacements: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n", iterations_count,
 		MQPS(end - start, iterations_count),
 		PF_PER_ITERATION(bh, iterations_count));
 
 	/* Randomly reorder */
-	start = VTIM_mono();
+	start = get_time();
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
@@ -863,7 +865,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		foo_reorder(bh, fp, items_count);
 	}
 	check_consistency(bh, items_count);
-	end = VTIM_mono();
+	end = get_time();
 	fprintf(stderr, "%u random reorders: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n", iterations_count,
 		MQPS(end - start, iterations_count),
@@ -873,7 +875,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	delete_count = 0;
 	insert_count = 0;
 	reorder_count = 0;
-	start = VTIM_mono();
+	start = get_time();
 	init_mem(bh->m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
@@ -893,7 +895,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	}
 	assert(delete_count >= insert_count);
 	check_consistency(bh, items_count);
-	end = VTIM_mono();
+	end = get_time();
 	fprintf(stderr,
 		"%u deletes, %u inserts, %u reorders: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n",
@@ -904,7 +906,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	/* Then remove everything */
 	key = 0;
 	u = 0;
-	start = VTIM_mono();
+	start = get_time();
 	init_mem(bh->m, resident_pages_count);
 	while (1) {
 		fp = binheap_root(bh);
@@ -920,7 +922,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	assert(u == items_count - (delete_count - insert_count));
 	AZ(binheap_root(bh));
 	check_consistency(bh, 0);
-	end = VTIM_mono();
+	end = get_time();
 	fprintf(stderr, "%u deletes: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n",
 		u, MQPS(end - start, u), PF_PER_ITERATION(bh, u));
