@@ -44,17 +44,17 @@ varnishd_SOURCES = \
 	cache_vrt_re.c \
 	cache_vrt_var.c \
 	cache_vrt_vmod.c \
-	cache_waiter.c \
-	cache_waiter_epoll.c \
-	cache_waiter_kqueue.c \
-	cache_waiter_poll.c \
-	cache_waiter_ports.c \
+	waiter/cache_waiter.c \
+	waiter/cache_waiter_epoll.c \
+	waiter/cache_waiter_kqueue.c \
+	waiter/cache_waiter_poll.c \
+	waiter/cache_waiter_ports.c \
 	cache_wrk.c \
 	cache_wrw.c \
 	cache_ws.c \
-	hash_classic.c \
-	hash_critbit.c \
-	hash_simple_list.c \
+	hash/hash_classic.c \
+	hash/hash_critbit.c \
+	hash/hash_simple_list.c \
 	mgt_child.c \
 	mgt_cli.c \
 	mgt_param.c \
@@ -64,16 +64,16 @@ varnishd_SOURCES = \
 	mgt_shmem.c \
 	mgt_vcc.c \
 	rfc2616.c \
-	stevedore.c \
-	stevedore_utils.c \
-	storage_file.c \
-	storage_malloc.c \
-	storage_persistent.c \
-	storage_persistent_mgt.c \
-	storage_persistent_silo.c \
-	storage_persistent_subr.c \
-	storage_synth.c \
-	storage_umem.c \
+	storage/stevedore.c \
+	storage/stevedore_utils.c \
+	storage/storage_file.c \
+	storage/storage_malloc.c \
+	storage/storage_persistent.c \
+	storage/storage_persistent_mgt.c \
+	storage/storage_persistent_silo.c \
+	storage/storage_persistent_subr.c \
+	storage/storage_synth.c \
+	storage/storage_umem.c \
 	varnishd.c \
 	vsm.c
 
@@ -81,15 +81,15 @@ noinst_HEADERS = \
 	cache.h \
 	cache_backend.h \
 	cache_esi.h \
-	cache_waiter.h \
+	waiter/cache_waiter.h \
 	common.h \
 	default_vcl.h \
-	hash_slinger.h \
+	hash/hash_slinger.h \
 	heritage.h \
 	mgt.h \
 	mgt_cli.h \
-	storage.h \
-	storage_persistent.h \
+	storage/storage.h \
+	storage/storage_persistent.h \
 	vparam.h
 
 varnishd_CFLAGS = \

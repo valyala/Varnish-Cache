@@ -26,30 +26,79 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This is the reference hash(/lookup) implementation
+ * A classic bucketed hash
  */
 
 #include "config.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cache.h"
 
-#include "hash_slinger.h"
+#include "hash/hash_slinger.h"
 
 /*--------------------------------------------------------------------*/
 
-static VTAILQ_HEAD(, objhead)	hsl_head = VTAILQ_HEAD_INITIALIZER(hsl_head);
-static struct lock hsl_mtx;
+struct hcl_hd {
+	unsigned		magic;
+#define HCL_HEAD_MAGIC		0x0f327016
+	VTAILQ_HEAD(, objhead)	head;
+	struct lock		mtx;
+};
+
+static unsigned			hcl_nhash = 16383;
+static struct hcl_hd		*hcl_head;
 
 /*--------------------------------------------------------------------
- * The ->init method is called during process start and allows
+ * The ->init method allows the management process to pass arguments
+ */
+
+static void
+hcl_init(int ac, char * const *av)
+{
+	int i;
+	unsigned u;
+
+	if (ac == 0)
+		return;
+	if (ac > 1)
+		ARGV_ERR("(-hclassic) too many arguments\n");
+	i = sscanf(av[0], "%u", &u);
+	if (i <= 0 || u == 0)
+		return;
+	if (u > 2 && !(u & (u - 1))) {
+		fprintf(stderr,
+		    "NOTE:\n"
+		    "\tA power of two number of hash buckets is "
+		    "marginally less efficient\n"
+		    "\twith systematic URLs.  Reducing by one"
+		    " hash bucket.\n");
+		u--;
+	}
+	hcl_nhash = u;
+	fprintf(stderr, "Classic hash: %u buckets\n", hcl_nhash);
+	return;
+}
+
+/*--------------------------------------------------------------------
+ * The ->start method is called during cache process start and allows
  * initialization to happen before the first lookup.
  */
 
 static void
-hsl_start(void)
+hcl_start(void)
 {
+	unsigned u;
 
-	Lck_New(&hsl_mtx, lck_hsl);
+	hcl_head = calloc(sizeof *hcl_head, hcl_nhash);
+	XXXAN(hcl_head);
+
+	for (u = 0; u < hcl_nhash; u++) {
+		VTAILQ_INIT(&hcl_head[u].head);
+		Lck_New(&hcl_head[u].mtx, lck_hcl);
+		hcl_head[u].magic = HCL_HEAD_MAGIC;
+	}
 }
 
 /*--------------------------------------------------------------------
@@ -57,34 +106,46 @@ hsl_start(void)
  * If nobj != NULL and the lookup does not find key, nobj is inserted.
  * If nobj == NULL and the lookup does not find key, NULL is returned.
  * A reference to the returned object is held.
+ * We use a two-pass algorithm to handle inserts as they are quite
+ * rare and collisions even rarer.
  */
 
 static struct objhead *
-hsl_lookup(const struct sess *sp, struct objhead *noh)
+hcl_lookup(const struct sess *sp, struct objhead *noh)
 {
 	struct objhead *oh;
+	struct hcl_hd *hp;
+	unsigned u1, digest;
 	int i;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
-	Lck_Lock(&hsl_mtx);
-	VTAILQ_FOREACH(oh, &hsl_head, hoh_list) {
+
+	assert(sizeof noh->digest > sizeof digest);
+	memcpy(&digest, noh->digest, sizeof digest);
+	u1 = digest % hcl_nhash;
+	hp = &hcl_head[u1];
+
+	Lck_Lock(&hp->mtx);
+	VTAILQ_FOREACH(oh, &hp->head, hoh_list) {
 		i = memcmp(oh->digest, noh->digest, sizeof oh->digest);
 		if (i < 0)
 			continue;
 		if (i > 0)
 			break;
 		oh->refcnt++;
-		Lck_Unlock(&hsl_mtx);
+		Lck_Unlock(&hp->mtx);
 		return (oh);
 	}
 
 	if (oh != NULL)
 		VTAILQ_INSERT_BEFORE(oh, noh, hoh_list);
 	else
-		VTAILQ_INSERT_TAIL(&hsl_head, noh, hoh_list);
+		VTAILQ_INSERT_TAIL(&hp->head, noh, hoh_list);
 
-	Lck_Unlock(&hsl_mtx);
+	noh->hoh_head = hp;
+
+	Lck_Unlock(&hp->mtx);
 	return (noh);
 }
 
@@ -93,26 +154,31 @@ hsl_lookup(const struct sess *sp, struct objhead *noh)
  */
 
 static int
-hsl_deref(struct objhead *oh)
+hcl_deref(struct objhead *oh)
 {
+	struct hcl_hd *hp;
 	int ret;
 
-	Lck_Lock(&hsl_mtx);
+	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
+	CAST_OBJ_NOTNULL(hp, oh->hoh_head, HCL_HEAD_MAGIC);
+	assert(oh->refcnt > 0);
+	Lck_Lock(&hp->mtx);
 	if (--oh->refcnt == 0) {
-		VTAILQ_REMOVE(&hsl_head, oh, hoh_list);
+		VTAILQ_REMOVE(&hp->head, oh, hoh_list);
 		ret = 0;
 	} else
 		ret = 1;
-	Lck_Unlock(&hsl_mtx);
+	Lck_Unlock(&hp->mtx);
 	return (ret);
 }
 
 /*--------------------------------------------------------------------*/
 
-const struct hash_slinger hsl_slinger = {
+const struct hash_slinger hcl_slinger = {
 	.magic	=	SLINGER_MAGIC,
-	.name	=	"simple",
-	.start	=	hsl_start,
-	.lookup =	hsl_lookup,
-	.deref	=	hsl_deref,
+	.name	=	"classic",
+	.init	=	hcl_init,
+	.start	=	hcl_start,
+	.lookup =	hcl_lookup,
+	.deref	=	hcl_deref,
 };
