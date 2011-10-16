@@ -40,8 +40,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
-#include "mgt.h"
+#include "mgt/mgt.h"
 
 #include "heritage.h"
 
@@ -153,6 +154,20 @@ mgt_sandbox_solaris_init(void)
 	priv_freeset(priv_all);
 }
 
+void
+mgt_sandbox_solaris_privsep(void)
+{
+	if (priv_ineffect(PRIV_PROC_SETID)) {
+                if (getgid() != params->gid)
+                        XXXAZ(setgid(params->gid));
+                if (getuid() != params->uid)
+                        XXXAZ(setuid(params->uid));
+        } else {
+                REPORT(LOG_INFO, "Privilege %s missing, will not change uid/gid",
+		    PRIV_PROC_SETID);
+        }
+}
+
 /* 
  * Waive most privileges in the child
  *
@@ -205,10 +220,10 @@ mgt_sandbox_solaris_fini(void)
 		    "Child start warning: Waiving privileges failed on %s: errno=%d (%s)", \
 		    #which, errno, strerror(errno));
 
-	SETPPRIV(PRIV_INHERITABLE, inheritable);
-	SETPPRIV(PRIV_EFFECTIVE, effective);
-	SETPPRIV(PRIV_PERMITTED, permitted);
 	SETPPRIV(PRIV_LIMIT, permitted);
+	SETPPRIV(PRIV_PERMITTED, permitted);
+	SETPPRIV(PRIV_EFFECTIVE, effective);
+	SETPPRIV(PRIV_INHERITABLE, inheritable);
 #undef SETPPRIV
 
 	priv_freeset(inheritable);

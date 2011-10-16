@@ -29,13 +29,13 @@
 
 #include "config.h"
 
-#include <fcntl.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "cache.h"
 
+#include "cache_backend.h"
 #include "vcli_priv.h"
 #include "vct.h"
 #include "vtcp.h"

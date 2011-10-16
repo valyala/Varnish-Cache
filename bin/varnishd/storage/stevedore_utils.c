@@ -49,9 +49,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "mgt.h"
+#include "mgt/mgt.h"
 
-#include "storage.h"
+#include "storage/storage.h"
 #include "vnum.h"
 
 #ifndef O_LARGEFILE

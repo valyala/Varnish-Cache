@@ -43,9 +43,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "mgt.h"
+#include "mgt/mgt.h"
 
-#include "hash_slinger.h"
+#include "hash/hash_slinger.h"
 #include "heritage.h"
 #include "vav.h"
 #include "vcli.h"

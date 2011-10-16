@@ -91,26 +91,25 @@ enum {
 	HTTP_HDR_FIRST,
 };
 
-struct iovec;
-struct cli;
-struct exp;
-struct vsb;
-struct sess;
-struct director;
-struct object;
-struct objhead;
-struct objcore;
-struct busyobj;
-struct storage;
-struct sesspool;
-struct vrt_backend;
-struct cli_proto;
-struct ban;
 struct SHA256Context;
 struct VSC_C_lck;
-struct waitinglist;
-struct vef_priv;
+struct ban;
+struct busyobj;
+struct cli;
+struct cli_proto;
+struct director;
+struct iovec;
+struct objcore;
+struct object;
+struct objhead;
 struct pool;
+struct sess;
+struct sesspool;
+struct vbc;
+struct vef_priv;
+struct vrt_backend;
+struct vsb;
+struct waitinglist;
 
 #define DIGEST_LEN		32
 
@@ -256,7 +255,7 @@ struct exp {
 
 struct wrw {
 	int			*wfd;
-	unsigned		werr;	/* valid after WRK_Flush() */
+	unsigned		werr;	/* valid after WRW_Flush() */
 	struct iovec		*iov;
 	unsigned		siov;
 	unsigned		niov;
@@ -624,28 +623,6 @@ struct sess {
 #if defined(HAVE_EPOLL_CTL)
 	struct epoll_event ev;
 #endif
-};
-
-/* -------------------------------------------------------------------*/
-
-/* Backend connection */
-struct vbc {
-	unsigned		magic;
-#define VBC_MAGIC		0x0c5e6592
-	VTAILQ_ENTRY(vbc)	list;
-	struct backend		*backend;
-	struct vdi_simple	*vdis;
-	unsigned		vsl_id;
-	int			fd;
-
-	struct sockaddr_storage	*addr;
-	socklen_t		addrlen;
-
-	uint8_t			recycled;
-
-	/* Timeouts */
-	double			first_byte_timeout;
-	double			between_bytes_timeout;
 };
 
 /* Prototypes etc ----------------------------------------------------*/

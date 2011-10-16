@@ -37,9 +37,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "mgt.h"
+#include "mgt/mgt.h"
 
-#include "cache_waiter.h"
+#include "waiter/cache_waiter.h"
 #include "heritage.h"
 #include "vav.h"
 #include "vcli.h"

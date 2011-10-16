@@ -40,7 +40,8 @@
 
 #include "cache.h"
 
-#include "hash_slinger.h"		// objhead
+#include "cache_backend.h"		// struct vbc
+#include "hash/hash_slinger.h"		// struct objhead
 #include "vcli.h"
 #include "vcli_common.h"
 #include "vcli_priv.h"
