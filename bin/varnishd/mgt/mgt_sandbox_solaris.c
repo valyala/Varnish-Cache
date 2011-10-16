@@ -42,7 +42,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "mgt.h"
+#include "mgt/mgt.h"
 
 #include "heritage.h"
 
@@ -220,10 +220,10 @@ mgt_sandbox_solaris_fini(void)
 		    "Child start warning: Waiving privileges failed on %s: errno=%d (%s)", \
 		    #which, errno, strerror(errno));
 
-	SETPPRIV(PRIV_INHERITABLE, inheritable);
-	SETPPRIV(PRIV_EFFECTIVE, effective);
-	SETPPRIV(PRIV_PERMITTED, permitted);
 	SETPPRIV(PRIV_LIMIT, permitted);
+	SETPPRIV(PRIV_PERMITTED, permitted);
+	SETPPRIV(PRIV_EFFECTIVE, effective);
+	SETPPRIV(PRIV_INHERITABLE, inheritable);
 #undef SETPPRIV
 
 	priv_freeset(inheritable);
