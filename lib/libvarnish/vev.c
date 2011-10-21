@@ -515,7 +515,7 @@ vev_schedule_one(struct vev_base *evb)
 		e = binheap_entry_unpack(evb->binheap, be, &key);
 		when = BINHEAP_KEY2TIME(key);
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
-		AN(e->__exp_entry);
+		assert(e->__exp_entry == be);
 		t = tim_epoch(evb, VTIM_mono());
 		if (t >= UINT_MAX)
 			return (start_new_epoch(evb));
