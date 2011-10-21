@@ -446,7 +446,6 @@ start_new_epoch(struct vev_base *evb)
 	struct vev_list *vl_head, *vle;
 	struct vev *e;
 	struct binheap_entry *be;
-	double when;
 	unsigned key;
 	int i;
 
@@ -464,7 +463,7 @@ start_new_epoch(struct vev_base *evb)
 	vl_head = NULL;
 	while (1) {
 		be = binheap_root(evb->binheap);
-		if (e == NULL)
+		if (be == NULL)
 			break;
 		e = binheap_entry_unpack(evb->binheap, be, &key);
 		AN(e);
@@ -479,6 +478,8 @@ start_new_epoch(struct vev_base *evb)
 			vle->next = vl_head;
 			vle->e = e;
 			vl_head = vle;
+			binheap_delete(evb->binheap, e->__exp_entry);
+			e->__exp_entry = NULL;
 		}
 	}
 	evb->epoch_start = VTIM_mono();
@@ -486,11 +487,9 @@ start_new_epoch(struct vev_base *evb)
 	while (vl_head != NULL) {
 		e = vl_head->e;
 		AN(e);
-		/* Timeouts smaller than 1ms are just silly */
-		assert(e->timeout >= 1e-3);
-		when = tim_epoch(evb, VTIM_mono() + e->timeout);
-		e->__exp_entry = binheap_insert(evb->binheap, e,
-						BINHEAP_TIME2KEY(when));
+		AZ(e->__exp_entry);
+		assert(e->timeout != 0.0);
+		vev_add(evb, e);
 		AN(e->__exp_entry);
 		vle = vl_head->next;
 		free(vl_head);
