@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <poll.h>
 #include <pthread.h>
 #include <signal.h>
@@ -445,6 +446,7 @@ start_new_epoch(struct vev_base *evb)
 	struct vev_list *vl_head, *vle;
 	struct vev *e;
 	struct binheap_entry *be;
+	double when;
 	unsigned key;
 	int i;
 
@@ -453,7 +455,7 @@ start_new_epoch(struct vev_base *evb)
 	 * It looks like binheap keyspace has been overflown. This event
 	 * occurs every 49 days on systems with 32-bit unsigned type.
 	 * If we will continue pushing timer callbacks to binheap at this point,
-	 * vev_schedule_one() will infinitely fire the last timer.
+	 * vev_schedule_one() will infinitely fire the same timer.
 	 * So we need starting new epoch. Just 'ebv->epoch_start = VTIM_mono()'
 	 * will never fire already pushed timers. So let's pop all the timers
 	 * from binheap and fire them before starting new epoch. After that
@@ -483,8 +485,12 @@ start_new_epoch(struct vev_base *evb)
 	while (vl_head != NULL) {
 		e = vl_head->e;
 		AN(e);
-		assert(e->timeout > 0.0);
-		vev_add(evb, e);
+		/* Timeouts smaller than 1ms are just silly */
+		assert(e->timeout >= 1e-3);
+		when = tim_epoch(evb, VTIM_mono() + e->timeout);
+		e->__exp_entry = binheap_insert(evb->binheap, e,
+						BINHEAP_TIME2KEY(when));
+		AN(e->__exp_entry);
 		vle = vl_head->next;
 		free(vl_head);
 		vl_head = vle;
