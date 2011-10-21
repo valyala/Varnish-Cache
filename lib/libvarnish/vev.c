@@ -468,6 +468,7 @@ start_new_epoch(struct vev_base *evb)
 			break;
 		e = binheap_entry_unpack(evb->binheap, be, &key);
 		AN(e);
+		assert(e->__exp_entry == be);
 		i = e->callback(e, 0);
 		if (i) {
 			vev_del(evb, e);
