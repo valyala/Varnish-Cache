@@ -356,6 +356,7 @@ exp_timer(struct sess *sp, void *priv)
 		oc = binheap_entry_unpack(exp_heap, be, &key);
 		when = BINHEAP_KEY2TIME(key);
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
+		assert(oc->exp_entry == be);
 
 		/*
 		 * We may have expired so many objects that our timestamp
