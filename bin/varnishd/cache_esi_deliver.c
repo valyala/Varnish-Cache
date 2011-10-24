@@ -267,7 +267,7 @@ ESI_Deliver(struct sess *sp)
 	}
 
 	if (isgzip && !sp->wrk->gzip_resp) {
-		vgz = VGZ_NewUngzip(sp, "U D E");
+		vgz = VGZ_NewUngzip(sp->wrk, sp->vsl_id, "U D E");
 
 		/* Feed a gzip header to gunzip to make it happy */
 		VGZ_Ibuf(vgz, gzip_hdr, sizeof gzip_hdr);
@@ -330,7 +330,7 @@ ESI_Deliver(struct sess *sp)
 					 * response
 					 */
 					AN(vgz);
-					i = VGZ_WrwGunzip(sp, vgz,
+					i = VGZ_WrwGunzip(sp->wrk, vgz,
 						st->ptr + off, l2,
 						obuf, sizeof obuf, &obufl);
 					if (WRW_Error(sp->wrk)) {
