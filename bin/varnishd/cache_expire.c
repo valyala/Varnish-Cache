@@ -37,15 +37,15 @@
  *
  * An attempted overview:
  *
- *	                        EXP_Ttl()      EXP_Grace()   EXP_Keep()
- *				   |                |            |
- *      entered                    v                v            |
- *         |                       +--------------->+            |
- *         v                       |      grace                  |
- *         +---------------------->+                             |
- *                  ttl            |                             v
- *                                 +---------------------------->+
- *                                     keep
+ *				EXP_Ttl()      EXP_Grace()   EXP_Keep()
+ *				   |		    |		 |
+ *	entered			   v		    v		 |
+ *	   |			   +--------------->+		 |
+ *	   v			   |	  grace			 |
+ *	   +---------------------->+				 |
+ *		    ttl		   |				 v
+ *				   +---------------------------->+
+ *				       keep
  *
  */
 
@@ -309,7 +309,7 @@ EXP_Rearm(const struct object *o)
 	Lck_Lock(&exp_mtx);
 	/*
 	 * The hang-man might have this object of the binheap while
-	 * tending to a timer.  If so, we do not muck with it here.
+	 * tending to a timer.	If so, we do not muck with it here.
 	 */
 	if (oc->exp_entry != NULL)
 		binheap_reorder(exp_heap, oc->exp_entry,
@@ -333,17 +333,19 @@ exp_timer(struct sess *sp, void *priv)
 	struct object *o;
 	struct binheap_entry *be;
 	unsigned key;
+	int must_sleep;
 
 	(void)priv;
 	t = VTIM_real();
-	oc = NULL;
+	must_sleep = 1;
 	while (1) {
-		if (oc == NULL) {
+		if (must_sleep) {
 			WSL_Flush(sp->wrk, 0);
 			WRK_SumStat(sp->wrk);
 			VTIM_sleep(params->expiry_sleep);
 			t = VTIM_real();
 		}
+		must_sleep = 1;
 
 		Lck_Lock(&exp_mtx);
 		be = binheap_root(exp_heap);
@@ -363,7 +365,6 @@ exp_timer(struct sess *sp, void *priv)
 			t = VTIM_real();
 		if (when > t) {
 			Lck_Unlock(&exp_mtx);
-			oc = NULL;
 			continue;
 		}
 
@@ -379,7 +380,6 @@ exp_timer(struct sess *sp, void *priv)
 		CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 		if (Lck_Trylock(&lru->mtx)) {
 			Lck_Unlock(&exp_mtx);
-			oc = NULL;
 			continue;
 		}
 
@@ -402,6 +402,8 @@ exp_timer(struct sess *sp, void *priv)
 		WSL(sp->wrk, SLT_ExpKill, 0, "%u %.0f",
 		    o->xid, EXP_Ttl(NULL, o) - t);
 		(void)HSH_Deref(sp->wrk, oc, NULL);
+
+		must_sleep = 0;
 	}
 	NEEDLESS_RETURN(NULL);
 }
