@@ -1258,7 +1258,7 @@ main(int argc, char **argv)
 	}
 	fprintf(stderr, "%u parent-child tests OK\n", PARENT_CHILD_TESTS_COUNT);
 
-	init_mem();
+	init_mem(0);
 	bh = binheap_new();
 	AZ(binheap_root(bh));
 	check_consistency(bh);
