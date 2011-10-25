@@ -142,55 +142,44 @@ struct mem {
 	unsigned	resident_pages_count;
 };
 
-static struct mem *
-create_mem(void)
+static struct mem m;
+
+static void
+init_mem(unsigned resident_pages_count)
 {
-	struct mem *m;
 	uintptr_t page_size;
 
 	page_size = (uintptr_t) getpagesize();
 	xxxassert(page_size > 0);
 	XXXAZ(page_size & (page_size - 1));
 
-	m = malloc(sizeof(*m));
-	XXXAN(m);
-	m->magic = MEM_MAGIC;
-	m->lru = NULL;
-	m->page_mask = ~(page_size - 1);
-	m->pagefaults_count = 0;
-	m->resident_pages_count = 0;
-	return (m);
-}
-
-static void
-init_mem(struct mem *m, unsigned resident_pages_count)
-{
-	CHECK_OBJ_NOTNULL(m, MEM_MAGIC);
-	free(m->lru);
-	m->lru = NULL;
+	m.magic = MEM_MAGIC;
+	free(m.lru);
+	m.lru = NULL;
 	if (resident_pages_count > 0) {
-		m->lru = calloc(resident_pages_count, sizeof(*m->lru));
-		XXXAN(m->lru);
+		m.lru = calloc(resident_pages_count, sizeof(*m.lru));
+		XXXAN(m.lru);
 	}
-	m->pagefaults_count = 0;
-	m->resident_pages_count = resident_pages_count;
+	m.page_mask = ~(page_size - 1);
+	m.pagefaults_count = 0;
+	m.resident_pages_count = resident_pages_count;
 }
 
 static void
-access_mem(struct mem *m, void *p)
+access_mem(void *p)
 {
 	uintptr_t addr, *lru;
 	unsigned u, v;
 
-	CHECK_OBJ_NOTNULL(m, MEM_MAGIC);
-	if (m->resident_pages_count == 0)
+	assert(m.magic == MEM_MAGIC);
+	if (m.resident_pages_count == 0)
 		return;	/* mem model is disabled */
 	if (p == NULL)
 		return;	/* access to NULL is forbidden */
 
-	addr = ((uintptr_t) p) & m->page_mask;
-	lru = m->lru;
-	for (u = 0; u < m->resident_pages_count; u++) {
+	addr = ((uintptr_t) p) & m.page_mask;
+	lru = m.lru;
+	for (u = 0; u < m.resident_pages_count; u++) {
 		if (lru[u] == addr) {
 			for (v = u; v >= 1; v--)
 				lru[v] = lru[v - 1];
@@ -198,15 +187,13 @@ access_mem(struct mem *m, void *p)
 			return;
 		}
 	}
-	m->pagefaults_count++;
-	for (v = m->resident_pages_count - 1; v >= 1; v--)
+	m.pagefaults_count++;
+	for (v = m.resident_pages_count - 1; v >= 1; v--)
 		lru[v] = lru[v - 1];
 	lru[0] = addr;
 }
 
-static struct mem *m;
-
-#define TEST_DRIVER_ACCESS_MEM(p)	access_mem(m, p)
+#define TEST_DRIVER_ACCESS_MEM(p)	access_mem(p)
 #else
 #define TEST_DRIVER_ACCESS_MEM(p)	((void)0)
 #endif
@@ -960,10 +947,10 @@ vas_f *VAS_Fail = vasfail;
 #define PADDING 92
 
 #define MQPS(t, q)		((t) ? (q) / (t) / 1e6 : 0)
-#define PF(m)			\
-	((double) (m)->pagefaults_count - (m)->resident_pages_count)
-#define PF_PER_ITERATION(m, iterations_count)	\
-	(PF(m) > 0 ? PF(m) / iterations_count : 0)
+#define PF()			\
+	((double) m.pagefaults_count - m.resident_pages_count)
+#define PF_PER_ITERATION(iterations_count)	\
+	(PF() > 0 ? PF() / iterations_count : 0)
 
 #ifdef PARANOIA
 #define paranoia_check(bh)	check_consistency(bh)
@@ -1089,7 +1076,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	/* Insert our items */
 	ukey = 0;
 	start = get_time();
-	init_mem(m, resident_pages_count);
+	init_mem(resident_pages_count);
 	for (n = 0; n < items_count; n++) {
 		foo_insert(bh, n, items_count);
 		be = binheap_root(bh);
@@ -1105,12 +1092,12 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	fprintf(stderr, "%u inserts: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n",
 		items_count, MQPS(end - start, items_count),
-		PF_PER_ITERATION(m, items_count));
+		PF_PER_ITERATION(items_count));
 
 	/* For M cycles, pick the root, insert new */
 	n = 0;
 	start = get_time();
-	init_mem(m, resident_pages_count);
+	init_mem(resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		be = binheap_root(bh);
 		AN(be);
@@ -1128,11 +1115,11 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	fprintf(stderr, "%u root replacements: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n", iterations_count,
 		MQPS(end - start, iterations_count),
-		PF_PER_ITERATION(m, iterations_count));
+		PF_PER_ITERATION(iterations_count));
 
 	/* Randomly reorder */
 	start = get_time();
-	init_mem(m, resident_pages_count);
+	init_mem(resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
 		fp = ff[n];
@@ -1143,14 +1130,14 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	fprintf(stderr, "%u random reorders: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n", iterations_count,
 		MQPS(end - start, iterations_count),
-		PF_PER_ITERATION(m, iterations_count));
+		PF_PER_ITERATION(iterations_count));
 
 	/* Randomly insert, delete and reorder */
 	delete_count = 0;
 	insert_count = 0;
 	reorder_count = 0;
 	start = get_time();
-	init_mem(m, resident_pages_count);
+	init_mem(resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
 		fp = ff[n];
@@ -1175,13 +1162,13 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		"%.3lf pagefaults per iteration\n",
 		delete_count, insert_count, reorder_count,
 		MQPS(end - start, iterations_count),
-		PF_PER_ITERATION(m, iterations_count));
+		PF_PER_ITERATION(iterations_count));
 
 	/* Then remove everything */
 	dkey = 0;
 	u = 0;
 	start = get_time();
-	init_mem(m, resident_pages_count);
+	init_mem(resident_pages_count);
 	while (1) {
 		be = binheap_root(bh);
 		if (be == NULL)
@@ -1201,7 +1188,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	end = get_time();
 	fprintf(stderr, "%u deletes: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n",
-		u, MQPS(end - start, u), PF_PER_ITERATION(m, u));
+		u, MQPS(end - start, u), PF_PER_ITERATION(u));
 }
 
 static void
@@ -1271,7 +1258,7 @@ main(int argc, char **argv)
 	}
 	fprintf(stderr, "%u parent-child tests OK\n", PARENT_CHILD_TESTS_COUNT);
 
-	m = create_mem();
+	init_mem();
 	bh = binheap_new();
 	AZ(binheap_root(bh));
 	check_consistency(bh);
