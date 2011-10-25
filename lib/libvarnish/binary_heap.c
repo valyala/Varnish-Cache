@@ -165,18 +165,16 @@ access_mem(struct mem *m, void *p)
 	lru[0] = addr;
 }
 
-#define TEST_DRIVER_DECLARE_MEM		struct mem *m;	/* semicolon */
-#define TEST_DRIVER_CREATE_MEM(bh)	(bh)->m = create_mem()
-#define TEST_DRIVER_ACCESS_MEM(bh, p)	access_mem((bh)->m, (p))
+static struct mem *m;
+
+#define TEST_DRIVER_ACCESS_MEM(p)	access_mem(m, p)
 #else
-#define TEST_DRIVER_DECLARE_MEM		/* nothing */
-#define TEST_DRIVER_CREATE_MEM(bh)	((void)0)
-#define TEST_DRIVER_ACCESS_MEM(bh, p)	((void)0)
+#define TEST_DRIVER_ACCESS_MEM(p)	((void)0)
 #endif
 
 #define TEST_DRIVER_ACCESS_IDX(bh, u)	do { \
-	TEST_DRIVER_ACCESS_MEM(bh, &A(bh, u)); \
-	TEST_DRIVER_ACCESS_MEM(bh, A(bh, u)); \
+	TEST_DRIVER_ACCESS_MEM(&A(bh, u)); \
+	TEST_DRIVER_ACCESS_MEM(A(bh, u)); \
 } while (0)
 
 struct binheap {
@@ -192,7 +190,6 @@ struct binheap {
 	unsigned		page_size;
 	unsigned		page_mask;
 	unsigned		page_shift;
-	TEST_DRIVER_DECLARE_MEM			/* no semicolon */
 };
 
 #define VM_AWARE
@@ -332,7 +329,6 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 	bh->rows = 16;		/* A tiny-ish number */
 	bh->array = calloc(sizeof *bh->array, bh->rows);
 	assert(bh->array != NULL);
-	TEST_DRIVER_CREATE_MEM(bh);
 	binheap_addrow(bh);
 	A(bh, ROOT_IDX) = NULL;
 	bh->magic = BINHEAP_MAGIC;
@@ -677,10 +673,10 @@ check_consistency(const struct binheap *bh, unsigned items_count)
 }
 
 #define MQPS(t, q)		((t) ? (q) / (t) / 1e6 : 0)
-#define PF(bh)			\
-	((double) (bh)->m->pagefaults_count - (bh)->m->resident_pages_count)
-#define PF_PER_ITERATION(bh, iterations_count)	\
-	(PF(bh) > 0 ? PF(bh) / iterations_count : 0)
+#define PF(m)			\
+	((double) (m)->pagefaults_count - (m)->resident_pages_count)
+#define PF_PER_ITERATION(m, iterations_count)	\
+	(PF(m) > 0 ? PF(m) / iterations_count : 0)
 
 #ifdef PARANOIA
 #define paranoia_check(bh)	check_consistency(bh)
@@ -822,7 +818,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	/* First insert our items */
 	key = 0;
 	start = get_time();
-	init_mem(bh->m, resident_pages_count);
+	init_mem(m, resident_pages_count);
 	for (n = 0; n < items_count; n++) {
 		foo_insert(bh, n, items_count);
 		key = ff[n]->key;
@@ -836,11 +832,11 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	fprintf(stderr, "%u inserts: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n",
 		items_count, MQPS(end - start, items_count),
-		PF_PER_ITERATION(bh, items_count));
+		PF_PER_ITERATION(m, items_count));
 
 	/* For M cycles, pick the root, insert new */
 	start = get_time();
-	init_mem(bh->m, resident_pages_count);
+	init_mem(m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		fp = binheap_root(bh);
 		foo_check(fp, items_count);
@@ -856,11 +852,11 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	fprintf(stderr, "%u root replacements: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n", iterations_count,
 		MQPS(end - start, iterations_count),
-		PF_PER_ITERATION(bh, iterations_count));
+		PF_PER_ITERATION(m, iterations_count));
 
 	/* Randomly reorder */
 	start = get_time();
-	init_mem(bh->m, resident_pages_count);
+	init_mem(m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
 		fp = ff[n];
@@ -871,14 +867,14 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	fprintf(stderr, "%u random reorders: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n", iterations_count,
 		MQPS(end - start, iterations_count),
-		PF_PER_ITERATION(bh, iterations_count));
+		PF_PER_ITERATION(m, iterations_count));
 
 	/* Randomly insert, delete and reorder */
 	delete_count = 0;
 	insert_count = 0;
 	reorder_count = 0;
 	start = get_time();
-	init_mem(bh->m, resident_pages_count);
+	init_mem(m, resident_pages_count);
 	for (u = 0; u < iterations_count; u++) {
 		n = random() % items_count;
 		fp = ff[n];
@@ -903,13 +899,13 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 		"%.3lf pagefaults per iteration\n",
 		delete_count, insert_count, reorder_count,
 		MQPS(end - start, iterations_count),
-		PF_PER_ITERATION(bh, iterations_count));
+		PF_PER_ITERATION(m, iterations_count));
 
 	/* Then remove everything */
 	key = 0;
 	u = 0;
 	start = get_time();
-	init_mem(bh->m, resident_pages_count);
+	init_mem(m, resident_pages_count);
 	while (1) {
 		fp = binheap_root(bh);
 		if (fp == NULL)
@@ -927,7 +923,7 @@ test(struct binheap *bh, unsigned items_count, unsigned resident_pages_count)
 	end = get_time();
 	fprintf(stderr, "%u deletes: %.3lf Mqps, "
 		"%.3lf pagefaults per iteration\n",
-		u, MQPS(end - start, u), PF_PER_ITERATION(bh, u));
+		u, MQPS(end - start, u), PF_PER_ITERATION(m, u));
 }
 
 static void
@@ -957,6 +953,7 @@ main(int argc, char **argv)
 	unsigned u;
 
 	srandom(123);	/* generate predictive results */
+	m = create_mem();
 
 	bh = binheap_new(NULL, cmp, update);
 	AZ(binheap_root(bh));
