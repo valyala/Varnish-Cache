@@ -166,7 +166,7 @@ init_mem(unsigned resident_pages_count)
 }
 
 static void
-access_mem(void *p)
+access_mem(const void *p)
 {
 	uintptr_t addr, *lru;
 	unsigned u, v;
@@ -975,6 +975,7 @@ foo_check(const struct foo *fp, unsigned items_count)
 	CHECK_OBJ_NOTNULL(fp, FOO_MAGIC);
 	assert(fp->n < items_count);
 	assert(fp == ff[fp->n]);
+	access_mem(fp);
 }
 
 static void
