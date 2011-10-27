@@ -50,16 +50,24 @@ if test "x$XSLTPROC" = "xno"; then
    AC_MSG_WARN([xsltproc not found – not building documentation])
 fi
 AM_CONDITIONAL(HAVE_XSLTPROC,[test "x$XSLTPROC" != "xno"])
-AC_CHECK_PROGS(RST2MAN, [rst2man rst2man.py], "no")
-if test "x$RST2MAN" = "xno"; then
-   AC_MSG_WARN([rst2man not found – not building man pages])
-fi
+AC_ARG_WITH([rst2man],
+               AS_HELP_STRING([--with-rst2man=PATH],
+                              [Location of rst2man (auto)]),
+               [RST2MAN="$withval"],
+               [AC_CHECK_PROGS(RST2MAN, [rst2man rst2man.py], "no")
+	        if test "x$RST2MAN" = "xno"; then
+		   AC_MSG_WARN([rst2man not found – not building man pages])
+		fi])
 AM_CONDITIONAL(HAVE_RST2MAN,[test "x$RST2MAN" != "xno"])
 
-AC_CHECK_PROGS(RST2HTML, [rst2html rst2html.py], "no")
-if test "x$RST2HTML" = "xno"; then
-   AC_MSG_WARN([rst2html not found – not building changelog])
-fi
+AC_ARG_WITH([rst2html],
+               AS_HELP_STRING([--with-rst2html=PATH],
+                              [Location of rst2html (auto)]),
+               [RST2HTML="$withval"],
+               [AC_CHECK_PROGS(RST2HTML, [rst2html rst2html.py], "no")
+	        if test "x$RST2HTML" = "xno"; then
+		   AC_MSG_WARN([rst2html not found – not building changelog])
+		fi])
 AM_CONDITIONAL(HAVE_RST2HTML,[test "x$RST2HTML" != "xno"])
 
 # Checks for libraries.
@@ -108,7 +116,7 @@ AC_SUBST(NET_LIBS)
 AC_CHECK_LIBM
 AC_SUBST(LIBM)
 
-m4_pattern_forbid([^_?PKG_[A-Z_]+$],[pkg.m4 missing, please install pkg-config])
+m4_ifndef([PKG_PROG_PKG_CONFIG], [m4_fatal([pkg.m4 missing, please install pkg-config])])
 PKG_PROG_PKG_CONFIG
 if test -n $PKG_CONFIG; then
    PKG_CHECK_MODULES([PCRE], [libpcre])
