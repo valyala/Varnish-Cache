@@ -445,7 +445,7 @@ struct objcore {
 #define OC_F_PASS		(1<<2)
 #define OC_F_LRUDONTMOVE	(1<<4)
 #define OC_F_PRIV		(1<<5)		/* Stevedore private flag */
-	unsigned		timer_idx;
+#define OC_F_EXP_TRACKED	(1<<6)
 	VTAILQ_ENTRY(objcore)	list;
 	VTAILQ_ENTRY(objcore)	lru_list;
 	VTAILQ_ENTRY(objcore)	ban_list;
@@ -699,6 +699,7 @@ void EXP_Inject(struct objcore *oc, struct lru *lru, double when);
 void EXP_Init(void);
 void EXP_Rearm(const struct object *o);
 int EXP_Touch(struct objcore *oc);
+int EXP_IsExpired(struct objcore *oc, double t_req);
 int EXP_NukeOne(struct worker *w, struct lru *lru);
 
 /* cache_fetch.c */
