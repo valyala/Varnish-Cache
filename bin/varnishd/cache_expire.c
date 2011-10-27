@@ -26,13 +26,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * LRU and object timer handling.
+ * LRU and timer handling.
  *
  * LRU list is used for killing old objects in the case of cache overflow.
- * Each object also has TTL timeout, but objects aren't deleted immediately
- * after the timeout expiration due to performance reasons. Instead, these
- * objects remain live until the next access to them or until LRU killer
- * kills them.
+ * Each object also has expiration timeout, but objects aren't deleted
+ * immediately after they expired. Instead, they remain live until the next
+ * call to EXP_IsExpired() or until LRU killer kills them.
+ * This works faster than using sophisitcated datastructures like priority
+ * queues for immediate objects' epxiration.
  *
  * We hold a single object reference for LRU list.
  *
@@ -67,7 +68,7 @@ struct exp_item {
 
 static pthread_t exp_thread;
 static struct exp_item *exp_list;
-static struct lock exp_mtx;
+static struct lock exp_list_mtx;
 
 /*--------------------------------------------------------------------
  * struct exp manipulations
@@ -173,27 +174,29 @@ get_object_when(const struct object *o)
 /*--------------------------------------------------------------------*/
 
 static void
-exp_insert(struct objcore *oc, struct lru *lru)
+lru_insert(struct objcore *oc, struct lru *lru)
 {
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	AZ(oc->flags & OC_F_EXP_TRACKED);
+	AZ(oc->flags & OC_F_ONLRU);
 
 	Lck_AssertHeld(&lru->mtx);
 	VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
-	oc->flags |= OC_F_EXP_TRACKED;
+	oc->flags |= OC_F_ONLRU;
+	AN(oc->flags & OC_F_ONLRU);
 }
 
 static void
-exp_remove(struct objcore *oc, struct lru *lru)
+lru_remove(struct objcore *oc, struct lru *lru)
 {
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	AN(oc->flags & OC_F_EXP_TRACKED);
+	AN(oc->flags & OC_F_ONLRU);
 
 	Lck_AssertHeld(&lru->mtx);
 	VTAILQ_REMOVE(&lru->lru_head, oc, lru_list);
-	oc->flags &= ~OC_F_EXP_TRACKED;
+	oc->flags &= ~OC_F_ONLRU;
+	AZ(oc->flags & OC_F_ONLRU);
 }
 
 /*--------------------------------------------------------------------
@@ -210,9 +213,9 @@ EXP_Inject(struct objcore *oc, struct lru *lru, double when)
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 
 	Lck_Lock(&lru->mtx);
+	/* XXX: use per-object mutex for timer_when locking? */
 	oc->timer_when = when;
-	exp_insert(oc, lru);
-	AN(oc->flags & OC_F_EXP_TRACKED);
+	lru_insert(oc, lru);
 	Lck_Unlock(&lru->mtx);
 }
 
@@ -241,15 +244,20 @@ EXP_Insert(struct object *o)
 	lru = oc_getlru(oc);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 	Lck_Lock(&lru->mtx);
+	/* XXX: use per-object mutex for timer_when locking? */
 	oc->timer_when = get_object_when(o);
-	exp_insert(oc, lru);
-	AN(oc->flags & OC_F_EXP_TRACKED);
+	lru_insert(oc, lru);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
 }
 
 /*--------------------------------------------------------------------
  * Object was used, move to tail of LRU list.
+ *
+ * EXP_Touch() MUST be called only after EXP_Insert() or EXP_Inject()
+ * were called. These functions properly insert the object into LRU list.
+ * It is OK if EXP_Touch() is called after the object has been removed
+ * from LRU list due to expiration.
  */
 
 int
@@ -273,11 +281,15 @@ EXP_Touch(struct objcore *oc)
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 
 	Lck_Lock(&lru->mtx);
-	exp_remove(oc, lru);
-	AZ(oc->flags & OC_F_EXP_TRACKED);
-	exp_insert(oc, lru);
-	AN(oc->flags & OC_F_EXP_TRACKED);
-	VSC_C_main->n_lru_moved++;
+	/*
+	 * Don't ressurect expired objects, because they will be killed
+	 * soon anyway.
+	 */
+	if (oc->flags & OC_F_ONLRU) {
+		lru_remove(oc, lru);
+		lru_insert(oc, lru);
+		VSC_C_main->n_lru_moved++;
+	}
 	Lck_Unlock(&lru->mtx);
 	return (1);
 }
@@ -304,6 +316,7 @@ EXP_Rearm(const struct object *o)
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	lru = oc_getlru(oc);
 	Lck_Lock(&lru->mtx);
+	/* XXX: use per-object mutex for timer_when locking? */
 	oc->timer_when = get_object_when(o);
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
@@ -323,9 +336,9 @@ exp_timer(struct sess *sp, void *priv)
 
 	(void)priv;
 	while (1) {
-		Lck_Lock(&exp_mtx);
+		Lck_Lock(&exp_list_mtx);
 		if (exp_list == NULL) {
-			Lck_Unlock(&exp_mtx);
+			Lck_Unlock(&exp_list_mtx);
 			WSL_Flush(sp->wrk, 0);
 			WRK_SumStat(sp->wrk);
 			VTIM_sleep(params->expiry_sleep);
@@ -336,14 +349,17 @@ exp_timer(struct sess *sp, void *priv)
 		oc = ei->oc;
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		exp_list = ei->next;
-		Lck_Unlock(&exp_mtx);
+		Lck_Unlock(&exp_list_mtx);
 		free(ei);
 
 		/*
-		 * Make sure that the object has been properly removed
-		 * from LRU list in EXP_IsExpired().
+		 * Make sure the object has been removed from LRU.
+		 * There is no need in acquiring LRU mutex before the check,
+		 * because:
+		 * - we already passed memory barrier via exp_list_mtx locking.
+		 * - objects trapped into exp_list cannot be ressurected.
 		 */
-		AZ(oc->flags & OC_F_EXP_TRACKED);
+		AZ(oc->flags & OC_F_ONLRU);
 
 		VSC_C_main->n_expired++;
 
@@ -370,29 +386,33 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 	struct lru *lru;
 
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
-	if (!(oc->flags & OC_F_EXP_TRACKED))
-		return (0);
-	if (oc->timer_when > t_req)
-		return (0);
 
 	/*
-	 * Remove the object from LRU list, since this is quite fast operation,
-	 * while delegate object deletion to exp_thread, since it can be time
-	 * consuming operation, so can negatively impact response times.
+	 * Remove the object from LRU list, since this is quite fast operation.
+	 * Delegate object deletion to exp_thread, since it can be time
+	 * consuming operation, so can negatively impact response time if
+	 * the object had been swapped out from RAM.
 	 */
 	lru = oc_getlru(oc);
 	Lck_Lock(&lru->mtx);
-	exp_remove(oc, lru);
-	AZ(oc->flags & OC_F_EXP_TRACKED);
+	if (oc->timer_when > t_req) {
+		Lck_Unlock(&lru->mtx);
+		return (0);
+	}
+	if (!(oc->flags & OC_F_ONLRU)) {
+		Lck_Unlock(&lru->mtx);
+		return (1);
+	}
+	lru_remove(oc, lru);
 	Lck_Unlock(&lru->mtx);
 
 	ei = malloc(sizeof(*ei));
 	XXXAN(ei);
 	ei->oc = oc;
-	Lck_Lock(&exp_mtx);
+	Lck_Lock(&exp_list_mtx);
 	ei->next = exp_list;
 	exp_list = ei;
-	Lck_Unlock(&exp_mtx);
+	Lck_Unlock(&exp_list_mtx);
 	return (1);
 }
 
@@ -408,7 +428,7 @@ EXP_NukeOne(struct worker *w, struct lru *lru)
 	struct objcore *oc;
 	struct object *o;
 
-	/* Find the first currently unused object on the LRU.  */
+	/* Find the first currently unused object on the LRU. */
 	Lck_Lock(&lru->mtx);
 	VTAILQ_FOREACH(oc, &lru->lru_head, lru_list) {
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
@@ -421,8 +441,8 @@ EXP_NukeOne(struct worker *w, struct lru *lru)
 			break;
 	}
 	if (oc != NULL) {
-		exp_remove(oc, lru);
-		AZ(oc->flags & OC_F_EXP_TRACKED);
+		lru_remove(oc, lru);
+		AZ(oc->flags & OC_F_ONLRU);
 		VSC_C_main->n_lru_nuked++;
 	}
 	Lck_Unlock(&lru->mtx);
@@ -442,7 +462,7 @@ EXP_NukeOne(struct worker *w, struct lru *lru)
 void
 EXP_Init(void)
 {
-	Lck_New(&exp_mtx, lck_exp);
+	Lck_New(&exp_list_mtx, lck_exp);
 	AZ(exp_list);
 	WRK_BgThread(&exp_thread, "cache-timeout", exp_timer, NULL);
 }
