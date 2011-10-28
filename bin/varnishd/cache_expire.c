@@ -347,10 +347,11 @@ exp_timer(struct sess *sp, void *priv)
 		}
 		ei = exp_list;
 		AN(ei);
-		oc = ei->oc;
-		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		exp_list = ei->next;
 		Lck_Unlock(&exp_list_mtx);
+
+		oc = ei->oc;
+		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		free(ei);
 
 		VSC_C_main->n_expired++;
