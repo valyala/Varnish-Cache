@@ -277,7 +277,7 @@ EXP_Touch(struct objcore *oc)
 
 	lru = oc_getlru(oc);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	if (!Lck_Trylock(&lru->mtx))
+	if (Lck_Trylock(&lru->mtx))
 		return (0);
 
 	/*
@@ -392,7 +392,7 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 	 */
 	lru = oc_getlru(oc);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	if (!Lck_Trylock(&lru->mtx))
+	if (Lck_Trylock(&lru->mtx))
 		return (0);	/* No luck now - will be lucky next time. */
 
 	if (oc->timer_when > t_req) {
