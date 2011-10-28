@@ -377,6 +377,10 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 
+	/* Objects cannot be expired until they are busy */
+	if (oc->flags & OC_F_BUSY)
+		return (0);
+
 	/*
 	 * Remove the object from LRU list, since this is quite fast operation.
 	 * Delegate object deletion to exp_thread, since it can be time
