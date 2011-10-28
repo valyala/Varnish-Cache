@@ -277,8 +277,9 @@ EXP_Touch(struct objcore *oc)
 
 	lru = oc_getlru(oc);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
+	if (!Lck_Trylock(&lru->mtx))
+		return (0);
 
-	Lck_Lock(&lru->mtx);
 	/*
 	 * If the object isn't in LRU, then it is expired.
 	 * Don't ressurect expired objects, because they will be killed
@@ -314,6 +315,7 @@ EXP_Rearm(const struct object *o)
 		return;
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	lru = oc_getlru(oc);
+	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 	Lck_Lock(&lru->mtx);
 	/* XXX: use per-object mutex for timer_when locking? */
 	oc->timer_when = get_object_when(o);
@@ -388,7 +390,10 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 	 * the object had been swapped out from RAM.
 	 */
 	lru = oc_getlru(oc);
-	Lck_Lock(&lru->mtx);
+	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
+	if (!Lck_Trylock(&lru->mtx))
+		return (0);	/* No luck now - will be lucky next time. */
+
 	if (oc->timer_when > t_req) {
 		Lck_Unlock(&lru->mtx);
 		return (0);
