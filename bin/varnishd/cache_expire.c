@@ -54,20 +54,14 @@
 #include "config.h"
 
 #include <math.h>
-#include <stdlib.h>
 
 #include "cache.h"
 
 #include "hash/hash_slinger.h"
 #include "vtim.h"
 
-struct exp_item {
-	struct objcore *oc;
-	struct exp_item *next;
-};
-
 static pthread_t exp_thread;
-static struct exp_item *exp_list;
+static struct objcore *exp_list;
 static struct lock exp_list_mtx;
 
 /*--------------------------------------------------------------------
@@ -333,7 +327,6 @@ exp_timer(struct sess *sp, void *priv)
 {
 	struct objcore *oc;
 	struct object *o;
-	struct exp_item *ei;
 
 	(void)priv;
 	while (1) {
@@ -345,14 +338,10 @@ exp_timer(struct sess *sp, void *priv)
 			VTIM_sleep(params->expiry_sleep);
 			continue;
 		}
-		ei = exp_list;
-		AN(ei);
-		exp_list = ei->next;
-		Lck_Unlock(&exp_list_mtx);
-
-		oc = ei->oc;
+		oc = exp_list;
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
-		free(ei);
+		exp_list = VTAILQ_NEXT(oc, lru_list);
+		Lck_Unlock(&exp_list_mtx);
 
 		VSC_C_main->n_expired++;
 
@@ -375,7 +364,6 @@ exp_timer(struct sess *sp, void *priv)
 int
 EXP_IsExpired(struct objcore *oc, double t_req)
 {
-	struct exp_item *ei;
 	struct lru *lru;
 
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
@@ -407,12 +395,16 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 	AZ(oc->on_lru);
 	Lck_Unlock(&lru->mtx);
 
-	ei = malloc(sizeof(*ei));
-	XXXAN(ei);
-	ei->oc = oc;
 	Lck_Lock(&exp_list_mtx);
-	ei->next = exp_list;
-	exp_list = ei;
+	/*
+	 * Smart hack: since oc->lru_list isn't used after removing
+	 * the object from LRU list, let's use it for building exp_list :)
+	 * There is no need in acquiring lru->mtx during oc->lru_list
+	 * modifications, because the object cannot be re-used by cache again.
+	 * So exp_list_mtx protection is enough.
+	 */
+	VTAILQ_NEXT(oc, lru_list) = exp_list;
+	exp_list = oc;
 	Lck_Unlock(&exp_list_mtx);
 	return (1);
 }
