@@ -445,7 +445,11 @@ struct objcore {
 #define OC_F_PASS		(1<<2)
 #define OC_F_LRUDONTMOVE	(1<<4)
 #define OC_F_PRIV		(1<<5)		/* Stevedore private flag */
-#define OC_F_ONLRU		(1<<6)
+	/*
+	 * on_lru cannot be put into flags, since it must be accessed
+	 * and modified under LRU mutex.
+	 */
+	unsigned		on_lru;
 	VTAILQ_ENTRY(objcore)	list;
 	VTAILQ_ENTRY(objcore)	lru_list;
 	VTAILQ_ENTRY(objcore)	ban_list;

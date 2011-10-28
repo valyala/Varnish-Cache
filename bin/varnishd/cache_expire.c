@@ -178,12 +178,11 @@ lru_insert(struct objcore *oc, struct lru *lru)
 {
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	AZ(oc->flags & OC_F_ONLRU);
+	AZ(oc->on_lru);
 
 	Lck_AssertHeld(&lru->mtx);
 	VTAILQ_INSERT_TAIL(&lru->lru_head, oc, lru_list);
-	oc->flags |= OC_F_ONLRU;
-	AN(oc->flags & OC_F_ONLRU);
+	oc->on_lru = 1;
 }
 
 static void
@@ -191,12 +190,11 @@ lru_remove(struct objcore *oc, struct lru *lru)
 {
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	AN(oc->flags & OC_F_ONLRU);
+	AN(oc->on_lru);
 
 	Lck_AssertHeld(&lru->mtx);
 	VTAILQ_REMOVE(&lru->lru_head, oc, lru_list);
-	oc->flags &= ~OC_F_ONLRU;
-	AZ(oc->flags & OC_F_ONLRU);
+	oc->on_lru = 0;
 }
 
 /*--------------------------------------------------------------------
@@ -282,10 +280,11 @@ EXP_Touch(struct objcore *oc)
 
 	Lck_Lock(&lru->mtx);
 	/*
+	 * If the object isn't in LRU, then it is expired.
 	 * Don't ressurect expired objects, because they will be killed
 	 * soon anyway.
 	 */
-	if (oc->flags & OC_F_ONLRU) {
+	if (oc->on_lru) {
 		lru_remove(oc, lru);
 		lru_insert(oc, lru);
 		VSC_C_main->n_lru_moved++;
@@ -352,15 +351,6 @@ exp_timer(struct sess *sp, void *priv)
 		Lck_Unlock(&exp_list_mtx);
 		free(ei);
 
-		/*
-		 * Make sure the object has been removed from LRU.
-		 * There is no need in acquiring LRU mutex before the check,
-		 * because:
-		 * - we already passed memory barrier via exp_list_mtx locking.
-		 * - objects trapped into exp_list cannot be ressurected.
-		 */
-		AZ(oc->flags & OC_F_ONLRU);
-
 		VSC_C_main->n_expired++;
 
 		o = oc_getobj(sp->wrk, oc);
@@ -399,11 +389,12 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 		Lck_Unlock(&lru->mtx);
 		return (0);
 	}
-	if (!(oc->flags & OC_F_ONLRU)) {
+	if (!oc->on_lru) {
 		Lck_Unlock(&lru->mtx);
 		return (1);
 	}
 	lru_remove(oc, lru);
+	AZ(oc->on_lru);
 	Lck_Unlock(&lru->mtx);
 
 	ei = malloc(sizeof(*ei));
@@ -442,7 +433,6 @@ EXP_NukeOne(struct worker *w, struct lru *lru)
 	}
 	if (oc != NULL) {
 		lru_remove(oc, lru);
-		AZ(oc->flags & OC_F_ONLRU);
 		VSC_C_main->n_lru_nuked++;
 	}
 	Lck_Unlock(&lru->mtx);
