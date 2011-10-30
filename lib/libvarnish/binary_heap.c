@@ -730,8 +730,6 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 	TEST_DRIVER_ACCESS_IDX(bh, u);
 	e = &A(bh, u);
 	assert(e->be == be);
-	e->key = 0;
-	e->be = NULL;
 	release_be(bh, be);
 	assert(bh->next > 0);
 	if (u < --bh->next) {
@@ -741,14 +739,14 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 		be = e->be;
 		AN(be);
 		assert(be->idx == bh->next);
-		e->key = 0;
-		e->be = NULL;
 		v = reorder(bh, key, u);
 		assign(bh, be, key, v);
 		assert(be->idx == v);
 		assert(A(bh, v).be == be);
 		assert(A(bh, v).key == key);
 	}
+	e->key = 0;
+	e->be = NULL;
 
 	/*
 	 * We keep a hysteresis of one full row before we start to
