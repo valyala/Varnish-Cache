@@ -346,9 +346,6 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		assert(oc->objhead == oh);
 
-		if (EXP_IsExpired(oc, sp->t_req))
-			continue;
-
 		if (oc->flags & OC_F_BUSY) {
 			CHECK_OBJ_NOTNULL(oc->busyobj, BUSYOBJ_MAGIC);
 			if (sp->hash_ignore_busy)
@@ -361,6 +358,9 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 			busy_oc = oc;
 			continue;
 		}
+
+		if (EXP_IsExpired(oc, sp->t_req))
+			continue;
 
 		o = oc_getobj(sp->wrk, oc);
 		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
