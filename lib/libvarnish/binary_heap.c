@@ -652,7 +652,7 @@ binheap_insert(struct binheap *bh, void *p, unsigned key)
 }
 
 static unsigned
-reorder(const struct binheap *bh, unsigned key, unsigned u)
+reorder(const struct binheap *bh, unsigned prev_key, unsigned key, unsigned u)
 {
 	unsigned v;
 
@@ -660,10 +660,12 @@ reorder(const struct binheap *bh, unsigned key, unsigned u)
 	assert(bh->next >= ROOT_IDX(bh));
 	assert(u >= ROOT_IDX(bh));
 	assert(u < bh->next);
-	v = trickleup(bh, key, u);
-	assert(v >= ROOT_IDX(bh));
-	assert(v <= u);
-	if (u == v) {
+	assert(prev_key == A(bh, u).key);
+	if (key <= prev_key) {
+		v = trickleup(bh, key, u);
+		assert(v >= ROOT_IDX(bh));
+		assert(v <= u);
+	} else {
 		v = trickledown(bh, key, u);
 		assert(v >= u);
 		assert(v < bh->next);
@@ -685,9 +687,10 @@ binheap_reorder(const struct binheap *bh, struct binheap_entry *be,
 	assert(u != NOIDX);
 	assert(u >= ROOT_IDX(bh));
 	assert(u < bh->next);
+	TEST_DRIVER_ACCESS_KEY(bh, u);
 	e = &A(bh, u);
 	assert(e->be == be);
-	v = reorder(bh, key, u);
+	v = reorder(bh, e->key, key, u);
 	if (u != v)
 		assign(bh, be, key, v);
 	else
@@ -717,7 +720,7 @@ void
 binheap_delete(struct binheap *bh, struct binheap_entry *be)
 {
 	struct entry *e;
-	unsigned u, v, key;
+	unsigned u, v, key, prev_key;
 
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(bh->next > ROOT_IDX(bh));
@@ -730,6 +733,7 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 	TEST_DRIVER_ACCESS_IDX(bh, u);
 	e = &A(bh, u);
 	assert(e->be == be);
+	prev_key = e->key;
 	release_be(bh, be);
 	assert(bh->next > 0);
 	if (u < --bh->next) {
@@ -739,7 +743,7 @@ binheap_delete(struct binheap *bh, struct binheap_entry *be)
 		be = e->be;
 		AN(be);
 		assert(be->idx == bh->next);
-		v = reorder(bh, key, u);
+		v = reorder(bh, prev_key, key, u);
 		assign(bh, be, key, v);
 		assert(be->idx == v);
 		assert(A(bh, v).be == be);
