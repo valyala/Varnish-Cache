@@ -462,7 +462,7 @@ exp_timer_thread(struct sess *sp, void *priv)
 void
 EXP_Init(void)
 {
-	Lck_New(&exp_list_mtx, lck_exp);
+	Lck_New(&exp_list_mtx, lck_exp_list);
 	Lck_New(&timer_when_mtx, lck_timer_when);
 	AZ(exp_list);
 	WRK_BgThread(&exp_thread, "cache-timeout", exp_timer_thread, NULL);
