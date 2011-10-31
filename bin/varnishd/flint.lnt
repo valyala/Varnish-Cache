@@ -97,7 +97,7 @@
 -sem(vca_kqueue_thread, thread_mono)
 -sem(vca_poll_thread, thread_mono)
 -sem(vca_ports_thread, thread_mono)
--sem(exp_timer, thread_mono)
+-sem(exp_timer_thread, thread_mono)
 -sem(wrk_herdtimer_thread, thread_mono)
 -sem(wrk_herder_thread, thread_mono)
 -esym(458, VSL_stats)

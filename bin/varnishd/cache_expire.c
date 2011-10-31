@@ -147,7 +147,7 @@ EXP_Ttl(const struct sess *sp, const struct object *o)
 }
 
 /*--------------------------------------------------------------------
- * When & why does the timer fire for this object ?
+ * Returns the expiration time for the object.
  */
 
 static double
@@ -200,7 +200,6 @@ lru_remove(struct objcore *oc, struct lru *lru)
 void
 EXP_Inject(struct objcore *oc, struct lru *lru, double when)
 {
-
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 
@@ -223,6 +222,7 @@ EXP_Insert(struct object *o)
 {
 	struct objcore *oc;
 	struct lru *lru;
+	double when;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
@@ -235,11 +235,8 @@ EXP_Insert(struct object *o)
 
 	lru = oc_getlru(oc);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	Lck_Lock(&lru->mtx);
-	/* XXX: use per-object mutex for timer_when locking? */
-	oc->timer_when = get_object_when(o);
-	lru_insert(oc, lru);
-	Lck_Unlock(&lru->mtx);
+	when = get_object_when(o);
+	EXP_Inject(oc, lru, when);
 	oc_updatemeta(oc);
 }
 
@@ -289,12 +286,33 @@ EXP_Touch(struct objcore *oc)
 }
 
 /*--------------------------------------------------------------------
+ * Adds expired object to exp_list.
+ * The object must be already removed from LRU list.
+ */
+
+static void
+add_to_exp_list(struct objcore *oc)
+{
+	AZ(oc->on_lru);
+
+	/*
+	 * Smart hack: since oc->lru_list is unused after removing
+	 * the object from LRU list, let's use it for building exp_list :)
+	 * There is no need in acquiring lru->mtx during oc->lru_list
+	 * modifications, because the object cannot be re-used by cache again.
+	 * So exp_list_mtx protection is enough.
+	 */
+	Lck_Lock(&exp_list_mtx);
+	VTAILQ_NEXT(oc, lru_list) = exp_list;
+	exp_list = oc;
+	Lck_Unlock(&exp_list_mtx);
+}
+
+/*--------------------------------------------------------------------
  * We have changed one or more of the object timers, update
  * oc->timer_when accordingly.
  *
  * The VCL code can send us here on a non-cached object, just return.
- *
- * XXX: special case check for ttl = 0 ?
  */
 
 void
@@ -302,21 +320,41 @@ EXP_Rearm(const struct object *o)
 {
 	struct objcore *oc;
 	struct lru *lru;
-	double when;
+	double when, t;
+	int is_expired = 0;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
 	if (oc == NULL)
 		return;
+
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	lru = oc_getlru(oc);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
         when = get_object_when(o);
+	t = VTIM_real();
+
 	Lck_Lock(&lru->mtx);
-	/* XXX: use per-object mutex for timer_when locking? */
-	oc->timer_when = when;
+	if (when < t) {
+		/*
+		 * Remove expired object from LRU list and move it to exp_list
+		 * if it wasn't already moved there.
+		 */
+		if (oc->on_lru) {
+			lru_remove(oc, lru);
+			AZ(oc->on_lru);
+			is_expired = 1;
+		}
+	} else {
+		/* XXX: use per-object mutex for timer_when locking? */
+		oc->timer_when = when;
+	}
 	Lck_Unlock(&lru->mtx);
-	oc_updatemeta(oc);
+
+	if (is_expired)
+		add_to_exp_list(oc);
+	else
+		oc_updatemeta(oc);
 }
 
 
@@ -325,7 +363,7 @@ EXP_Rearm(const struct object *o)
  */
 
 static void * __match_proto__(void *start_routine(void *))
-exp_timer(struct sess *sp, void *priv)
+exp_timer_thread(struct sess *sp, void *priv)
 {
 	struct objcore *oc;
 	struct object *o;
@@ -358,8 +396,7 @@ exp_timer(struct sess *sp, void *priv)
 
 
 /*--------------------------------------------------------------------
- * Checks whether the given object is expired. If it is expired, then
- * schedule its' deletion.
+ * Checks whether the given object is expired.
  * Returns: 1: expired, 0: not expired.
  */
 
@@ -394,17 +431,8 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 	AZ(oc->on_lru);
 	Lck_Unlock(&lru->mtx);
 
-	Lck_Lock(&exp_list_mtx);
-	/*
-	 * Smart hack: since oc->lru_list is unused after removing
-	 * the object from LRU list, let's use it for building exp_list :)
-	 * There is no need in acquiring lru->mtx during oc->lru_list
-	 * modifications, because the object cannot be re-used by cache again.
-	 * So exp_list_mtx protection is enough.
-	 */
-	VTAILQ_NEXT(oc, lru_list) = exp_list;
-	exp_list = oc;
-	Lck_Unlock(&exp_list_mtx);
+	add_to_exp_list(oc);
+
 	return (1);
 }
 
@@ -455,5 +483,5 @@ EXP_Init(void)
 {
 	Lck_New(&exp_list_mtx, lck_exp);
 	AZ(exp_list);
-	WRK_BgThread(&exp_thread, "cache-timeout", exp_timer, NULL);
+	WRK_BgThread(&exp_thread, "cache-timeout", exp_timer_thread, NULL);
 }
