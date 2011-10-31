@@ -63,6 +63,7 @@
 static pthread_t exp_thread;
 static struct objcore *exp_list;
 static struct lock exp_list_mtx;
+static struct lock timer_when_mtx;
 
 /*--------------------------------------------------------------------
  * struct exp manipulations
@@ -203,9 +204,9 @@ EXP_Inject(struct objcore *oc, struct lru *lru, double when)
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 
-	Lck_Lock(&oc->timer_when_mtx);
+	Lck_Lock(&timer_when_mtx);
 	oc->timer_when = when;
-	Lck_Unlock(&oc->timer_when_mtx);
+	Lck_Unlock(&timer_when_mtx);
 
 	Lck_Lock(&lru->mtx);
 	lru_insert(oc, lru);
@@ -349,9 +350,9 @@ EXP_Rearm(const struct object *o)
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
         when = get_object_when(o);
 	if (when > VTIM_real()) {
-		Lck_Lock(&oc->timer_when_mtx);
+		Lck_Lock(&timer_when_mtx);
 		oc->timer_when = when;
-		Lck_Unlock(&oc->timer_when_mtx);
+		Lck_Unlock(&timer_when_mtx);
 		oc_updatemeta(oc);
 	} else
 		expire(oc);
@@ -370,9 +371,9 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	AZ(oc->flags & OC_F_BUSY);
 
-	Lck_Lock(&oc->timer_when_mtx);
+	Lck_Lock(&timer_when_mtx);
 	is_expired = (oc->timer_when <= t_req);
-	Lck_Unlock(&oc->timer_when_mtx);
+	Lck_Unlock(&timer_when_mtx);
 
 	if (is_expired)
 		expire(oc);
@@ -462,6 +463,7 @@ void
 EXP_Init(void)
 {
 	Lck_New(&exp_list_mtx, lck_exp);
+	Lck_New(&timer_when_mtx, lck_timer_when);
 	AZ(exp_list);
 	WRK_BgThread(&exp_thread, "cache-timeout", exp_timer_thread, NULL);
 }

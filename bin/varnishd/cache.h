@@ -440,7 +440,6 @@ struct objcore {
 	struct objhead		*objhead;
 	struct busyobj		*busyobj;
 	double			timer_when;
-	struct lock		timer_when_mtx;
 	unsigned		flags;
 #define OC_F_BUSY		(1<<1)
 #define OC_F_PASS		(1<<2)
