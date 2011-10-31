@@ -357,44 +357,6 @@ EXP_Rearm(const struct object *o)
 		oc_updatemeta(oc);
 }
 
-
-/*--------------------------------------------------------------------
- * This thread kills all objects from exp_list.
- */
-
-static void * __match_proto__(void *start_routine(void *))
-exp_timer_thread(struct sess *sp, void *priv)
-{
-	struct objcore *oc;
-	struct object *o;
-
-	(void)priv;
-	while (1) {
-		Lck_Lock(&exp_list_mtx);
-		if (exp_list == NULL) {
-			Lck_Unlock(&exp_list_mtx);
-			WSL_Flush(sp->wrk, 0);
-			WRK_SumStat(sp->wrk);
-			VTIM_sleep(params->expiry_sleep);
-			continue;
-		}
-		oc = exp_list;
-		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
-		exp_list = VTAILQ_NEXT(oc, lru_list);
-		Lck_Unlock(&exp_list_mtx);
-
-		VSC_C_main->n_expired++;
-
-		o = oc_getobj(sp->wrk, oc);
-		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
-		WSL(sp->wrk, SLT_ExpKill, 0, "%u %.0f",
-		    o->xid, EXP_Ttl(NULL, o) - VTIM_real());
-		(void)HSH_Deref(sp->wrk, oc, NULL);
-	}
-	NEEDLESS_RETURN(NULL);
-}
-
-
 /*--------------------------------------------------------------------
  * Checks whether the given object is expired.
  * Returns: 1: expired, 0: not expired.
@@ -474,6 +436,43 @@ EXP_NukeOne(struct worker *w, struct lru *lru)
 	WSL(w, SLT_ExpKill, 0, "%u LRU", o->xid);
 	(void)HSH_Deref(w, NULL, &o);
 	return (1);
+}
+
+/*--------------------------------------------------------------------
+ * This thread kills all objects from exp_list.
+ */
+
+static void * __match_proto__(void *start_routine(void *))
+exp_timer_thread(struct sess *sp, void *priv)
+{
+	struct objcore *oc;
+	struct object *o;
+
+	(void)priv;
+	while (1) {
+		Lck_Lock(&exp_list_mtx);
+		if (exp_list == NULL) {
+			Lck_Unlock(&exp_list_mtx);
+			WSL_Flush(sp->wrk, 0);
+			WRK_SumStat(sp->wrk);
+			VTIM_sleep(params->expiry_sleep);
+			continue;
+		}
+		oc = exp_list;
+		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
+		AZ(oc->on_lru);
+		exp_list = VTAILQ_NEXT(oc, lru_list);
+		Lck_Unlock(&exp_list_mtx);
+
+		VSC_C_main->n_expired++;
+
+		o = oc_getobj(sp->wrk, oc);
+		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
+		WSL(sp->wrk, SLT_ExpKill, 0, "%u %.0f",
+		    o->xid, EXP_Ttl(NULL, o) - VTIM_real());
+		(void)HSH_Deref(sp->wrk, oc, NULL);
+	}
+	NEEDLESS_RETURN(NULL);
 }
 
 /*--------------------------------------------------------------------*/
