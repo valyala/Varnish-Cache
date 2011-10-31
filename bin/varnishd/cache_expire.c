@@ -302,6 +302,7 @@ EXP_Rearm(const struct object *o)
 {
 	struct objcore *oc;
 	struct lru *lru;
+	double when;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
@@ -310,9 +311,10 @@ EXP_Rearm(const struct object *o)
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	lru = oc_getlru(oc);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
+        when = get_object_when(o);
 	Lck_Lock(&lru->mtx);
 	/* XXX: use per-object mutex for timer_when locking? */
-	oc->timer_when = get_object_when(o);
+	oc->timer_when = when;
 	Lck_Unlock(&lru->mtx);
 	oc_updatemeta(oc);
 }
@@ -394,7 +396,7 @@ EXP_IsExpired(struct objcore *oc, double t_req)
 
 	Lck_Lock(&exp_list_mtx);
 	/*
-	 * Smart hack: since oc->lru_list isn't used after removing
+	 * Smart hack: since oc->lru_list is unused after removing
 	 * the object from LRU list, let's use it for building exp_list :)
 	 * There is no need in acquiring lru->mtx during oc->lru_list
 	 * modifications, because the object cannot be re-used by cache again.
