@@ -203,9 +203,11 @@ EXP_Inject(struct objcore *oc, struct lru *lru, double when)
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 
-	Lck_Lock(&lru->mtx);
-	/* XXX: use per-object mutex for timer_when locking? */
+	Lck_Lock(&oc->timer_when_mtx);
 	oc->timer_when = when;
+	Lck_Unlock(&oc->timer_when_mtx);
+
+	Lck_Lock(&lru->mtx);
 	lru_insert(oc, lru);
 	Lck_Unlock(&lru->mtx);
 }
@@ -286,15 +288,32 @@ EXP_Touch(struct objcore *oc)
 }
 
 /*--------------------------------------------------------------------
- * Adds expired object to exp_list.
- * The object must be already removed from LRU list before passing
- * to this function.
+ * Schedules expiration for the given object.
  */
 
 static void
-add_to_exp_list(struct objcore *oc)
+expire(struct objcore *oc)
 {
-	AZ(oc->on_lru);
+	struct lru *lru;
+	int is_removed_from_lru = 0;
+
+	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
+
+	/*
+	 * Remove expired object from LRU list and move it to exp_list
+	 * if it wasn't already moved there.
+	 */
+	lru = oc_getlru(oc);
+	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
+	Lck_Lock(&lru->mtx);
+	if (oc->on_lru) {
+		lru_remove(oc, lru);
+		AZ(oc->on_lru);
+		is_removed_from_lru = 1;
+	}
+	Lck_Unlock(&lru->mtx);
+	if (!is_removed_from_lru)
+		return;
 
 	/*
 	 * Smart hack: since oc->lru_list is unused after removing
@@ -320,9 +339,7 @@ void
 EXP_Rearm(const struct object *o)
 {
 	struct objcore *oc;
-	struct lru *lru;
-	double when, t;
-	int is_expired = 0;
+	double when;
 
 	CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 	oc = o->objcore;
@@ -330,32 +347,14 @@ EXP_Rearm(const struct object *o)
 		return;
 
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
-	lru = oc_getlru(oc);
-	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
         when = get_object_when(o);
-	t = VTIM_real();
-
-	Lck_Lock(&lru->mtx);
-	if (when < t) {
-		/*
-		 * Remove expired object from LRU list and move it to exp_list
-		 * if it wasn't already moved there.
-		 */
-		if (oc->on_lru) {
-			lru_remove(oc, lru);
-			AZ(oc->on_lru);
-			is_expired = 1;
-		}
-	} else {
-		/* XXX: use per-object mutex for timer_when locking? */
+	if (when > VTIM_real()) {
+		Lck_Lock(&oc->timer_when_mtx);
 		oc->timer_when = when;
-	}
-	Lck_Unlock(&lru->mtx);
-
-	if (is_expired)
-		add_to_exp_list(oc);
-	else
+		Lck_Unlock(&oc->timer_when_mtx);
 		oc_updatemeta(oc);
+	} else
+		expire(oc);
 }
 
 /*--------------------------------------------------------------------
@@ -366,37 +365,18 @@ EXP_Rearm(const struct object *o)
 int
 EXP_IsExpired(struct objcore *oc, double t_req)
 {
-	struct lru *lru;
+	int is_expired;
 
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	AZ(oc->flags & OC_F_BUSY);
 
-	/*
-	 * Remove the object from LRU list, since this is quite fast operation.
-	 * Delegate object deletion to exp_thread, since it can be time
-	 * consuming operation, so can negatively impact response time if
-	 * the object had been swapped out from RAM.
-	 */
-	lru = oc_getlru(oc);
-	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	if (Lck_Trylock(&lru->mtx))
-		return (0);	/* No luck now - will be lucky next time. */
+	Lck_Lock(&oc->timer_when_mtx);
+	is_expired = (oc->timer_when <= t_req);
+	Lck_Unlock(&oc->timer_when_mtx);
 
-	if (oc->timer_when > t_req) {
-		Lck_Unlock(&lru->mtx);
-		return (0);
-	}
-	if (!oc->on_lru) {
-		Lck_Unlock(&lru->mtx);
-		return (1);
-	}
-	lru_remove(oc, lru);
-	AZ(oc->on_lru);
-	Lck_Unlock(&lru->mtx);
-
-	add_to_exp_list(oc);
-
-	return (1);
+	if (is_expired)
+		expire(oc);
+	return (is_expired);
 }
 
 /*--------------------------------------------------------------------

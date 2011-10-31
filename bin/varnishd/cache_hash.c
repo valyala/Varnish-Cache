@@ -84,6 +84,7 @@ HSH_Prealloc(const struct sess *sp)
 		w->nobjcore = oc;
 		w->stats.n_objectcore++;
 		oc->flags |= OC_F_BUSY;
+		Lck_New(&oc->timer_when_mtx, lck_timer_when);
 	}
 	CHECK_OBJ_NOTNULL(w->nobjcore, OBJCORE_MAGIC);
 
@@ -121,6 +122,7 @@ HSH_Cleanup(struct worker *w)
 {
 
 	if (w->nobjcore != NULL) {
+		Lck_Delete(&w->nobjcore->timer_when_mtx);
 		FREE_OBJ(w->nobjcore);
 		w->stats.n_objectcore--;
 		w->nobjcore = NULL;
@@ -734,6 +736,7 @@ HSH_Deref(struct worker *w, struct objcore *oc, struct object **oo)
 		oc_freeobj(oc);
 		w->stats.n_object--;
 	}
+	Lck_Delete(&oc->timer_when_mtx);
 	FREE_OBJ(oc);
 
 	w->stats.n_objectcore--;
