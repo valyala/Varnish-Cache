@@ -287,7 +287,8 @@ EXP_Touch(struct objcore *oc)
 
 /*--------------------------------------------------------------------
  * Adds expired object to exp_list.
- * The object must be already removed from LRU list.
+ * The object must be already removed from LRU list before passing
+ * to this function.
  */
 
 static void
