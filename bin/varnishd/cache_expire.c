@@ -306,7 +306,8 @@ expire(struct objcore *oc)
 	 */
 	lru = oc_getlru(oc);
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
-	Lck_Lock(&lru->mtx);
+	if (Lck_Trylock(&lru->mtx))
+		return;		/* No problems - try the next time */
 	if (oc->on_lru) {
 		lru_remove(oc, lru);
 		AZ(oc->on_lru);
@@ -349,12 +350,12 @@ EXP_Rearm(const struct object *o)
 
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
         when = get_object_when(o);
-	if (when > VTIM_real()) {
-		Lck_Lock(&timer_when_mtx);
-		oc->timer_when = when;
-		Lck_Unlock(&timer_when_mtx);
-		oc_updatemeta(oc);
-	} else
+	Lck_Lock(&timer_when_mtx);
+	oc->timer_when = when;
+	Lck_Unlock(&timer_when_mtx);
+	oc_updatemeta(oc);
+
+	if (when <= VTIM_real())
 		expire(oc);
 }
 
