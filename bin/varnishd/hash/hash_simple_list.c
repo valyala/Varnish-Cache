@@ -94,9 +94,6 @@ hsl_deref(struct objhead *oh)
 	Lck_Lock(&hsl_mtx);
 	assert(oh->refcnt > 0);
 	if (--oh->refcnt == 0) {
-		/*
-		 * XXX: removal from singly linked list has O(n) complexity.
-		 */
 		VSLIST_REMOVE(&hsl_head, oh, objhead, hoh_list);
 		ret = 0;
 	} else
