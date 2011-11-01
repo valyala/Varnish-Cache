@@ -60,22 +60,16 @@ hsl_start(void)
 static struct objhead *
 hsl_lookup(const struct sess *sp, struct objhead *noh)
 {
-	struct objhead *oh, **ohp;
+	struct objhead *oh;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
 	Lck_Lock(&hsl_mtx);
-	VSLIST_FOREACH_PREVPTR(oh, ohp, &hsl_head, hoh_list) {
+	VSLIST_FOREACH(oh, &hsl_head, hoh_list) {
 		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		if (memcmp(oh->digest, noh->digest, sizeof oh->digest))
 			continue;
 
-		/*
-		 * Move the found object to the head of the list, so recently
-		 * found objects will be looked up faster next time.
-		 */
-		VSLIST_NEXT(*ohp, hoh_list) = VSLIST_NEXT(oh, hoh_list);
-		VSLIST_INSERT_HEAD(&hsl_head, oh, hoh_list);
 		oh->refcnt++;
 		Lck_Unlock(&hsl_mtx);
 		return (oh);
