@@ -919,12 +919,6 @@ static const struct parspec input_parspec[] = {
 		"put in transient storage.\n",
 		0,
 		"10.0", "s" },
-	{ "critbit_cooloff", tweak_timeout_double,
-		&master.critbit_cooloff, 60, 254,
-		"How long time the critbit hasher keeps deleted objheads "
-		"on the cooloff list.\n",
-		WIZARD,
-		"180.0", "s" },
 	{ "vcl_dir", tweak_string, &mgt_vcl_dir, 0, 0,
 		"Directory from which relative VCL filenames (vcl.load and "
 		"include) are opened.",

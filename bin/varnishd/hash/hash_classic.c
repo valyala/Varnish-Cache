@@ -43,7 +43,7 @@
 struct hcl_hd {
 	unsigned		magic;
 #define HCL_HEAD_MAGIC		0x0f327016
-	VTAILQ_HEAD(, objhead)	head;
+	VSLIST_HEAD(, objhead)	head;
 	struct lock		mtx;
 };
 
@@ -95,28 +95,24 @@ hcl_start(void)
 	XXXAN(hcl_head);
 
 	for (u = 0; u < hcl_nhash; u++) {
-		VTAILQ_INIT(&hcl_head[u].head);
-		Lck_New(&hcl_head[u].mtx, lck_hcl);
 		hcl_head[u].magic = HCL_HEAD_MAGIC;
+		VSLIST_INIT(&hcl_head[u].head);
+		Lck_New(&hcl_head[u].mtx, lck_hcl);
 	}
 }
 
 /*--------------------------------------------------------------------
  * Lookup and possibly insert element.
- * If nobj != NULL and the lookup does not find key, nobj is inserted.
- * If nobj == NULL and the lookup does not find key, NULL is returned.
+ * If the lookup does not find key, nobj is inserted.
  * A reference to the returned object is held.
- * We use a two-pass algorithm to handle inserts as they are quite
- * rare and collisions even rarer.
  */
 
 static struct objhead *
 hcl_lookup(const struct sess *sp, struct objhead *noh)
 {
-	struct objhead *oh;
+	struct objhead *oh, **ohp;
 	struct hcl_hd *hp;
 	unsigned u1, digest;
-	int i;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
@@ -125,24 +121,28 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 	memcpy(&digest, noh->digest, sizeof digest);
 	u1 = digest % hcl_nhash;
 	hp = &hcl_head[u1];
+	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
 
 	Lck_Lock(&hp->mtx);
-	VTAILQ_FOREACH(oh, &hp->head, hoh_list) {
-		i = memcmp(oh->digest, noh->digest, sizeof oh->digest);
-		if (i < 0)
+	VSLIST_FOREACH_PREVPTR(oh, ohp, &hp->head, hoh_list) {
+		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
+		if (memcmp(oh->digest, noh->digest, sizeof oh->digest))
 			continue;
-		if (i > 0)
-			break;
+
+		/*
+		 * Move the found object to the head of the list, so recently
+		 * found objects will be looked up faster next time.
+		 */
+		if (ohp != &VSLIST_FIRST(&hp->head)) {
+			VSLIST_NEXT(*ohp, hoh_list) = VSLIST_NEXT(oh, hoh_list);
+			VSLIST_INSERT_HEAD(&hp->head, oh, hoh_list);
+		}
 		oh->refcnt++;
 		Lck_Unlock(&hp->mtx);
 		return (oh);
 	}
 
-	if (oh != NULL)
-		VTAILQ_INSERT_BEFORE(oh, noh, hoh_list);
-	else
-		VTAILQ_INSERT_TAIL(&hp->head, noh, hoh_list);
-
+	VSLIST_INSERT_HEAD(&hp->head, noh, hoh_list);
 	noh->hoh_head = hp;
 
 	Lck_Unlock(&hp->mtx);
@@ -161,10 +161,16 @@ hcl_deref(struct objhead *oh)
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	CAST_OBJ_NOTNULL(hp, oh->hoh_head, HCL_HEAD_MAGIC);
-	assert(oh->refcnt > 0);
 	Lck_Lock(&hp->mtx);
+	assert(oh->refcnt > 0);
 	if (--oh->refcnt == 0) {
-		VTAILQ_REMOVE(&hp->head, oh, hoh_list);
+		/*
+		 * Though removal from singly list list requires O(n) time,
+		 * this should be OK here, since hash table buckets must contain
+		 * only a few items to be fast. If this isn't the case, just
+		 * increase the number of buckets in the table (hcl_nhash).
+		 */
+		VSLIST_REMOVE(&hp->head, oh, objhead, hoh_list);
 		ret = 0;
 	} else
 		ret = 1;

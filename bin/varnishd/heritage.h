@@ -210,8 +210,6 @@ struct params {
 	unsigned		gzip_window;
 	unsigned		gzip_memlevel;
 
-	double			critbit_cooloff;
-
 	double			shortlived;
 
 	struct vre_limits	vre_limits;

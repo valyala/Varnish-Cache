@@ -87,7 +87,7 @@ struct objhead {
 	 */
 	union {
 		struct {
-			VTAILQ_ENTRY(objhead)	u_n_hoh_list;
+			VSLIST_ENTRY(objhead)	u_n_hoh_list;
 			void			*u_n_hoh_head;
 		} n;
 	} _u;

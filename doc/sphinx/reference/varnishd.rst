@@ -139,7 +139,7 @@ Hash Algorithms
 The following hash algorithms are available:
 
 simple_list
-  A simple doubly-linked list.  Not recommended for production use.
+  A simple singlyy-linked list.  Not recommended for production use.
 
 classic[,buckets]
   A standard hash table.  This is the default.  The hash key is the
@@ -147,11 +147,6 @@ classic[,buckets]
   table entry points to a list of elements which share the same hash
   key. The buckets parameter specifies the number of entries in the
   hash table.  The default is 16383.
-
-critbit
-  A self-scaling tree structure. The default hash algorithm in 2.1. In
-  comparison to a more traditional B tree the critbit tree is almost
-  completely lockless.
 
 Storage Types
 -------------
