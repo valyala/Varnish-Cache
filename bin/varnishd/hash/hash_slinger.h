@@ -101,4 +101,3 @@ int HSH_Deref(struct worker *w, struct objcore *oc, struct object **o);
 
 extern const struct hash_slinger hsl_slinger;
 extern const struct hash_slinger hcl_slinger;
-extern const struct hash_slinger hcb_slinger;
