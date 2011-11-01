@@ -129,10 +129,9 @@ usage(void)
 	fprintf(stderr, FMT, "-f file", "VCL script");
 	fprintf(stderr, FMT, "-F", "Run in foreground");
 	fprintf(stderr, FMT, "-h kind[,hashoptions]", "Hash specification");
-	fprintf(stderr, FMT, "", "  -h critbit [default]");
-	fprintf(stderr, FMT, "", "  -h simple_list");
-	fprintf(stderr, FMT, "", "  -h classic");
+	fprintf(stderr, FMT, "", "  -h classic [default]");
 	fprintf(stderr, FMT, "", "  -h classic,<buckets>");
+	fprintf(stderr, FMT, "", "  -h simple_list");
 	fprintf(stderr, FMT, "-i identity", "Identity of varnish instance");
 	fprintf(stderr, FMT, "-l shl,free,fill", "Size of shared memory file");
 	fprintf(stderr, FMT, "", "  shl: space for SHL records [80m]");
@@ -337,7 +336,7 @@ main(int argc, char * const *argv)
 	const char *f_arg = NULL;
 	const char *i_arg = NULL;
 	const char *l_arg = NULL;	/* default in mgt_shmem.c */
-	const char *h_arg = "critbit";
+	const char *h_arg = "classic";
 	const char *M_arg = NULL;
 	const char *n_arg = NULL;
 	const char *P_arg = NULL;

@@ -44,7 +44,7 @@ that looks something like::
 	  Condition(!strcmp("", "You asked for it")) not true.
 	errno = 9 (Bad file descriptor)
 	thread = (cache-main)
-	ident = FreeBSD,9.0-CURRENT,amd64,-sfile,-hcritbit,kqueue
+	ident = FreeBSD,9.0-CURRENT,amd64,-sfile,-hclassic,kqueue
 	Backtrace:
 	  0x42bce1: pan_ic+171
 	  0x4196af: ccf_panic+4f
