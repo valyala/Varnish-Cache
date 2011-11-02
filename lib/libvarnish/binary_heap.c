@@ -4,7 +4,6 @@
  * All rights reserved.
  *
  * Author: Poul-Henning Kamp <phk@phk.freebsd.dk>
- * Author: Aliaksandr Valialkin <valyala@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,7 +26,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Implementation of a binheap API.
+ * Implementation of a binary heap API
  *
  * Test driver can be built and run using the following commands:
  * $ cc -DTEST_DRIVER -I../.. -I../../include -lrt -lm binary_heap.c
@@ -52,9 +51,9 @@
 
 /* Private definitions -----------------------------------------------*/
 
-#define A(bh, n)		((bh)->array[n])
-
 #define ROOT_IDX		1
+
+#define A(bh, n)		((bh)->array[n])
 
 #ifdef TEST_DRIVER
 
