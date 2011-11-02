@@ -120,7 +120,6 @@ diag_bitmap
 	  0x00010000 - synchronize shmlog.
 	  0x00020000 - synchronous start of persistence.
 	  0x00040000 - release VCL early.
-	  0x80000000 - do edge-detection on digest.
 
 	Use 0x notation and do the bitor in your head :-)
 
