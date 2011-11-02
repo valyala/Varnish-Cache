@@ -5,7 +5,6 @@
  *
  */
 
-
 #define __CMP_MAGIC(ptr, type_magic)					\
 	((ptr)->magic == (type_magic))
 
@@ -19,11 +18,11 @@
 		assert(__CMP_MAGIC((ptr), (type_magic)));		\
 	} while (0)
 
-#define ALLOC_OBJ(to, type_magic)					\
+#define ALLOC_OBJ_NOTNULL(to, type_magic)				\
 	do {								\
 		(to) = calloc(1, sizeof(*(to)));			\
-		if ((to) != NULL)					\
-			__SET_MAGIC((to), (type_magic));		\
+		XXXAN((to));						\
+		__SET_MAGIC((to), (type_magic));			\
 	} while (0)
 
 #define FREE_OBJ(to)							\

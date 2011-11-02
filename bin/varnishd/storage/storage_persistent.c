@@ -221,8 +221,7 @@ smp_open_segs(struct smp_sc *sc, struct smp_signctx *ctx)
 	sg1 = NULL;
 	sg2 = NULL;
 	for(; ss <= se; ss++) {
-		ALLOC_OBJ(sg, SMP_SEG_MAGIC);
-		AN(sg);
+		ALLOC_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 		sg->lru = LRU_Alloc();
 		CHECK_OBJ_NOTNULL(sg->lru, LRU_MAGIC);
 		sg->p = *ss;

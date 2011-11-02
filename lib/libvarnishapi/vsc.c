@@ -80,8 +80,7 @@ VSC_Setup(struct VSM_data *vd)
 	CHECK_OBJ_NOTNULL(vd, VSM_MAGIC);
 	AZ(vd->vsc);
 	AZ(vd->vsl);
-	ALLOC_OBJ(vd->vsc, VSC_MAGIC);
-	AN(vd->vsc);
+	ALLOC_OBJ_NOTNULL(vd->vsc, VSC_MAGIC);
 	VTAILQ_INIT(&vd->vsc->sf_list);
 }
 
@@ -133,8 +132,7 @@ vsc_sf_arg(const struct VSM_data *vd, const char *opt)
 		return (-1);
 	}
 	for (i = 1; av[i] != NULL; i++) {
-		ALLOC_OBJ(sf, VSL_SF_MAGIC);
-		AN(sf);
+		ALLOC_OBJ_NOTNULL(sf, VSL_SF_MAGIC);
 		VTAILQ_INSERT_TAIL(&vsc->sf_list, sf, next);
 
 		p = av[i];

@@ -74,8 +74,7 @@ vtc_logopen(const char *id)
 {
 	struct vtclog *vl;
 
-	ALLOC_OBJ(vl, VTCLOG_MAGIC);
-	AN(vl);
+	ALLOC_OBJ_NOTNULL(vl, VTCLOG_MAGIC);
 	vl->id = id;
 	vl->vsb = VSB_new_auto();
 	AZ(pthread_mutex_init(&vl->mtx, NULL));

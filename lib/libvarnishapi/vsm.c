@@ -61,9 +61,7 @@ VSM_New(void)
 {
 	struct VSM_data *vd;
 
-	ALLOC_OBJ(vd, VSM_MAGIC);
-	AN(vd);
-
+	ALLOC_OBJ_NOTNULL(vd, VSM_MAGIC);
 	vd->diag = (VSM_diag_f*)fprintf;
 	vd->priv = stderr;
 

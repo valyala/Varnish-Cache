@@ -228,8 +228,7 @@ varnish_new(const char *name)
 	char buf[1024];
 
 	AN(name);
-	ALLOC_OBJ(v, VARNISH_MAGIC);
-	AN(v);
+	ALLOC_OBJ_NOTNULL(v, VARNISH_MAGIC);
 	REPLACE(v->name, name);
 
 	v->vl = vtc_logopen(name);

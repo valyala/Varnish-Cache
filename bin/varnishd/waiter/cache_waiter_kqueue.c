@@ -219,9 +219,7 @@ vwk_init(void)
 	int i;
 	struct vwk *vwk;
 
-	ALLOC_OBJ(vwk, VWK_MAGIC);
-	AN(vwk);
-
+	ALLOC_OBJ_NOTNULL(vwk, VWK_MAGIC);
 	VTAILQ_INIT(&vwk->sesshead);
 	AZ(pipe(vwk->pipes));
 

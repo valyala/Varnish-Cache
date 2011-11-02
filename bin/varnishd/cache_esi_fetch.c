@@ -304,16 +304,14 @@ vfp_esi_begin(struct worker *w, size_t estimate)
 		w->vgz_rx = VGZ_NewUngzip(w, "U F E");
 		VEP_Init(w, NULL);
 	} else if (w->is_gunzip && w->do_gzip) {
-		ALLOC_OBJ(vef, VEF_MAGIC);
-		AN(vef);
+		ALLOC_OBJ_NOTNULL(vef, VEF_MAGIC);
 		vef->vgz = VGZ_NewGzip(w, "G F E");
 		AZ(w->vef_priv);
 		w->vef_priv = vef;
 		VEP_Init(w, vfp_vep_callback);
 	} else if (w->is_gzip) {
 		w->vgz_rx = VGZ_NewUngzip(w, "U F E");
-		ALLOC_OBJ(vef, VEF_MAGIC);
-		AN(vef);
+		ALLOC_OBJ_NOTNULL(vef, VEF_MAGIC);
 		vef->vgz = VGZ_NewGzip(w, "G F E");
 		AZ(w->vef_priv);
 		w->vef_priv = vef;

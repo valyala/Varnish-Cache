@@ -513,8 +513,7 @@ pool_mkpool(void)
 	struct poolsock *ps;
 	pthread_condattr_t cv_attr;
 
-	ALLOC_OBJ(pp, POOL_MAGIC);
-	XXXAN(pp);
+	ALLOC_OBJ_NOTNULL(pp, POOL_MAGIC);
 	Lck_New(&pp->mtx, lck_wq);
 
 	VTAILQ_INIT(&pp->queue);
@@ -526,8 +525,7 @@ pool_mkpool(void)
 	VTAILQ_FOREACH(ls, &heritage.socks, list) {
 		if (ls->sock < 0)
 			continue;
-		ALLOC_OBJ(ps, POOLSOCK_MAGIC);
-		XXXAN(ps);
+		ALLOC_OBJ_NOTNULL(ps, POOLSOCK_MAGIC);
 		ps->lsock = ls;
 		VTAILQ_INSERT_TAIL(&pp->socks, ps, list);
 	}

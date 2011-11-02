@@ -90,28 +90,9 @@ sma_alloc(struct stevedore *st, size_t size)
 	 */
 
 	p = malloc(size);
-	if (p != NULL) {
-		ALLOC_OBJ(sma, SMA_MAGIC);
-		if (sma != NULL)
-			sma->s.ptr = p;
-		else
-			free(p);
-	}
-	if (sma == NULL) {
-		Lck_Lock(&sma_sc->sma_mtx);
-		/*
-		 * XXX: Not nice to have counters go backwards, but we do
-		 * XXX: Not want to pick up the lock twice just for stats.
-		 */
-		sma_sc->stats->c_fail++;
-		sma_sc->stats->c_bytes -= size;
-		sma_sc->stats->g_alloc--;
-		sma_sc->stats->g_bytes -= size;
-		if (sma_sc->sma_max != SIZE_MAX)
-			sma_sc->stats->g_space += size;
-		Lck_Unlock(&sma_sc->sma_mtx);
-		return (NULL);
-	}
+	XXXAN(p);
+	ALLOC_OBJ_NOTNULL(sma, SMA_MAGIC);
+	sma->s.ptr = p;
 	sma->sc = sma_sc;
 	sma->sz = size;
 	sma->s.priv = sma;
@@ -204,8 +185,7 @@ sma_init(struct stevedore *parent, int ac, char * const *av)
 	struct sma_sc *sc;
 
 	ASSERT_MGT();
-	ALLOC_OBJ(sc, SMA_SC_MAGIC);
-	AN(sc);
+	ALLOC_OBJ_NOTNULL(sc, SMA_SC_MAGIC);
 	sc->sma_max = SIZE_MAX;
 	assert(sc->sma_max == SIZE_MAX);
 	parent->priv = sc;

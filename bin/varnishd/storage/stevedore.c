@@ -104,8 +104,7 @@ LRU_Alloc(void)
 {
 	struct lru *l;
 
-	ALLOC_OBJ(l, LRU_MAGIC);
-	AN(l);
+	ALLOC_OBJ_NOTNULL(l, LRU_MAGIC);
 	VTAILQ_INIT(&l->lru_head);
 	Lck_New(&l->mtx, lck_lru);
 	return (l);
@@ -481,8 +480,7 @@ STV_Config(const char *spec)
 	av += 2;
 
 	CHECK_OBJ_NOTNULL(stv2, STEVEDORE_MAGIC);
-	ALLOC_OBJ(stv, STEVEDORE_MAGIC);
-	AN(stv);
+	ALLOC_OBJ_NOTNULL(stv, STEVEDORE_MAGIC);
 
 	*stv = *stv2;
 	AN(stv->name);

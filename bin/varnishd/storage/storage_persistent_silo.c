@@ -175,8 +175,7 @@ smp_new_seg(struct smp_sc *sc)
 	struct smp_seg *sg, *sg2;
 
 	Lck_AssertHeld(&sc->mtx);
-	ALLOC_OBJ(sg, SMP_SEG_MAGIC);
-	AN(sg);
+	ALLOC_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 	sg->sc = sc;
 	sg->lru = LRU_Alloc();
 	CHECK_OBJ_NOTNULL(sg->lru, LRU_MAGIC);

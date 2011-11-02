@@ -219,8 +219,7 @@ vbe_NewConn(void)
 {
 	struct vbc *vc;
 
-	ALLOC_OBJ(vc, VBC_MAGIC);
-	XXXAN(vc);
+	ALLOC_OBJ_NOTNULL(vc, VBC_MAGIC);
 	vc->fd = -1;
 	Lck_Lock(&VBE_mtx);
 	VSC_C_main->n_vbc++;
@@ -491,8 +490,7 @@ VRT_init_dir_simple(struct cli *cli, struct director **bp, int idx,
 	(void)cli;
 	t = priv;
 
-	ALLOC_OBJ(vs, VDI_SIMPLE_MAGIC);
-	XXXAN(vs);
+	ALLOC_OBJ_NOTNULL(vs, VDI_SIMPLE_MAGIC);
 	vs->dir.magic = DIRECTOR_MAGIC;
 	vs->dir.priv = vs;
 	vs->dir.name = "simple";

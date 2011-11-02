@@ -75,8 +75,7 @@ HSH_Prealloc(const struct sess *sp)
 	w = sp->wrk;
 
 	if (w->nobjcore == NULL) {
-		ALLOC_OBJ(oc, OBJCORE_MAGIC);
-		XXXAN(oc);
+		ALLOC_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		w->nobjcore = oc;
 		w->stats.n_objectcore++;
 		oc->flags |= OC_F_BUSY;
@@ -84,8 +83,7 @@ HSH_Prealloc(const struct sess *sp)
 	CHECK_OBJ_NOTNULL(w->nobjcore, OBJCORE_MAGIC);
 
 	if (w->nobjhead == NULL) {
-		ALLOC_OBJ(oh, OBJHEAD_MAGIC);
-		XXXAN(oh);
+		ALLOC_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		oh->refcnt = 1;
 		VTAILQ_INIT(&oh->objcs);
 		oh->waitinglist = NULL;
@@ -95,10 +93,8 @@ HSH_Prealloc(const struct sess *sp)
 	}
 	CHECK_OBJ_NOTNULL(w->nobjhead, OBJHEAD_MAGIC);
 
-	if (w->nbusyobj == NULL) {
-		ALLOC_OBJ(w->nbusyobj, BUSYOBJ_MAGIC);
-		XXXAN(w->nbusyobj);
-	}
+	if (w->nbusyobj == NULL)
+		ALLOC_OBJ_NOTNULL(w->nbusyobj, BUSYOBJ_MAGIC);
 }
 
 void

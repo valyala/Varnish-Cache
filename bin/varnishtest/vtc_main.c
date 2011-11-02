@@ -257,9 +257,7 @@ start_test(void)
 	struct vtc_job *jp;
 	char tmpdir[PATH_MAX];
 
-	ALLOC_OBJ(jp, JOB_MAGIC);
-	AN(jp);
-
+	ALLOC_OBJ_NOTNULL(jp, JOB_MAGIC);
 	jp->bufsiz = 256*1024;		/* XXX */
 
 	jp->buf = mmap(NULL, jp->bufsiz, PROT_READ|PROT_WRITE,
@@ -390,8 +388,7 @@ main(int argc, char * const *argv)
 				continue;
 			exit(2);
 		}
-		ALLOC_OBJ(tp, TST_MAGIC);
-		AN(tp);
+		ALLOC_OBJ_NOTNULL(tp, TST_MAGIC);
 		tp->filename = *argv;
 		tp->script = p;
 		tp->ntodo = ntest;

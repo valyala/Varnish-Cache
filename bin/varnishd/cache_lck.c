@@ -166,8 +166,7 @@ Lck__New(struct lock *lck, struct VSC_C_lck *st, const char *w)
 
 	AN(st);
 	AZ(lck->priv);
-	ALLOC_OBJ(ilck, ILCK_MAGIC);
-	AN(ilck);
+	ALLOC_OBJ_NOTNULL(ilck, ILCK_MAGIC);
 	ilck->w = w;
 	ilck->stat = st;
 	ilck->stat->creat++;

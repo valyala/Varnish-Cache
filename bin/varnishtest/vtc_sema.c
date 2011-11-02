@@ -59,8 +59,7 @@ sema_new(char *name, struct vtclog *vl)
 {
 	struct sema *r;
 
-	ALLOC_OBJ(r, SEMA_MAGIC);
-	AN(r);
+	ALLOC_OBJ_NOTNULL(r, SEMA_MAGIC);
 	r->name = name;
 	if (*name != 'r')
 		vtc_log(vl, 0, "Sema name must start with 'r' (%s)", *name);

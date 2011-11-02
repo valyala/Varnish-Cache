@@ -384,8 +384,7 @@ VCLS_New(cls_cbc_f *before, cls_cbc_f *after, unsigned maxlen)
 {
 	struct VCLS *cs;
 
-	ALLOC_OBJ(cs, VCLS_MAGIC);
-	AN(cs);
+	ALLOC_OBJ_NOTNULL(cs, VCLS_MAGIC);
 	VTAILQ_INIT(&cs->fds);
 	VTAILQ_INIT(&cs->funcs);
 	cs->before = before;
@@ -402,8 +401,7 @@ VCLS_AddFd(struct VCLS *cs, int fdi, int fdo, cls_cb_f *closefunc, void *priv)
 	CHECK_OBJ_NOTNULL(cs, VCLS_MAGIC);
 	assert(fdi >= 0);
 	assert(fdo >= 0);
-	ALLOC_OBJ(cfd, VCLS_FD_MAGIC);
-	AN(cfd);
+	ALLOC_OBJ_NOTNULL(cfd, VCLS_FD_MAGIC);
 	cfd->cls = cs;
 	cfd->fdi = fdi;
 	cfd->fdo = fdo;
@@ -449,8 +447,7 @@ VCLS_AddFunc(struct VCLS *cs, unsigned auth, struct cli_proto *clp)
 	struct VCLS_func *cfn;
 
 	CHECK_OBJ_NOTNULL(cs, VCLS_MAGIC);
-	ALLOC_OBJ(cfn, VCLS_FUNC_MAGIC);
-	AN(cfn);
+	ALLOC_OBJ_NOTNULL(cfn, VCLS_FUNC_MAGIC);
 	cfn->clp = clp;
 	cfn->auth = auth;
 	VTAILQ_INSERT_TAIL(&cs->funcs, cfn, list);

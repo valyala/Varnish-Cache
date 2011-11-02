@@ -124,10 +124,7 @@ vgz_alloc_vgz(struct worker *wrk, const char *id)
 	WS_Assert(ws);
 	// XXX: we restore workspace in esi:include
 	// vg = (void*)WS_Alloc(ws, sizeof *vg);
-	ALLOC_OBJ(vg, VGZ_MAGIC);
-	AN(vg);
-	memset(vg, 0, sizeof *vg);
-	vg->magic = VGZ_MAGIC;
+	ALLOC_OBJ_NOTNULL(vg, VGZ_MAGIC);
 	vg->wrk = wrk;
 	vg->id = id;
 

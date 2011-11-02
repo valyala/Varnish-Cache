@@ -69,8 +69,7 @@ VSL_Setup(struct VSM_data *vd)
 	CHECK_OBJ_NOTNULL(vd, VSM_MAGIC);
 	AZ(vd->vsc);
 	AZ(vd->vsl);
-	ALLOC_OBJ(vsl, VSL_MAGIC);
-	AN(vsl);
+	ALLOC_OBJ_NOTNULL(vsl, VSL_MAGIC);
 
 	vd->vsl = vsl;
 

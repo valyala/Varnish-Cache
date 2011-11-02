@@ -149,8 +149,7 @@ smp_mgt_init(struct stevedore *parent, int ac, char * const *av)
 	assert(sizeof(struct smp_ident) == SMP_IDENT_SIZE);
 
 	/* Allocate softc */
-	ALLOC_OBJ(sc, SMP_SC_MAGIC);
-	XXXAN(sc);
+	ALLOC_OBJ_NOTNULL(sc, SMP_SC_MAGIC);
 	sc->parent = parent;
 	sc->fd = -1;
 	VTAILQ_INIT(&sc->segments);

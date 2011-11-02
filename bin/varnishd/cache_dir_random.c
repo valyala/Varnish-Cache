@@ -232,8 +232,7 @@ vrt_init(struct cli *cli, struct director **bp, int idx,
 	(void)cli;
 	t = priv;
 
-	ALLOC_OBJ(vs, VDI_RANDOM_MAGIC);
-	XXXAN(vs);
+	ALLOC_OBJ_NOTNULL(vs, VDI_RANDOM_MAGIC);
 	vs->hosts = calloc(sizeof *vh, t->nmember);
 	XXXAN(vs->hosts);
 

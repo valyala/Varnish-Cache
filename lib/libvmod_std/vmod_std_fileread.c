@@ -111,8 +111,7 @@ vmod_fileread(struct sess *sp, struct vmod_priv *priv, const char *file_name)
 
 	s = VFIL_readfile(NULL, file_name, NULL);
 	if (s != NULL) {
-		ALLOC_OBJ(frf, CACHED_FILE_MAGIC);
-		AN(frf);
+		ALLOC_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
 		frf->file_name = strdup(file_name);
 		AN(frf->file_name);
 		frf->refcount = 1;

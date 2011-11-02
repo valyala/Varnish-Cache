@@ -263,9 +263,7 @@ vdi_dns_cache_add(const struct sess *sp,
 	hint.ai_family = PF_UNSPEC;
 	hint.ai_socktype = SOCK_STREAM;
 
-	ALLOC_OBJ(new, VDI_DNSDIR_MAGIC);
-	XXXAN(new);
-
+	ALLOC_OBJ_NOTNULL(new, VDI_DNSDIR_MAGIC);
 	REPLACE(new->hostname, hostname);
 
 	error = getaddrinfo(hostname, "80", &hint, &res0);
@@ -442,8 +440,7 @@ VRT_init_dir_dns(struct cli *cli, struct director **bp, int idx,
 	ASSERT_CLI();
 	(void)cli;
 	t = priv;
-	ALLOC_OBJ(vs, VDI_DNS_MAGIC);
-	XXXAN(vs);
+	ALLOC_OBJ_NOTNULL(vs, VDI_DNS_MAGIC);
 	vs->hosts = calloc(sizeof(struct director *), t->nmember);
 	XXXAN(vs->hosts);
 

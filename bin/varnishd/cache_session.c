@@ -388,8 +388,7 @@ SES_NewPool(struct pool *pp)
 {
 	struct sesspool *sp;
 
-	ALLOC_OBJ(sp, SESSPOOL_MAGIC);
-	AN(sp);
+	ALLOC_OBJ_NOTNULL(sp, SESSPOOL_MAGIC);
 	sp->pool = pp;
 	VTAILQ_INIT(&sp->freelist);
 	Lck_New(&sp->mtx, lck_sessmem);

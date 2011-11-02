@@ -141,8 +141,7 @@ smf_init(struct stevedore *parent, int ac, char * const *av)
 	AN(fn);
 	AN(size);
 
-	ALLOC_OBJ(sc, SMF_SC_MAGIC);
-	XXXAN(sc);
+	ALLOC_OBJ_NOTNULL(sc, SMF_SC_MAGIC);
 	VTAILQ_INIT(&sc->order);
 	for (u = 0; u < NBUCKET; u++)
 		VTAILQ_INIT(&sc->free[u]);

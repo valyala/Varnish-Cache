@@ -191,8 +191,7 @@ VBE_AddBackend(struct cli *cli, const struct vrt_backend *vb)
 	}
 
 	/* Create new backend */
-	ALLOC_OBJ(b, BACKEND_MAGIC);
-	XXXAN(b);
+	ALLOC_OBJ_NOTNULL(b, BACKEND_MAGIC);
 	Lck_New(&b->mtx, lck_backend);
 	b->refcount = 1;
 

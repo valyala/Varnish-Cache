@@ -244,8 +244,7 @@ vcc_new_expr(void)
 	struct expr *e;
 
 	/* XXX: use TlAlloc() ? */
-	ALLOC_OBJ(e, EXPR_MAGIC);
-	AN(e);
+	ALLOC_OBJ_NOTNULL(e, EXPR_MAGIC);
 	e->vsb = VSB_new_auto();
 	e->fmt = VOID;
 	return (e);

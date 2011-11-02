@@ -265,8 +265,7 @@ vws_init(void)
 {
 	struct vws *vws;
 
-	ALLOC_OBJ(vws, VWS_MAGIC);
-	AN(vws);
+	ALLOC_OBJ_NOTNULL(vws, VWS_MAGIC);
 	VTAILQ_INIT(&vws->sesshead);
 	AZ(pthread_create(&vws->ports_thread, NULL, vws_thread, vws));
 	return (vws);

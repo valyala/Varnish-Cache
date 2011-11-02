@@ -58,18 +58,13 @@ VLU_New(void *priv, vlu_f *func, unsigned bufsize)
 
 	if (bufsize == 0)
 		bufsize = BUFSIZ;
-	ALLOC_OBJ(l, LINEUP_MAGIC);
-	if (l != NULL) {
-		l->func = func;
-		l->priv = priv;
-		l->bufl = bufsize - 1;
-		l->telnet = -1;
-		l->buf = malloc(l->bufl + 1L);
-		if (l->buf == NULL) {
-			FREE_OBJ(l);
-			l = NULL;
-		}
-	}
+	ALLOC_OBJ_NOTNULL(l, LINEUP_MAGIC);
+	l->func = func;
+	l->priv = priv;
+	l->bufl = bufsize - 1;
+	l->telnet = -1;
+	l->buf = malloc(l->bufl + 1L);
+	XXXAN(l->buf);
 	return (l);
 }
 

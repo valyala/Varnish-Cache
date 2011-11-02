@@ -432,8 +432,7 @@ vbp_new_vcl(const struct vrt_backend_probe *p, const char *hosthdr)
 {
 	struct vbp_vcl *vcl;
 
-	ALLOC_OBJ(vcl, VBP_VCL_MAGIC);
-	XXXAN(vcl);
+	ALLOC_OBJ_NOTNULL(vcl, VBP_VCL_MAGIC);
 	vcl->probep = p;
 	vcl->probe = *p;
 	vcl->hosthdr = hosthdr;
@@ -477,8 +476,7 @@ VBP_Insert(struct backend *b, const struct vrt_backend_probe *p, const char *hos
 	AN(p);
 
 	if (b->probe == NULL) {
-		ALLOC_OBJ(vt, VBP_TARGET_MAGIC);
-		XXXAN(vt);
+		ALLOC_OBJ_NOTNULL(vt, VBP_TARGET_MAGIC);
 		VTAILQ_INIT(&vt->vcls);
 		vt->backend = b;
 		vt->vsb = VSB_new_auto();

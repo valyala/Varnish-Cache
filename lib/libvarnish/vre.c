@@ -50,9 +50,7 @@ VRE_compile(const char *pattern, int options,
 	vre_t *v;
 	*errptr = NULL; *erroffset = 0;
 
-	ALLOC_OBJ(v, VRE_MAGIC);
-	if (v == NULL)
-		return (NULL);
+	ALLOC_OBJ_NOTNULL(v, VRE_MAGIC);
 	v->re = pcre_compile(pattern, options, errptr, erroffset, NULL);
 	if (v->re == NULL) {
 		VRE_free(&v);

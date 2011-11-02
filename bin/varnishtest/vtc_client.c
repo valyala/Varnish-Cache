@@ -119,8 +119,7 @@ client_new(const char *name)
 	struct client *c;
 
 	AN(name);
-	ALLOC_OBJ(c, CLIENT_MAGIC);
-	AN(c);
+	ALLOC_OBJ_NOTNULL(c, CLIENT_MAGIC);
 	REPLACE(c->name, name);
 	c->vl = vtc_logopen(name);
 	AN(c->vl);

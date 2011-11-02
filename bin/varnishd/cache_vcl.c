@@ -143,9 +143,7 @@ VCL_Load(const char *fn, const char *name, struct cli *cli)
 		return (1);
 	}
 
-	ALLOC_OBJ(vcl, VVCLS_MAGIC);
-	XXXAN(vcl);
-
+	ALLOC_OBJ_NOTNULL(vcl, VVCLS_MAGIC);
 	vcl->dlh = dlopen(fn, RTLD_NOW | RTLD_LOCAL);
 
 	if (vcl->dlh == NULL) {

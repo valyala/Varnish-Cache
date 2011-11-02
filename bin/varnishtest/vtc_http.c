@@ -1188,8 +1188,7 @@ http_process(struct vtclog *vl, const char *spec, int sock, int *sfd)
 	int retval;
 
 	(void)sfd;
-	ALLOC_OBJ(hp, HTTP_MAGIC);
-	AN(hp);
+	ALLOC_OBJ_NOTNULL(hp, HTTP_MAGIC);
 	hp->fd = sock;
 	hp->timeout = 15000;
 	hp->nrxbuf = 2048*1024;

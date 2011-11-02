@@ -479,8 +479,7 @@ vcc_NewVcc(const struct vcc *tl0)
 	struct vcc *tl;
 	int i;
 
-	ALLOC_OBJ(tl, VCC_MAGIC);
-	AN(tl);
+	ALLOC_OBJ_NOTNULL(tl, VCC_MAGIC);
 	if (tl0 != NULL) {
 		REPLACE(tl->default_vcl, tl0->default_vcl);
 		REPLACE(tl->vcl_dir, tl0->vcl_dir);

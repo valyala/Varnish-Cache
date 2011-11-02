@@ -192,8 +192,7 @@ vsl_m_arg(const struct VSM_data *vd, const char *opt)
 	*regex = '\0';
 	regex++;
 
-	ALLOC_OBJ(m, VSL_RE_MATCH_MAGIC);
-	AN(m);
+	ALLOC_OBJ_NOTNULL(m, VSL_RE_MATCH_MAGIC);
 	m->tag = VSL_Name2Tag(o, -1);
 	if (m->tag < 0) {
 		fprintf(stderr, "Illegal tag %s specified\n", o);

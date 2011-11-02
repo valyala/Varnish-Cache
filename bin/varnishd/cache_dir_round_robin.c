@@ -134,8 +134,7 @@ vrt_init_dir(struct cli *cli, struct director **bp, int idx,
 	(void)cli;
 	t = priv;
 
-	ALLOC_OBJ(vs, VDI_ROUND_ROBIN_MAGIC);
-	XXXAN(vs);
+	ALLOC_OBJ_NOTNULL(vs, VDI_ROUND_ROBIN_MAGIC);
 	vs->hosts = calloc(sizeof *vh, t->nmember);
 	XXXAN(vs->hosts);
 

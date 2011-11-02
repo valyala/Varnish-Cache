@@ -241,8 +241,7 @@ vwe_init(void)
 	int i;
 	struct vwe *vwe;
 
-	ALLOC_OBJ(vwe, VWE_MAGIC);
-	AN(vwe);
+	ALLOC_OBJ_NOTNULL(vwe, VWE_MAGIC);
 	VTAILQ_INIT(&vwe->sesshead);
 	AZ(pipe(vwe->pipes));
 	AZ(pipe(vwe->timer_pipes));

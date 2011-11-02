@@ -121,9 +121,7 @@ WRK_BgThread(pthread_t *thr, const char *name, bgthread_t *func, void *priv)
 {
 	struct bgthread *bt;
 
-	ALLOC_OBJ(bt, BGTHREAD_MAGIC);
-	AN(bt);
-
+	ALLOC_OBJ_NOTNULL(bt, BGTHREAD_MAGIC);
 	bt->name = name;
 	bt->func = func;
 	bt->priv = priv;

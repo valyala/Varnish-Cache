@@ -385,8 +385,7 @@ tweak_listen_address(struct cli *cli, const struct parspec *par,
 			break;
 		}
 		for (j = 0; j < n; ++j) {
-			ALLOC_OBJ(ls, LISTEN_SOCK_MAGIC);
-			AN(ls);
+			ALLOC_OBJ_NOTNULL(ls, LISTEN_SOCK_MAGIC);
 			ls->sock = -1;
 			ls->addr = ta[j];
 			ls->name = strdup(av[i]);

@@ -117,8 +117,7 @@ server_new(const char *name)
 	struct server *s;
 
 	AN(name);
-	ALLOC_OBJ(s, SERVER_MAGIC);
-	AN(s);
+	ALLOC_OBJ_NOTNULL(s, SERVER_MAGIC);
 	REPLACE(s->name, name);
 	s->vl = vtc_logopen(name);
 	AN(s->vl);

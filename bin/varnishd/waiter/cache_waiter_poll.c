@@ -215,8 +215,7 @@ vwp_poll_init(void)
 {
 	struct vwp *vwp;
 
-	ALLOC_OBJ(vwp, VWP_MAGIC);
-	AN(vwp);
+	ALLOC_OBJ_NOTNULL(vwp, VWP_MAGIC);
 	VTAILQ_INIT(&vwp->sesshead);
 	AZ(pipe(vwp->pipes));
 	vwp_pollspace(vwp, 256);

@@ -74,9 +74,7 @@ VRT_Vmod_Init(void **hdl, void *ptr, int len, const char *nm,
 		if (!strcmp(v->nm, nm))	// Also path, len ?
 			break;
 	if (v == NULL) {
-		ALLOC_OBJ(v, VMOD_MAGIC);
-		AN(v);
-
+		ALLOC_OBJ_NOTNULL(v, VMOD_MAGIC);
 		v->hdl = dlopen(path, RTLD_NOW | RTLD_LOCAL);
 		if (v->hdl == NULL) {
 			VCLI_Out(cli, "Loading VMOD %s from %s:\n", nm, path);

@@ -136,9 +136,7 @@ BAN_New(void)
 {
 	struct ban *b;
 
-	ALLOC_OBJ(b, BAN_MAGIC);
-	if (b == NULL)
-		return (b);
+	ALLOC_OBJ_NOTNULL(b, BAN_MAGIC);
 	b->vsb = VSB_new_auto();
 	if (b->vsb == NULL) {
 		FREE_OBJ(b);

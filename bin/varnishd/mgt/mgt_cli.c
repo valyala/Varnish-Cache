@@ -455,8 +455,7 @@ telnet_new(int fd)
 {
 	struct telnet *tn;
 
-	ALLOC_OBJ(tn, TELNET_MAGIC);
-	AN(tn);
+	ALLOC_OBJ_NOTNULL(tn, TELNET_MAGIC);
 	tn->fd = fd;
 	return (tn);
 }
