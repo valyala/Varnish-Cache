@@ -304,10 +304,6 @@ VSC_F(n_ban_obj_test,	uint64_t, 0, 'a', "N objects tested", "")
 VSC_F(n_ban_re_test,	uint64_t, 0, 'a', "N regexps tested against", "")
 VSC_F(n_ban_dups,	uint64_t, 0, 'a', "N duplicate bans removed", "")
 
-VSC_F(hcb_nolock,		uint64_t, 0, 'a', "HCB Lookups without lock", "")
-VSC_F(hcb_lock,		uint64_t, 0, 'a', "HCB Lookups with lock", "")
-VSC_F(hcb_insert,		uint64_t, 0, 'a', "HCB Inserts", "")
-
 VSC_F(esi_errors,		uint64_t, 0, 'a', "ESI parse errors (unlock)", "")
 VSC_F(esi_warnings,		uint64_t, 0, 'a', "ESI parse warnings (unlock)", "")
 VSC_F(client_drop_late,	uint64_t, 0, 'a', "Connection dropped late", "")
