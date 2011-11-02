@@ -66,8 +66,7 @@
 #include <stdio.h>
 
 #include "cache.h"
-
-#include "hash/hash_slinger.h"
+#include "cache_hash.h"
 #include "vcli.h"
 #include "vcli_priv.h"
 #include "vend.h"

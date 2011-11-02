@@ -33,9 +33,8 @@
 #include <stdlib.h>
 
 #include "cache.h"
-
+#include "cache_hash.h"
 #include "waiter/cache_waiter.h"
-#include "hash/hash_slinger.h"
 
 /*--------------------------------------------------------------------
  * Per thread storage for the session currently being processed by

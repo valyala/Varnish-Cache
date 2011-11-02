@@ -28,12 +28,6 @@
  *
  */
 
-/*
- * This macro can be used in .h files to isolate bits that the manager
- * should not (need to) see, such as pthread mutexes etc.
- */
-#define VARNISH_CACHE_CHILD	1
-
 #include "common.h"
 
 #include "vapi/vsc_int.h"
@@ -101,7 +95,6 @@ struct director;
 struct iovec;
 struct objcore;
 struct object;
-struct objhead;
 struct pool;
 struct sess;
 struct sesspool;
@@ -109,7 +102,6 @@ struct vbc;
 struct vef_priv;
 struct vrt_backend;
 struct vsb;
-struct waitinglist;
 struct worker;
 
 #define DIGEST_LEN		32
@@ -293,6 +285,32 @@ struct wrk_accept {
 	socklen_t		acceptaddrlen;
 	int			acceptsock;
 	struct listen_sock	*acceptlsock;
+};
+
+/*--------------------------------------------------------------------*/
+
+struct waitinglist {
+	unsigned		magic;
+#define WAITINGLIST_MAGIC	0x063a477a
+	VTAILQ_HEAD(, sess)	list;
+};
+
+/*--------------------------------------------------------------------*/
+
+struct objhead {
+	unsigned		magic;
+#define OBJHEAD_MAGIC		0x1b96615d
+
+	int			refcnt;
+	struct lock		mtx;
+	VTAILQ_HEAD(, objcore)	objcs;
+	unsigned char		digest[DIGEST_LEN];
+	struct waitinglist	*waitinglist;
+
+	/*
+	 * This field is for the sole private use of the hash_table.c .
+	 */
+	VSLIST_ENTRY(objhead)	hoh_list;
 };
 
 /*--------------------------------------------------------------------*/
@@ -844,7 +862,7 @@ unsigned WRW_Write(struct worker *w, const void *ptr, int len);
 unsigned WRW_WriteH(struct worker *w, const txt *hh, const char *suf);
 #ifdef SENDFILE_WORKS
 void WRW_Sendfile(struct worker *w, int fd, off_t off, unsigned len);
-#endif  /* SENDFILE_WORKS */
+#endif	/* SENDFILE_WORKS */
 
 /* cache_session.c [SES] */
 struct sess *SES_New(struct worker *wrk, struct sesspool *pp);

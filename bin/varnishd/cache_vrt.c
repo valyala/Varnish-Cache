@@ -40,7 +40,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
-#include "hash/hash_slinger.h"
+#include "cache_hash.h"
 #include "vav.h"
 #include "vcl.h"
 #include "vrt.h"
