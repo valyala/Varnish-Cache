@@ -76,7 +76,6 @@ struct vev_base {
 	unsigned char		disturbed;
 	unsigned		psig;
 	pthread_t		thread;
-	double			epoch_start;
 #ifdef DEBUG_EVENTS
 	FILE			*debug;
 #endif
@@ -92,6 +91,27 @@ struct vev_base {
 #else
 #define DBG(evb, ...)	/* ... */
 #endif
+
+/*--------------------------------------------------------------------*/
+
+static void
+vev_bh_update(void *a, unsigned idx)
+{
+	struct vev *e;
+
+	CAST_OBJ_NOTNULL(e, a, VEV_MAGIC);
+	e->__binheap_idx = idx;
+}
+
+static int
+vev_bh_cmp(void *a, void *b)
+{
+	struct vev *ea, *eb;
+
+	CAST_OBJ_NOTNULL(ea, a, VEV_MAGIC);
+	CAST_OBJ_NOTNULL(eb, b, VEV_MAGIC);
+	return (ea->__when < eb->__when);
+}
 
 /*--------------------------------------------------------------------*/
 
@@ -172,10 +192,9 @@ vev_new_base(void)
 	}
 	evb->magic = VEV_BASE_MAGIC;
 	VTAILQ_INIT(&evb->events);
-	evb->binheap = binheap_new();
+	evb->binheap = binheap_new(vev_bh_cmp, vev_bh_update);
 	AN(evb->binheap);
 	evb->thread = pthread_self();
-	evb->epoch_start = VTIM_mono();
 #ifdef DEBUG_EVENTS
 	evb->debug = fopen("/tmp/_.events", "w");
 	AN(evb->debug);
@@ -203,21 +222,12 @@ vev_new(void)
 {
 	struct vev *e;
 
-	e = calloc(sizeof *e, 1);
-	if (e != NULL) {
-		e->fd = -1;
-	}
+	e = calloc(1, sizeof(*e));
+	XXXAN(e);
+	e->magic = VEV_MAGIC;
+	e->fd = -1;
+	e->__binheap_idx = BINHEAP_NOIDX;
 	return (e);
-}
-
-/*--------------------------------------------------------------------*/
-
-static double
-tim_epoch(const struct vev_base *evb, double t)
-{
-	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
-	assert(t >= evb->epoch_start);
-	return ((t - evb->epoch_start) * 1e3);
 }
 
 /*--------------------------------------------------------------------*/
@@ -226,10 +236,9 @@ int
 vev_add(struct vev_base *evb, struct vev *e)
 {
 	struct vevsig *es;
-	double when;
 
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
-	assert(e->magic != VEV_MAGIC);
+	CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
 	assert(e->callback != NULL);
 	assert(e->sig >= 0);
 	assert(e->timeout >= 0.0);
@@ -268,16 +277,11 @@ vev_add(struct vev_base *evb, struct vev *e)
 	} else
 		e->__poll_idx = -1;
 
-	e->magic = VEV_MAGIC;	/* before binheap_insert() */
-
-	AZ(e->__exp_entry);
+	assert(e->__binheap_idx == BINHEAP_NOIDX);
 	if (e->timeout != 0.0) {
-		/* Timeouts smaller than 1ms are just silly */
-		assert(e->timeout >= 1e-3);
-		when = tim_epoch(evb, VTIM_mono() + e->timeout);
-		e->__exp_entry = binheap_insert(evb->binheap, e,
-						BINHEAP_TIME2KEY(when));
-		AN(e->__exp_entry);
+		e->__when = VTIM_mono() + e->timeout;
+		binheap_insert(evb->binheap, e);
+		assert(e->__binheap_idx != BINHEAP_NOIDX);
 	}
 
 	e->__vevb = evb;
@@ -308,9 +312,9 @@ vev_del(struct vev_base *evb, struct vev *e)
 	assert(evb == e->__vevb);
 	assert(evb->thread == pthread_self());
 
-	if (e->__exp_entry != NULL) {
-		binheap_delete(evb->binheap, e->__exp_entry);
-		e->__exp_entry = NULL;
+	if (e->__binheap_idx != BINHEAP_NOIDX) {
+		binheap_delete(evb->binheap, e->__binheap_idx);
+		assert(e->__binheap_idx == BINHEAP_NOIDX);
 	}
 
 	if (e->fd >= 0) {
@@ -403,10 +407,10 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 		vev_del(evb, e);
 		free(e);
 	} else {
-		assert(e->timeout >= 1e-3);	/* catch silly timeouts */
-		t += e->timeout * 1e3;
-		binheap_reorder(evb->binheap, e->__exp_entry,
-				BINHEAP_TIME2KEY(t));
+		e->__when = t + e->timeout;
+		assert(e->__binheap_idx != BINHEAP_NOIDX);
+		binheap_reorder(evb->binheap, e->__binheap_idx);
+		assert(e->__binheap_idx != BINHEAP_NOIDX);
 	}
 	return (1);
 }
@@ -435,96 +439,27 @@ vev_sched_signal(struct vev_base *evb)
 	return (1);
 }
 
-struct vev_list {
-	struct vev_list *next;
-	struct vev *e;
-};
-
-static int
-start_new_epoch(struct vev_base *evb)
-{
-	struct vev_list *vl_head, *vle;
-	struct vev *e;
-	struct binheap_entry *be;
-	unsigned key;
-	int i;
-
-	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
-	/*
-	 * It looks like binheap keyspace has been overflown. This event
-	 * occurs every 49 days on systems with 32-bit unsigned type.
-	 * If we will continue pushing timer callbacks to binheap at this point,
-	 * vev_schedule_one() will infinitely fire the same timer.
-	 * So we need starting new epoch. Just 'ebv->epoch_start = VTIM_mono()'
-	 * will never fire already pushed timers. So let's pop all the timers
-	 * from binheap and fire them before starting new epoch. After that
-	 * we can safely re-arm remaining timers into empty binheap.
-	 */
-	vl_head = NULL;
-	while (1) {
-		be = binheap_root(evb->binheap);
-		if (be == NULL)
-			break;
-		e = binheap_entry_unpack(evb->binheap, be, &key);
-		AN(e);
-		assert(e->__exp_entry == be);
-		i = e->callback(e, 0);
-		if (i) {
-			vev_del(evb, e);
-			free(e);
-		} else {
-			vle = malloc(sizeof(*vle));
-			XXXAN(vle);
-			vle->next = vl_head;
-			vle->e = e;
-			vl_head = vle;
-			binheap_delete(evb->binheap, e->__exp_entry);
-			e->__exp_entry = NULL;
-		}
-	}
-	evb->epoch_start = VTIM_mono();
-	AZ(binheap_root(evb->binheap));
-	while (vl_head != NULL) {
-		e = vl_head->e;
-		AN(e);
-		AZ(e->__exp_entry);
-		assert(e->timeout != 0.0);
-		vev_add(evb, e);
-		AN(e->__exp_entry);
-		vle = vl_head->next;
-		free(vl_head);
-		vl_head = vle;
-	}
-	return (1);
-}
-
 int
 vev_schedule_one(struct vev_base *evb)
 {
-	double t, when;
+	double t;
 	struct vev *e, *e2, *e3;
 	int i, j, tmo;
 	struct pollfd *pfd;
-	struct binheap_entry *be;
-	unsigned key;
 
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(evb->thread == pthread_self());
-	be = binheap_root(evb->binheap);
-	if (be != NULL) {
-		e = binheap_entry_unpack(evb->binheap, be, &key);
-		when = BINHEAP_KEY2TIME(key);
+	e = binheap_root(evb->binheap);
+	if (e != NULL) {
 		CHECK_OBJ_NOTNULL(e, VEV_MAGIC);
-		assert(e->__exp_entry == be);
-		t = tim_epoch(evb, VTIM_mono());
-		if (t >= UINT_MAX)
-			return (start_new_epoch(evb));
-		if (when <= t)
+		assert(e->__binheap_idx != BINHEAP_NOIDX);
+		t = VTIM_mono();
+		if (e->__when <= t)
 			return (vev_sched_timeout(evb, e, t));
-		if (when - t > INT_MAX)
+		if (e->__when - t > INT_MAX / 1e3)
 			tmo = INT_MAX;
 		else
-			tmo = (int) (when - t);
+			tmo = (int) ((e->__when - t) * 1e3);
 		if (tmo == 0)
 			tmo = 1;
 	} else
@@ -544,8 +479,8 @@ vev_schedule_one(struct vev_base *evb)
 		return (vev_sched_signal(evb));
 	if (i == 0) {
 		assert(e != NULL);
-		t = tim_epoch(evb, VTIM_mono());
-		if (when <= t)
+		t = VTIM_mono();
+		if (e->__when <= t)
 			return (vev_sched_timeout(evb, e, t));
 	}
 	evb->disturbed = 0;

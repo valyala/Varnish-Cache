@@ -28,72 +28,57 @@
  *
  * Binary Heap API (see: http://en.wikipedia.org/wiki/Binary_heap)
  *
+ * XXX: doesn't scale back the array of pointers when items are deleted.
  */
-
-#include <limits.h>
 
 /* Public Interface --------------------------------------------------*/
 
 struct binheap;
-struct binheap_entry;
 
-struct binheap *binheap_new(void);
+typedef int (*binheap_cmp_t)(void *a, void *b);
+	/*
+	 * User-specified callback, which should return non-zero if key value
+	 * for a is less than key value for b.
+	 */
+
+typedef void (*binheap_update_t)(void *p, unsigned idx);
+	/*
+	 * User-defined callback, which should store updated index for the given
+	 * entry p.
+	 * This index can be passed to binheap_reorder() and binheap_delete().
+	 */
+
+struct binheap *binheap_new(binheap_cmp_t cmp_f, binheap_update_t update_f);
 	/*
 	 * Creates binary heap.
+	 * cmp_f and update_f cannot be NULL.
 	 */
 
-struct binheap_entry *binheap_insert(struct binheap *bh, void *p,
-	unsigned key);
+void binheap_insert(struct binheap *bh, void *p);
 	/*
-	 * Inserts the pointer p with the given key into binheap.
-	 * The pointer CAN be NULL. Actually it can contain arbitrary payload,
-	 * which fits into sizeof(p).
-	 * Returns a pointer to opaque object, which can be passed
-	 * to binheap_reorder(), binheap_delete() or binheap_entry_unpack().
+	 * Inserts p into binheap.
+	 * p cannot be NULL.
 	 */
 
-void binheap_reorder(const struct binheap *bh, struct binheap_entry *be,
-	unsigned key);
+void binheap_reorder(const struct binheap *bh, unsigned idx);
 	/*
-	 * Modifies key value for the given entry.
+	 * Reorders binheap after the key for the entry with the given index
+	 * has been changed.
 	 */
 
-void binheap_delete(struct binheap *bh, struct binheap_entry *be);
+void binheap_delete(struct binheap *bh, unsigned idx);
 	/*
-	 * Removes the entry from binheap.
+	 * Removes the entry with the given index from binheap.
 	 */
 
-struct binheap_entry *binheap_root(const struct binheap *bh);
+void *binheap_root(const struct binheap *bh);
 	/*
 	 * Returns binheap root entry, i.e. the entry with the minimal key.
 	 * Returns NULL if binheap is empty.
 	 */
 
-void *binheap_entry_unpack(const struct binheap *bh,
-	const struct binheap_entry *be, unsigned *key_ptr);
+#define BINHEAP_NOIDX	0
 	/*
-	 * Returns a pointer and sets *key_ptr to the key associated
-	 * with the given entry.
-	 * key_ptr cannot be NULL.
-	 */
-
-#define BINHEAP_TIME2KEY(t)	((t) < 0 ? 0 : \
-	((t) > UINT_MAX ? UINT_MAX : (unsigned) ((t) + 0.5)))
-	/*
-	 * Converts time in seconds to a binheap_entry key.
-	 * Take into account the following limitations:
-	 * - The resolution of the returned key is rounded to 1 second, while
-	 *   input resolution can be much higher (nanoseconds).
-	 * - Negative values are converted to 0, while values exceeding UINT_MAX
-	 *   are converted to UINT_MAX. This means that the minimum key always
-	 *   corresponds to 1970 year, while the maximum key corresponds
-	 *   to 2106 year for systems with 32-bit unsigned types. Values higher
-	 *   and lower than these limits are clipped.
-	 */
-
-#define BINHEAP_KEY2TIME(t)	((double) (t))
-	/*
-	 * Converts binheap key to time in seconds. Note that it doesn't restore
-	 * exact value passed to BINHEAP_TIME2KEY(). Instead it returns value
-	 * rounded to 1 second.
+	 * This value is passed into update_f() after entry removal
+	 * from the binheap.
 	 */
