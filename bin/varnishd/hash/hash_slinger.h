@@ -36,7 +36,7 @@ struct worker;
 
 /* hash_table.c */
 void HTB_Start(void);
-struct objhead *HTB_Lookup(const struct sess *sp, struct objhead *noh);
+struct objhead *HTB_Lookup(struct objhead *noh);
 int HTB_Deref(struct objhead *oh);
 
 /* cache_hash.c */

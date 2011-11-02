@@ -94,12 +94,11 @@ get_bucket(const struct objhead *oh)
  */
 
 struct objhead *
-HTB_Lookup(const struct sess *sp, struct objhead *noh)
+HTB_Lookup(struct objhead *noh)
 {
 	struct objhead *oh, *head, **poh;
 	struct bucket *b;
 
-	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
 	b = get_bucket(noh);
 	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);

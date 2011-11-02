@@ -188,7 +188,7 @@ HSH_Insert(const struct sess *sp)
 
 	AZ(sp->hash_objhead);
 	AN(w->nobjhead);
-	oh = HTB_Lookup(sp, w->nobjhead);
+	oh = HTB_Lookup(w->nobjhead);
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	if (oh == w->nobjhead)
 		w->nobjhead = NULL;
@@ -206,7 +206,7 @@ HSH_Insert(const struct sess *sp)
 	/* NB: do not deref objhead the new object inherits our reference */
 	oc->objhead = oh;
 	Lck_Unlock(&oh->mtx);
-	sp->wrk->stats.n_vampireobject++;
+	w->stats.n_vampireobject++;
 	return (oc);
 }
 
@@ -243,7 +243,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 		sp->hash_objhead = NULL;
 	} else {
 		AN(w->nobjhead);
-		oh = HTB_Lookup(sp, w->nobjhead);
+		oh = HTB_Lookup(w->nobjhead);
 		if (oh == w->nobjhead)
 			w->nobjhead = NULL;
 	}
