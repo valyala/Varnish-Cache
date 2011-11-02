@@ -30,6 +30,6 @@
 
 struct objhead;
 
-void HTB_Start(void);
+void HTB_Init(void);
 struct objhead *HTB_Lookup(struct objhead *noh);
 int HTB_Deref(struct objhead *oh);

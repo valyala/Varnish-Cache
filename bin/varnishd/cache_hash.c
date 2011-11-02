@@ -661,5 +661,5 @@ void
 HSH_Init(void)
 {
 	assert(DIGEST_LEN == SHA256_LEN);	/* avoid #include pollution */
-	HTB_Start();
+	HTB_Init();
 }

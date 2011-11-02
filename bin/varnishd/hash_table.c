@@ -53,7 +53,7 @@ static struct bucket		*buckets;
  */
 
 void
-HTB_Start(void)
+HTB_Init(void)
 {
 	unsigned hash_buckets, u;
 
