@@ -138,7 +138,7 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 		 * This should result in faster lookups for 'hot' objects.
 		 */
 		if (oh != head) {
-			VSLIST_NEXT(*ohp, hoh_list) = VSLIST_NEXT(oh, hoh_list);
+			*ohp = VSLIST_NEXT(oh, hoh_list);
 			VSLIST_INSERT_HEAD(&hp->head, oh, hoh_list);
 		}
 		oh->refcnt++;
