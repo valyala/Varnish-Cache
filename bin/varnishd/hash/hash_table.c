@@ -39,14 +39,14 @@
 
 /*--------------------------------------------------------------------*/
 
-struct hcl_head {
+struct bucket {
 	unsigned		magic;
-#define HCL_HEAD_MAGIC		0x0f327016
+#define BUCKET_MAGIC		0x0f327016
 	VSLIST_HEAD(, objhead)	head;
 	struct lock		mtx;
 };
 
-static struct hcl_head		*hcl_hashtable;
+static struct bucket		*buckets;
 
 /*--------------------------------------------------------------------
  * This method is called during cache process start and allows
@@ -60,20 +60,20 @@ HTB_Start(void)
 
 	hash_buckets = params->hash_buckets;
 	assert(hash_buckets > 0);
-	hcl_hashtable = calloc(hash_buckets, sizeof(*hcl_hashtable));
-	XXXAN(hcl_hashtable);
+	buckets = calloc(hash_buckets, sizeof(*buckets));
+	XXXAN(buckets);
 
 	for (u = 0; u < hash_buckets; u++) {
-		hcl_hashtable[u].magic = HCL_HEAD_MAGIC;
-		VSLIST_INIT(&hcl_hashtable[u].head);
-		Lck_New(&hcl_hashtable[u].mtx, lck_hcl_head);
+		buckets[u].magic = BUCKET_MAGIC;
+		VSLIST_INIT(&buckets[u].head);
+		Lck_New(&buckets[u].mtx, lck_htb_bucket);
 	}
 }
 
-static struct hcl_head *
-get_hcl_head(const struct objhead *oh)
+static struct bucket *
+get_bucket(const struct objhead *oh)
 {
-	struct hcl_head *hp;
+	struct bucket *b;
 	unsigned digest, u;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
@@ -81,10 +81,10 @@ get_hcl_head(const struct objhead *oh)
 	memcpy(&digest, oh->digest, sizeof(digest));
 	assert(params->hash_buckets > 0);
 	u = digest % params->hash_buckets;
-	AN(hcl_hashtable);
-	hp = &hcl_hashtable[u];
-	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
-	return (hp);
+	AN(buckets);
+	b = &buckets[u];
+	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
+	return (b);
 }
 
 /*--------------------------------------------------------------------
@@ -97,16 +97,16 @@ struct objhead *
 HTB_Lookup(const struct sess *sp, struct objhead *noh)
 {
 	struct objhead *oh, *head, **poh;
-	struct hcl_head *hp;
+	struct bucket *b;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
-	hp = get_hcl_head(noh);
-	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
+	b = get_bucket(noh);
+	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
 
-	Lck_Lock(&hp->mtx);
-	head = VSLIST_FIRST(&hp->head);
-	VSLIST_FOREACH_PREVPTR(oh, poh, &hp->head, hoh_list) {
+	Lck_Lock(&b->mtx);
+	head = VSLIST_FIRST(&b->head);
+	VSLIST_FOREACH_PREVPTR(oh, poh, &b->head, hoh_list) {
 		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		if (memcmp(oh->digest, noh->digest, sizeof oh->digest)) {
 			VSC_C_main->n_hcl_lookup_collisions++;
@@ -120,16 +120,16 @@ HTB_Lookup(const struct sess *sp, struct objhead *noh)
 		 */
 		if (oh != head) {
 			*poh = VSLIST_NEXT(oh, hoh_list);
-			VSLIST_INSERT_HEAD(&hp->head, oh, hoh_list);
+			VSLIST_INSERT_HEAD(&b->head, oh, hoh_list);
 		}
 		oh->refcnt++;
-		Lck_Unlock(&hp->mtx);
+		Lck_Unlock(&b->mtx);
 		return (oh);
 	}
 
-	VSLIST_INSERT_HEAD(&hp->head, noh, hoh_list);
+	VSLIST_INSERT_HEAD(&b->head, noh, hoh_list);
 
-	Lck_Unlock(&hp->mtx);
+	Lck_Unlock(&b->mtx);
 	return (noh);
 }
 
@@ -140,14 +140,14 @@ HTB_Lookup(const struct sess *sp, struct objhead *noh)
 int
 HTB_Deref(struct objhead *oh)
 {
-	struct hcl_head *hp;
+	struct bucket *b;
 	int ret;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
-	hp = get_hcl_head(oh);
-	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
+	b = get_bucket(oh);
+	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
 
-	Lck_Lock(&hp->mtx);
+	Lck_Lock(&b->mtx);
 	assert(oh->refcnt > 0);
 	if (--oh->refcnt == 0) {
 		/*
@@ -156,10 +156,10 @@ HTB_Deref(struct objhead *oh)
 		 * only a few items to be fast. If this isn't the case, just
 		 * increase the number of buckets in the table (hash_buckets).
 		 */
-		VSLIST_REMOVE(&hp->head, oh, objhead, hoh_list);
+		VSLIST_REMOVE(&b->head, oh, objhead, hoh_list);
 		ret = 0;
 	} else
 		ret = 1;
-	Lck_Unlock(&hp->mtx);
+	Lck_Unlock(&b->mtx);
 	return (ret);
 }
