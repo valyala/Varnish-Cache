@@ -918,11 +918,11 @@ static const struct parspec input_parspec[] = {
 		"put in transient storage.\n",
 		0,
 		"10.0", "s" },
-	{ "hash_buckets", tweak_uint, &master.hash_buckets,
+	{ "hashtable_buckets", tweak_uint, &master.hashtable_buckets,
 		1, UINT_MAX,
-		"The number of buckets in lookup hash table.\n"
+		"The number of buckets in lookup hashtable.\n"
 		"Increase this value if the number of lookup collisions "
-		"(n_hcl_lookup_collisions) grows faster than the number "
+		"(n_htb_lookup_collisions) grows faster than the number "
 		"of requests. The number of hash buckets should be close to "
 		"the number of frequently requested items (aka 'hot items') "
 		"in the cache. For example, hash table with 65536 buckets "

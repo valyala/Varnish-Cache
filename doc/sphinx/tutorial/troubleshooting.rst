@@ -27,7 +27,7 @@ listening on its port.::
     # varnishd -n foo -f /usr/local/etc/varnish/default.vcl -s malloc,1G -T 127.0.0.1:2000  -a 0.0.0.0:8080 -d
     storage_malloc: max size 1024 MB.
     Using old SHMFILE
-    Platform: Linux,2.6.32-21-generic,i686,-smalloc,-hclassic
+    Platform: Linux,2.6.32-21-generic,i686,-smalloc
     200 193     
     -----------------------------
     Varnish Cache CLI.

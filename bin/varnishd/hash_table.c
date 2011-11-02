@@ -55,14 +55,14 @@ static struct bucket		*buckets;
 void
 HTB_Init(void)
 {
-	unsigned hash_buckets, u;
+	unsigned hashtable_buckets, u;
 
-	hash_buckets = params->hash_buckets;
-	assert(hash_buckets > 0);
-	buckets = calloc(hash_buckets, sizeof(*buckets));
+	hashtable_buckets = params->hashtable_buckets;
+	assert(hashtable_buckets > 0);
+	buckets = calloc(hashtable_buckets, sizeof(*buckets));
 	XXXAN(buckets);
 
-	for (u = 0; u < hash_buckets; u++) {
+	for (u = 0; u < hashtable_buckets; u++) {
 		buckets[u].magic = BUCKET_MAGIC;
 		VSLIST_INIT(&buckets[u].head);
 		Lck_New(&buckets[u].mtx, lck_htb_bucket);
@@ -78,8 +78,8 @@ get_bucket(const struct objhead *oh)
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	assert(sizeof(oh->digest) > sizeof(digest));
 	memcpy(&digest, oh->digest, sizeof(digest));
-	assert(params->hash_buckets > 0);
-	u = digest % params->hash_buckets;
+	assert(params->hashtable_buckets > 0);
+	u = digest % params->hashtable_buckets;
 	AN(buckets);
 	b = &buckets[u];
 	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
@@ -107,7 +107,7 @@ HTB_Lookup(struct objhead *noh)
 	VSLIST_FOREACH_PREVPTR(oh, poh, &b->head, hoh_list) {
 		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		if (memcmp(oh->digest, noh->digest, sizeof oh->digest)) {
-			VSC_C_main->n_hcl_lookup_collisions++;
+			VSC_C_main->n_htb_lookup_collisions++;
 			continue;
 		}
 
@@ -152,7 +152,7 @@ HTB_Deref(struct objhead *oh)
 		 * Though removal from singly list list requires O(n) time,
 		 * this should be OK here, since hash table buckets must contain
 		 * only a few items to be fast. If this isn't the case, just
-		 * increase the number of buckets in the table (hash_buckets).
+		 * increase the number of hashtable buckets (hashtable_buckets).
 		 */
 		VSLIST_REMOVE(&b->head, oh, objhead, hoh_list);
 		ret = 0;
