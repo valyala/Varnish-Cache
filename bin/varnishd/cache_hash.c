@@ -88,7 +88,7 @@ HSH_Prealloc(const struct sess *sp)
 		XXXAN(oh);
 		oh->refcnt = 1;
 		VTAILQ_INIT(&oh->objcs);
-		VTAILQ_INIT(&oh->waitinglist);
+		oh->waitinglist = NULL;
 		Lck_New(&oh->mtx, lck_objhdr);
 		w->nobjhead = oh;
 		w->stats.n_objecthead++;
@@ -330,7 +330,8 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	if (busy_oc != NULL) {
 		/* There are one or more busy objects, wait for them */
 		if (sp->esi_level == 0) {
-			VTAILQ_INSERT_TAIL(&oh->waitinglist, sp, list);
+			VTAILQ_NEXT(sp, list) = oh->waitinglist;
+			oh->waitinglist = sp;
 		}
 		if (params->diag_bitmap & 0x20)
 			WSP(sp, SLT_Debug,
@@ -386,12 +387,12 @@ hsh_rush(struct objhead *oh)
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	Lck_AssertHeld(&oh->mtx);
 	for (u = 0; u < params->rush_exponent; u++) {
-		sp = VTAILQ_FIRST(&oh->waitinglist);
+		sp = oh->waitinglist;
 		if (sp == NULL)
 			break;
 		CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 		AZ(sp->wrk);
-		VTAILQ_REMOVE(&oh->waitinglist, sp, list);
+		oh->waitinglist = VTAILQ_NEXT(sp, list);
 		DSL(0x20, SLT_Debug, sp->vsl_id, "off waiting list");
 		if (SES_Schedule(sp)) {
 			/*
