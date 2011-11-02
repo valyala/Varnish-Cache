@@ -304,6 +304,11 @@ VSC_F(n_ban_obj_test,	uint64_t, 0, 'a', "N objects tested", "")
 VSC_F(n_ban_re_test,	uint64_t, 0, 'a', "N regexps tested against", "")
 VSC_F(n_ban_dups,	uint64_t, 0, 'a', "N duplicate bans removed", "")
 
+VSC_F(n_hcl_lookup_collisions,	uint64_t, 0, 'a', "HCL lookup collisions",
+	"The number of collisions during lookups in classic hash. Under ideal "
+	"conditions this number should be close to zero. If it quickly grows, "
+	"then increase the number of hash buckets via -h classic,<buckets>.")
+
 VSC_F(esi_errors,		uint64_t, 0, 'a', "ESI parse errors (unlock)", "")
 VSC_F(esi_warnings,		uint64_t, 0, 'a', "ESI parse warnings (unlock)", "")
 VSC_F(client_drop_late,	uint64_t, 0, 'a', "Connection dropped late", "")
