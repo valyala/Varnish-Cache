@@ -209,8 +209,8 @@ struct params {
 
 	double			shortlived;
 
-	/* The number of buckets in lookup hash */
-	unsigned		hash_buckets;
+	/* The number of buckets in lookup hashtable */
+	unsigned		hashtable_buckets;
 
 	struct vre_limits	vre_limits;
 };

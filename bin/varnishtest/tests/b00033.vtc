@@ -1,4 +1,4 @@
-varnishtest "hash code coverage"
+varnishtest "hashtable code coverage"
 
 server s1 {
 	rxreq
@@ -19,7 +19,7 @@ server s1 {
 
 } -start
 
-varnish v1 -arg "-p hash_buckets=11" -vcl+backend {} -start
+varnish v1 -arg "-p hashtable_buckets=11" -vcl+backend {} -start
 
 client c1 {
 	txreq -url /1

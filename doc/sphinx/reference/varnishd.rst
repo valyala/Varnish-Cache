@@ -62,9 +62,6 @@ OPTIONS
             before it starts accepting connections.  This is a shortcut for specifying the group
             run-time parameter.
 
--h type[,options]
-            Specifies the hash algorithm.  See Hash Algorithms for a list of supported algorithms.
-
 -i identity
             Specify the identity of the varnish server.  This can be accessed using server.identity
             from VCL
@@ -132,21 +129,6 @@ OPTIONS
 
 
 
-
-Hash Algorithms
----------------
-
-The following hash algorithms are available:
-
-simple_list
-  A simple singlyy-linked list.  Not recommended for production use.
-
-classic
-  A standard hash table.  This is the default.  The hash key is the
-  CRC32 of the object's URL modulo the size of the hash table.  Each
-  table entry points to a list of elements which share the same hash
-  key. The number of buckets in the hash table can be specified via
-  -p hash_buckets=<buckets>.
 
 Storage Types
 -------------
