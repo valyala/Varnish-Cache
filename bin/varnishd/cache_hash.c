@@ -501,7 +501,7 @@ HSH_Unbusy(const struct sess *sp)
 	oc = o->objcore;
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	oh = oc->objhead;
-	CHECK_OBJ(oh, OBJHEAD_MAGIC);
+	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 
 	AssertObjBusy(o);
 	AN(oc->ban);

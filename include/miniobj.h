@@ -5,51 +5,53 @@
  *
  */
 
+
+#define __CMP_MAGIC(ptr, type_magic)					\
+	((ptr)->magic == (type_magic))
+
+#define __SET_MAGIC(ptr, type_magic)					\
+	do {								\
+		(ptr)->magic = (type_magic);				\
+	} while (0)
+
+#define __CHECK_MAGIC(ptr, type_magic)					\
+	do {								\
+		assert(__CMP_MAGIC((ptr), (type_magic)));		\
+	} while (0)
+
 #define ALLOC_OBJ(to, type_magic)					\
 	do {								\
-		(to) = calloc(sizeof *(to), 1);				\
+		(to) = calloc(1, sizeof(*(to)));			\
 		if ((to) != NULL)					\
-			(to)->magic = (type_magic);			\
+			__SET_MAGIC((to), (type_magic));		\
 	} while (0)
 
 #define FREE_OBJ(to)							\
 	do {								\
-		(to)->magic = (0);					\
+		__SET_MAGIC((to), 0);					\
 		free(to);						\
 	} while (0)
 
 #define VALID_OBJ(ptr, type_magic)					\
-	((ptr) != NULL && (ptr)->magic == (type_magic))
-
-#define CHECK_OBJ(ptr, type_magic)					\
-	do {								\
-		assert((ptr)->magic == type_magic);			\
-	} while (0)
+	((ptr) != NULL && __CMP_MAGIC((ptr), (type_magic)))
 
 #define CHECK_OBJ_NOTNULL(ptr, type_magic)				\
 	do {								\
 		assert((ptr) != NULL);					\
-		assert((ptr)->magic == type_magic);			\
+		__CHECK_MAGIC((ptr), (type_magic));			\
 	} while (0)
 
 #define CHECK_OBJ_ORNULL(ptr, type_magic)				\
 	do {								\
 		if ((ptr) != NULL)					\
-			assert((ptr)->magic == type_magic);		\
-	} while (0)
-
-#define CAST_OBJ(to, from, type_magic)					\
-	do {								\
-		(to) = (from);						\
-		if ((to) != NULL)					\
-			CHECK_OBJ((to), (type_magic));			\
+			__CHECK_MAGIC((ptr), (type_magic));		\
 	} while (0)
 
 #define CAST_OBJ_NOTNULL(to, from, type_magic)				\
 	do {								\
 		(to) = (from);						\
 		assert((to) != NULL);					\
-		CHECK_OBJ((to), (type_magic));				\
+		__CHECK_MAGIC((to), (type_magic));			\
 	} while (0)
 
 #define REPLACE(ptr, val)						\
@@ -58,7 +60,7 @@
 			free(ptr);					\
 		if ((val) != NULL) {					\
 			ptr = strdup(val);				\
-			AN((ptr));					\
+			XXXAN((ptr));					\
 		} else {						\
 			ptr = NULL;					\
 		}							\
