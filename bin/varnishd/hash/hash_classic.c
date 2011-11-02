@@ -40,7 +40,7 @@
 
 /*--------------------------------------------------------------------*/
 
-struct hcl_hd {
+struct hcl_head {
 	unsigned		magic;
 #define HCL_HEAD_MAGIC		0x0f327016
 	VSLIST_HEAD(, objhead)	head;
@@ -48,7 +48,7 @@ struct hcl_hd {
 };
 
 static unsigned			hcl_nhash = 0x10000;
-static struct hcl_hd		*hcl_head;
+static struct hcl_head		*hcl_hashtable;
 
 /*--------------------------------------------------------------------
  * The ->init method allows the management process to pass arguments
@@ -81,29 +81,29 @@ hcl_start(void)
 {
 	unsigned u;
 
-	hcl_head = calloc(hcl_nhash, sizeof(*hcl_head));
-	XXXAN(hcl_head);
+	hcl_hashtable = calloc(hcl_nhash, sizeof(*hcl_hashtable));
+	XXXAN(hcl_hashtable);
 
 	for (u = 0; u < hcl_nhash; u++) {
-		hcl_head[u].magic = HCL_HEAD_MAGIC;
-		VSLIST_INIT(&hcl_head[u].head);
-		Lck_New(&hcl_head[u].mtx, lck_hcl);
+		hcl_hashtable[u].magic = HCL_HEAD_MAGIC;
+		VSLIST_INIT(&hcl_hashtable[u].head);
+		Lck_New(&hcl_hashtable[u].mtx, lck_hcl_head);
 	}
 }
 
-static struct hcl_hd *
-get_hcl_hd(const struct objhead *oh)
+static struct hcl_head *
+get_hcl_head(const struct objhead *oh)
 {
-	struct hcl_hd *hp;
+	struct hcl_head *hp;
 	unsigned digest, u;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	assert(sizeof(oh->digest) > sizeof(digest));
 	memcpy(&digest, oh->digest, sizeof(digest));
 	u = digest % hcl_nhash;
-	hp = &hcl_head[u];
+	hp = &hcl_hashtable[u];
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
-	return hp;
+	return (hp);
 }
 
 /*--------------------------------------------------------------------
@@ -116,11 +116,11 @@ static struct objhead *
 hcl_lookup(const struct sess *sp, struct objhead *noh)
 {
 	struct objhead *oh, *head, **poh;
-	struct hcl_hd *hp;
+	struct hcl_head *hp;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
-	hp = get_hcl_hd(noh);
+	hp = get_hcl_head(noh);
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
 
 	Lck_Lock(&hp->mtx);
@@ -159,11 +159,11 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 static int
 hcl_deref(struct objhead *oh)
 {
-	struct hcl_hd *hp;
+	struct hcl_head *hp;
 	int ret;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
-	hp = get_hcl_hd(oh);
+	hp = get_hcl_head(oh);
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
 
 	Lck_Lock(&hp->mtx);
