@@ -103,7 +103,7 @@ get_hcl_hd(const struct objhead *oh)
 	u = digest % hcl_nhash;
 	hp = &hcl_head[u];
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
-	return hp;
+	return (hp);
 }
 
 /*--------------------------------------------------------------------
