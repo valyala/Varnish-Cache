@@ -918,6 +918,22 @@ static const struct parspec input_parspec[] = {
 		"put in transient storage.\n",
 		0,
 		"10.0", "s" },
+	{ "hash_buckets", tweak_uint, &master.hash_buckets,
+		1, UINT_MAX,
+		"The number of buckets in lookup hash table.\n"
+		"Increase this value if the number of lookup collisions "
+		"(n_hcl_lookup_collisions) grows faster than the number "
+		"of requests. The number of hash buckets should be close to "
+		"the number of frequently requested items (aka 'hot items') "
+		"in the cache. For example, hash table with 65536 buckets "
+		"(default value) should work well with ~64K hot items. Note "
+		"that the total number of items in the cache can be much "
+		"larger than the number of hot items without any performance "
+		"impact. Too high number of buckets result in memory waste, "
+		"while too low number of buckets result in slower responses "
+		"and high CPU usage.",
+		MUST_RESTART,
+		"65536", "Buckets" },
 	{ "vcl_dir", tweak_string, &mgt_vcl_dir, 0, 0,
 		"Directory from which relative VCL filenames (vcl.load and "
 		"include) are opened.",

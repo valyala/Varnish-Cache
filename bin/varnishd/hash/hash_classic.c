@@ -31,7 +31,6 @@
 
 #include "config.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "cache.h"
@@ -47,7 +46,6 @@ struct hcl_head {
 	struct lock		mtx;
 };
 
-static unsigned			hcl_nhash = 0x10000;
 static struct hcl_head		*hcl_hashtable;
 
 /*--------------------------------------------------------------------
@@ -57,18 +55,8 @@ static struct hcl_head		*hcl_hashtable;
 static void
 hcl_init(int ac, char * const *av)
 {
-	int i;
-	unsigned u;
-
-	if (ac == 0)
-		return;
-	if (ac > 1)
-		ARGV_ERR("(-hclassic) too many arguments\n");
-	i = sscanf(av[0], "%u", &u);
-	if (i <= 0 || u == 0)
-		return;
-	hcl_nhash = u;
-	return;
+	(void)ac;
+	(void)av;
 }
 
 /*--------------------------------------------------------------------
@@ -79,12 +67,14 @@ hcl_init(int ac, char * const *av)
 static void
 hcl_start(void)
 {
-	unsigned u;
+	unsigned hash_buckets, u;
 
-	hcl_hashtable = calloc(hcl_nhash, sizeof(*hcl_hashtable));
+	hash_buckets = params->hash_buckets;
+	assert(hash_buckets > 0);
+	hcl_hashtable = calloc(hash_buckets, sizeof(*hcl_hashtable));
 	XXXAN(hcl_hashtable);
 
-	for (u = 0; u < hcl_nhash; u++) {
+	for (u = 0; u < hash_buckets; u++) {
 		hcl_hashtable[u].magic = HCL_HEAD_MAGIC;
 		VSLIST_INIT(&hcl_hashtable[u].head);
 		Lck_New(&hcl_hashtable[u].mtx, lck_hcl_head);
@@ -100,7 +90,8 @@ get_hcl_head(const struct objhead *oh)
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	assert(sizeof(oh->digest) > sizeof(digest));
 	memcpy(&digest, oh->digest, sizeof(digest));
-	u = digest % hcl_nhash;
+	assert(params->hash_buckets > 0);
+	u = digest % params->hash_buckets;
 	hp = &hcl_hashtable[u];
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
 	return (hp);
@@ -173,7 +164,7 @@ hcl_deref(struct objhead *oh)
 		 * Though removal from singly list list requires O(n) time,
 		 * this should be OK here, since hash table buckets must contain
 		 * only a few items to be fast. If this isn't the case, just
-		 * increase the number of buckets in the table (hcl_nhash).
+		 * increase the number of buckets in the table (hash_buckets).
 		 */
 		VSLIST_REMOVE(&hp->head, oh, objhead, hoh_list);
 		ret = 0;

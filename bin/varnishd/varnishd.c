@@ -130,7 +130,6 @@ usage(void)
 	fprintf(stderr, FMT, "-F", "Run in foreground");
 	fprintf(stderr, FMT, "-h kind[,hashoptions]", "Hash specification");
 	fprintf(stderr, FMT, "", "  -h classic [default]");
-	fprintf(stderr, FMT, "", "  -h classic,<buckets>");
 	fprintf(stderr, FMT, "", "  -h simple_list");
 	fprintf(stderr, FMT, "-i identity", "Identity of varnish instance");
 	fprintf(stderr, FMT, "-l shl,free,fill", "Size of shared memory file");

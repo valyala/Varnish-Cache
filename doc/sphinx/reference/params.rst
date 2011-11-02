@@ -416,6 +416,17 @@ shortlived
 
 	Objects created with TTL shorter than this are always put in transient storage.
 
+hash_buckets
+	- Units: buckets
+	- Default: 65536
+
+	The number of buckets in lookup hash table. Increase this value if the number of lookup collisions (n_hcl_lookup_collisions) grows faster than the number of requests.
+	The number of hash buckets should be close to the number of frequently requested items (aka 'hot items') in the cache.
+	For example, hash table with 65536 buckets (default value) should work well with ~64K hot items.
+	Note that the total number of items in the cache can be much larger than the number of hot items without any performance impact.
+	Too high number of buckets result in memory waste, while too low number of buckets result in slower responses and high CPU usage.
+	Minimum is 1 bucket.
+
 syslog_cli_traffic
 	- Units: bool
 	- Default: on
