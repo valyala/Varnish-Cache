@@ -61,8 +61,6 @@
 #include "hash/hash_slinger.h"
 #include "vsha256.h"
 
-static const struct hash_slinger *hash = &hcl_slinger;
-
 /*---------------------------------------------------------------------*/
 /* Precreate an objhead and object for later use */
 void
@@ -184,14 +182,13 @@ HSH_Insert(const struct sess *sp)
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(sp->wrk, WORKER_MAGIC);
-	AN(hash);
 	w = sp->wrk;
 
 	HSH_Prealloc(sp);
 
 	AZ(sp->hash_objhead);
 	AN(w->nobjhead);
-	oh = hash->lookup(sp, w->nobjhead);
+	oh = HTB_Lookup(sp, w->nobjhead);
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	if (oh == w->nobjhead)
 		w->nobjhead = NULL;
@@ -225,12 +222,12 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	struct objcore *busy_oc, *grace_oc;
 	struct object *o;
 	double grace_ttl;
+	int i;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(sp->wrk, WORKER_MAGIC);
 	CHECK_OBJ_NOTNULL(sp->http, HTTP_MAGIC);
 	AN(sp->director);
-	AN(hash);
 	w = sp->wrk;
 
 	HSH_Prealloc(sp);
@@ -246,7 +243,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 		sp->hash_objhead = NULL;
 	} else {
 		AN(w->nobjhead);
-		oh = hash->lookup(sp, w->nobjhead);
+		oh = HTB_Lookup(sp, w->nobjhead);
 		if (oh == w->nobjhead)
 			w->nobjhead = NULL;
 	}
@@ -337,7 +334,8 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 			o->hits++;
 		assert(oh->refcnt > 1);
 		Lck_Unlock(&oh->mtx);
-		assert(hash->deref(oh));
+		i = HTB_Deref(oh);
+		AN(i);
 		*poh = oh;
 		return (oc);
 	}
@@ -653,7 +651,7 @@ HSH_Deref(struct worker *w, struct objcore *oc, struct object **oo)
 	w->stats.n_objectcore--;
 	/* Drop our ref on the objhead */
 	assert(oh->refcnt > 0);
-	if (hash->deref(oh))
+	if (HTB_Deref(oh))
 		return (0);
 	HSH_DeleteObjHead(w, oh);
 	return (0);
@@ -663,5 +661,5 @@ void
 HSH_Init(void)
 {
 	assert(DIGEST_LEN == SHA256_LEN);	/* avoid #include pollution */
-	hcl_slinger.start();
+	HTB_Start();
 }

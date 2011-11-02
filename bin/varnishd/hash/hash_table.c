@@ -49,12 +49,12 @@ struct hcl_head {
 static struct hcl_head		*hcl_hashtable;
 
 /*--------------------------------------------------------------------
- * The ->start method is called during cache process start and allows
+ * This method is called during cache process start and allows
  * initialization to happen before the first lookup.
  */
 
-static void
-hcl_start(void)
+void
+HTB_Start(void)
 {
 	unsigned hash_buckets, u;
 
@@ -81,6 +81,7 @@ get_hcl_head(const struct objhead *oh)
 	memcpy(&digest, oh->digest, sizeof(digest));
 	assert(params->hash_buckets > 0);
 	u = digest % params->hash_buckets;
+	AN(hcl_hashtable);
 	hp = &hcl_hashtable[u];
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
 	return (hp);
@@ -92,8 +93,8 @@ get_hcl_head(const struct objhead *oh)
  * A reference to the returned object is held.
  */
 
-static struct objhead *
-hcl_lookup(const struct sess *sp, struct objhead *noh)
+struct objhead *
+HTB_Lookup(const struct sess *sp, struct objhead *noh)
 {
 	struct objhead *oh, *head, **poh;
 	struct hcl_head *hp;
@@ -136,8 +137,8 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
  * Dereference and if no references are left, free.
  */
 
-static int
-hcl_deref(struct objhead *oh)
+int
+HTB_Deref(struct objhead *oh)
 {
 	struct hcl_head *hp;
 	int ret;
@@ -162,13 +163,3 @@ hcl_deref(struct objhead *oh)
 	Lck_Unlock(&hp->mtx);
 	return (ret);
 }
-
-/*--------------------------------------------------------------------*/
-
-const struct hash_slinger hcl_slinger = {
-	.magic	=	SLINGER_MAGIC,
-	.name	=	"classic",
-	.start	=	hcl_start,
-	.lookup =	hcl_lookup,
-	.deref	=	hcl_deref,
-};
