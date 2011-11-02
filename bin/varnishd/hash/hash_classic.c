@@ -116,7 +116,7 @@ get_hcl_hd(const struct objhead *oh)
 static struct objhead *
 hcl_lookup(const struct sess *sp, struct objhead *noh)
 {
-	struct objhead *oh, *head, **ohp;
+	struct objhead *oh, *head, **poh;
 	struct hcl_hd *hp;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
@@ -126,7 +126,7 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 
 	Lck_Lock(&hp->mtx);
 	head = VSLIST_FIRST(&hp->head);
-	VSLIST_FOREACH_PREVPTR(oh, ohp, &hp->head, hoh_list) {
+	VSLIST_FOREACH_PREVPTR(oh, poh, &hp->head, hoh_list) {
 		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		if (memcmp(oh->digest, noh->digest, sizeof oh->digest)) {
 			VSC_C_main->n_hcl_lookup_collisions++;
@@ -139,7 +139,7 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 		 * This should result in faster lookups for 'hot' objects.
 		 */
 		if (oh != head) {
-			*ohp = VSLIST_NEXT(oh, hoh_list);
+			*poh = VSLIST_NEXT(oh, hoh_list);
 			VSLIST_INSERT_HEAD(&hp->head, oh, hoh_list);
 		}
 		oh->refcnt++;
