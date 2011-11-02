@@ -57,8 +57,8 @@
 #include <stdlib.h>
 
 #include "cache.h"
-
-#include "hash/hash_slinger.h"
+#include "cache_hash.h"
+#include "hash_table.h"
 #include "vsha256.h"
 
 /*---------------------------------------------------------------------*/
@@ -664,5 +664,5 @@ void
 HSH_Init(void)
 {
 	assert(DIGEST_LEN == SHA256_LEN);	/* avoid #include pollution */
-	HTB_Start();
+	HTB_Init();
 }

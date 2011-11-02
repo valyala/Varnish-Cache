@@ -63,8 +63,7 @@ DOT acceptor -> start [style=bold,color=green]
 #include <stdlib.h>
 
 #include "cache.h"
-
-#include "hash/hash_slinger.h"
+#include "cache_hash.h"
 #include "vcl.h"
 #include "vcli_priv.h"
 #include "vsha256.h"

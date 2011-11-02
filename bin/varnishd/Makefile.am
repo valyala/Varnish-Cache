@@ -52,7 +52,7 @@ varnishd_SOURCES = \
 	cache_wrk.c \
 	cache_wrw.c \
 	cache_ws.c \
-	hash/hash_table.c \
+	hash_table.c \
 	mgt/mgt_child.c \
 	mgt/mgt_cli.c \
 	mgt/mgt_param.c \
@@ -79,10 +79,10 @@ noinst_HEADERS = \
 	cache.h \
 	cache_backend.h \
 	cache_esi.h \
+	cache_hash.h \
 	waiter/cache_waiter.h \
 	common.h \
 	default_vcl.h \
-	hash/hash_slinger.h \
 	heritage.h \
 	mgt/mgt.h \
 	mgt/mgt_cli.h \

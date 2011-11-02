@@ -46,7 +46,6 @@
 #include "cache.h"
 #include "storage/storage.h"
 
-#include "hash/hash_slinger.h"
 #include "vcli.h"
 #include "vcli_priv.h"
 #include "vend.h"

@@ -34,8 +34,7 @@
 #include <stdlib.h>
 
 #include "cache.h"
-
-#include "hash/hash_slinger.h"
+#include "hash_table.h"
 
 /*--------------------------------------------------------------------*/
 
@@ -54,7 +53,7 @@ static struct bucket		*buckets;
  */
 
 void
-HTB_Start(void)
+HTB_Init(void)
 {
 	unsigned hash_buckets, u;
 
