@@ -47,7 +47,7 @@ struct hcl_hd {
 	struct lock		mtx;
 };
 
-static unsigned			hcl_nhash = 16383;
+static unsigned			hcl_nhash = 0x10000;
 static struct hcl_hd		*hcl_head;
 
 /*--------------------------------------------------------------------
@@ -67,15 +67,6 @@ hcl_init(int ac, char * const *av)
 	i = sscanf(av[0], "%u", &u);
 	if (i <= 0 || u == 0)
 		return;
-	if (u > 2 && !(u & (u - 1))) {
-		fprintf(stderr,
-		    "NOTE:\n"
-		    "\tA power of two number of hash buckets is "
-		    "marginally less efficient\n"
-		    "\twith systematic URLs.  Reducing by one"
-		    " hash bucket.\n");
-		u--;
-	}
 	hcl_nhash = u;
 	fprintf(stderr, "Classic hash: %u buckets\n", hcl_nhash);
 	return;
