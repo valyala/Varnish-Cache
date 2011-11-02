@@ -35,46 +35,50 @@
 
 struct binheap;
 
-typedef int binheap_cmp_t(void *priv, void *a, void *b);
+typedef int (*binheap_cmp_t)(void *a, void *b);
 	/*
-	 * Comparison function.
-	 * Should return true if item 'a' should be closer to the root
-	 * than item 'b'
+	 * User-specified callback, which should return non-zero if key value
+	 * for a is less than key value for b.
 	 */
 
-typedef void binheap_update_t(void *priv, void *a, unsigned newidx);
+typedef void (*binheap_update_t)(void *p, unsigned idx);
 	/*
-	 * Update function (optional)
-	 * When items move in the tree, this function gets called to
-	 * notify the item of its new index.
-	 * Only needed if deleting non-root items.
+	 * User-defined callback, which should store updated index for the given
+	 * entry p.
+	 * This index can be passed to binheap_reorder() and binheap_delete().
 	 */
 
-struct binheap *binheap_new(void *priv, binheap_cmp_t, binheap_update_t);
+struct binheap *binheap_new(binheap_cmp_t cmp_f, binheap_update_t update_f);
 	/*
-	 * Create Binary tree
-	 * 'priv' is passed to cmp and update functions.
+	 * Creates binary heap.
+	 * cmp_f and update_f cannot be NULL.
 	 */
 
-void binheap_insert(struct binheap *, void *);
+void binheap_insert(struct binheap *bh, void *p);
 	/*
-	 * Insert an item
+	 * Inserts p into binheap.
+	 * p cannot be NULL.
 	 */
 
-void binheap_reorder(const struct binheap *, unsigned idx);
+void binheap_reorder(const struct binheap *bh, unsigned idx);
 	/*
-	 * Move an order after changing its key value.
+	 * Reorders binheap after the key for the entry with the given index
+	 * has been changed.
 	 */
 
-void binheap_delete(struct binheap *, unsigned idx);
+void binheap_delete(struct binheap *bh, unsigned idx);
 	/*
-	 * Delete an item
-	 * The root item has 'idx' zero
+	 * Removes the entry with the given index from binheap.
 	 */
 
-void *binheap_root(const struct binheap *);
+void *binheap_root(const struct binheap *bh);
 	/*
-	 * Return the root item
+	 * Returns binheap root entry, i.e. the entry with the minimal key.
+	 * Returns NULL if binheap is empty.
 	 */
 
 #define BINHEAP_NOIDX	0
+	/*
+	 * This value is passed into update_f() after entry removal
+	 * from the binheap.
+	 */
