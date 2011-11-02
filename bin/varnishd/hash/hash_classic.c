@@ -49,17 +49,6 @@ struct hcl_head {
 static struct hcl_head		*hcl_hashtable;
 
 /*--------------------------------------------------------------------
- * The ->init method allows the management process to pass arguments
- */
-
-static void
-hcl_init(int ac, char * const *av)
-{
-	(void)ac;
-	(void)av;
-}
-
-/*--------------------------------------------------------------------
  * The ->start method is called during cache process start and allows
  * initialization to happen before the first lookup.
  */
@@ -179,7 +168,6 @@ hcl_deref(struct objhead *oh)
 const struct hash_slinger hcl_slinger = {
 	.magic	=	SLINGER_MAGIC,
 	.name	=	"classic",
-	.init	=	hcl_init,
 	.start	=	hcl_start,
 	.lookup =	hcl_lookup,
 	.deref	=	hcl_deref,

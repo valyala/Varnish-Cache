@@ -55,9 +55,6 @@ struct heritage {
 	struct listen_sock_head		socks;
 	unsigned			nsocks;
 
-	/* Hash method */
-	const struct hash_slinger	*hash;
-
 	char				*name;
 	char                            identity[1024];
 };
