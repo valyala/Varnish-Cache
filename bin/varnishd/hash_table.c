@@ -39,8 +39,6 @@
 /*--------------------------------------------------------------------*/
 
 struct bucket {
-	unsigned		magic;
-#define BUCKET_MAGIC		0x0f327016
 	VSLIST_HEAD(, objhead)	head;
 	struct lock		mtx;
 };
@@ -63,7 +61,6 @@ HTB_Init(void)
 	XXXAN(buckets);
 
 	for (u = 0; u < hashtable_buckets; u++) {
-		buckets[u].magic = BUCKET_MAGIC;
 		VSLIST_INIT(&buckets[u].head);
 		Lck_New(&buckets[u].mtx, lck_htb_bucket);
 	}
@@ -82,7 +79,6 @@ get_bucket(const struct objhead *oh)
 	u = digest % params->hashtable_buckets;
 	AN(buckets);
 	b = &buckets[u];
-	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
 	return (b);
 }
 
@@ -100,7 +96,7 @@ HTB_Lookup(struct objhead *noh)
 
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
 	b = get_bucket(noh);
-	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
+	AN(b);
 
 	Lck_Lock(&b->mtx);
 	head = VSLIST_FIRST(&b->head);
@@ -143,7 +139,7 @@ HTB_Deref(struct objhead *oh)
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	b = get_bucket(oh);
-	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
+	AN(b);
 
 	Lck_Lock(&b->mtx);
 	assert(oh->refcnt > 0);
