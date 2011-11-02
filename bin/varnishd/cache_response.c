@@ -182,7 +182,7 @@ res_WriteGunzipObj(const struct sess *sp)
 		(void)WRW_Write(sp->wrk, obuf, obufl);
 		(void)WRW_Flush(sp->wrk);
 	}
-	VGZ_Destroy(&vg, sp->vsl_id);
+	(void)VGZ_Destroy(&vg, sp->vsl_id);
 	assert(u == sp->obj->len);
 }
 
@@ -307,6 +307,9 @@ RES_WriteObj(struct sess *sp)
 		ESI_Deliver(sp);
 	} else if (sp->wrk->res_mode & RES_ESI_CHILD && sp->wrk->gzip_resp) {
 		ESI_DeliverChild(sp);
+	} else if (sp->wrk->res_mode & RES_ESI_CHILD &&
+	    !sp->wrk->gzip_resp && sp->obj->gziped) {
+		res_WriteGunzipObj(sp);
 	} else if (sp->wrk->res_mode & RES_GUNZIP) {
 		res_WriteGunzipObj(sp);
 	} else {
