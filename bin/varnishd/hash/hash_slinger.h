@@ -85,14 +85,7 @@ struct objhead {
 	 * The fields below are for the sole private use of
 	 * the hash implementation(s).
 	 */
-	union {
-		struct {
-			VSLIST_ENTRY(objhead)	u_n_hoh_list;
-			void			*u_n_hoh_head;
-		} n;
-	} _u;
-#define hoh_list _u.n.u_n_hoh_list
-#define hoh_head _u.n.u_n_hoh_head
+	VSLIST_ENTRY(objhead)	hoh_list;
 };
 
 void HSH_DeleteObjHead(struct worker *w, struct objhead *oh);
@@ -101,4 +94,3 @@ int HSH_Deref(struct worker *w, struct objcore *oc, struct object **o);
 
 extern const struct hash_slinger hsl_slinger;
 extern const struct hash_slinger hcl_slinger;
-extern const struct hash_slinger hcb_slinger;

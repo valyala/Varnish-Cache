@@ -47,7 +47,7 @@ struct hcl_hd {
 	struct lock		mtx;
 };
 
-static unsigned			hcl_nhash = 16383;
+static unsigned			hcl_nhash = 0x10000;
 static struct hcl_hd		*hcl_head;
 
 /*--------------------------------------------------------------------
@@ -67,15 +67,6 @@ hcl_init(int ac, char * const *av)
 	i = sscanf(av[0], "%u", &u);
 	if (i <= 0 || u == 0)
 		return;
-	if (u > 2 && !(u & (u - 1))) {
-		fprintf(stderr,
-		    "NOTE:\n"
-		    "\tA power of two number of hash buckets is "
-		    "marginally less efficient\n"
-		    "\twith systematic URLs.  Reducing by one"
-		    " hash bucket.\n");
-		u--;
-	}
 	hcl_nhash = u;
 	fprintf(stderr, "Classic hash: %u buckets\n", hcl_nhash);
 	return;
@@ -91,7 +82,7 @@ hcl_start(void)
 {
 	unsigned u;
 
-	hcl_head = calloc(sizeof *hcl_head, hcl_nhash);
+	hcl_head = calloc(hcl_nhash, sizeof(*hcl_head));
 	XXXAN(hcl_head);
 
 	for (u = 0; u < hcl_nhash; u++) {
@@ -99,6 +90,21 @@ hcl_start(void)
 		VSLIST_INIT(&hcl_head[u].head);
 		Lck_New(&hcl_head[u].mtx, lck_hcl);
 	}
+}
+
+static struct hcl_hd *
+get_hcl_hd(const struct objhead *oh)
+{
+	struct hcl_hd *hp;
+	unsigned digest, u;
+
+	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
+	assert(sizeof(oh->digest) > sizeof(digest));
+	memcpy(&digest, oh->digest, sizeof(digest));
+	u = digest % hcl_nhash;
+	hp = &hcl_head[u];
+	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
+	return hp;
 }
 
 /*--------------------------------------------------------------------
@@ -110,33 +116,30 @@ hcl_start(void)
 static struct objhead *
 hcl_lookup(const struct sess *sp, struct objhead *noh)
 {
-	struct objhead *oh, **ohp, **headp;
+	struct objhead *oh, *head, **poh;
 	struct hcl_hd *hp;
-	unsigned u1, digest;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
-
-	assert(sizeof noh->digest > sizeof digest);
-	memcpy(&digest, noh->digest, sizeof digest);
-	u1 = digest % hcl_nhash;
-	hp = &hcl_head[u1];
+	hp = get_hcl_hd(noh);
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
 
 	Lck_Lock(&hp->mtx);
-	headp = &VSLIST_FIRST(&hp->head);
-	VSLIST_FOREACH_PREVPTR(oh, ohp, &hp->head, hoh_list) {
+	head = VSLIST_FIRST(&hp->head);
+	VSLIST_FOREACH_PREVPTR(oh, poh, &hp->head, hoh_list) {
 		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
-		if (memcmp(oh->digest, noh->digest, sizeof oh->digest))
+		if (memcmp(oh->digest, noh->digest, sizeof oh->digest)) {
+			VSC_C_main->n_hcl_lookup_collisions++;
 			continue;
+		}
 
 		/*
 		 * Move the found object to the head of the list, so recently
 		 * looked up objects will be grouped close to the list head.
 		 * This should result in faster lookups for 'hot' objects.
 		 */
-		if (ohp != headp) {
-			VSLIST_NEXT(*ohp, hoh_list) = VSLIST_NEXT(oh, hoh_list);
+		if (oh != head) {
+			*poh = VSLIST_NEXT(oh, hoh_list);
 			VSLIST_INSERT_HEAD(&hp->head, oh, hoh_list);
 		}
 		oh->refcnt++;
@@ -145,7 +148,6 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 	}
 
 	VSLIST_INSERT_HEAD(&hp->head, noh, hoh_list);
-	noh->hoh_head = hp;
 
 	Lck_Unlock(&hp->mtx);
 	return (noh);
@@ -162,7 +164,9 @@ hcl_deref(struct objhead *oh)
 	int ret;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
-	CAST_OBJ_NOTNULL(hp, oh->hoh_head, HCL_HEAD_MAGIC);
+	hp = get_hcl_hd(oh);
+	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
+
 	Lck_Lock(&hp->mtx);
 	assert(oh->refcnt > 0);
 	if (--oh->refcnt == 0) {
