@@ -28,27 +28,16 @@
  *
  */
 
+struct object;
+struct objcore;
+struct objhead;
 struct sess;
 struct worker;
-struct object;
 
-typedef void hash_init_f(int ac, char * const *av);
-typedef void hash_start_f(void);
-typedef void hash_prep_f(const struct sess *sp);
-typedef struct objhead *
-    hash_lookup_f(const struct sess *sp, struct objhead *nobj);
-typedef int hash_deref_f(struct objhead *obj);
-
-struct hash_slinger {
-	unsigned		magic;
-#define SLINGER_MAGIC		0x1b720cba
-	const char		*name;
-	hash_init_f		*init;
-	hash_start_f		*start;
-	hash_prep_f		*prep;
-	hash_lookup_f		*lookup;
-	hash_deref_f		*deref;
-};
+/* hash_table.c */
+void HTB_Start(void);
+struct objhead *HTB_Lookup(struct objhead *noh);
+int HTB_Deref(struct objhead *oh);
 
 /* cache_hash.c */
 void HSH_Prealloc(const struct sess *sp);
@@ -61,7 +50,6 @@ void HSH_Init(void);
 void HSH_AddString(const struct sess *sp, const char *str);
 struct objcore *HSH_Insert(const struct sess *sp);
 void HSH_Purge(const struct sess *, struct objhead *, double ttl, double grace);
-void HSH_config(const char *h_arg);
 
 #ifdef VARNISH_CACHE_CHILD
 
@@ -91,6 +79,3 @@ struct objhead {
 void HSH_DeleteObjHead(struct worker *w, struct objhead *oh);
 int HSH_Deref(struct worker *w, struct objcore *oc, struct object **o);
 #endif /* VARNISH_CACHE_CHILD */
-
-extern const struct hash_slinger hsl_slinger;
-extern const struct hash_slinger hcl_slinger;

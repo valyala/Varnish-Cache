@@ -55,9 +55,6 @@ struct heritage {
 	struct listen_sock_head		socks;
 	unsigned			nsocks;
 
-	/* Hash method */
-	const struct hash_slinger	*hash;
-
 	char				*name;
 	char                            identity[1024];
 };
@@ -211,6 +208,9 @@ struct params {
 	unsigned		gzip_memlevel;
 
 	double			shortlived;
+
+	/* The number of buckets in lookup hash */
+	unsigned		hash_buckets;
 
 	struct vre_limits	vre_limits;
 };

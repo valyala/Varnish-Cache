@@ -26,10 +26,12 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This is the reference hash(/lookup) implementation
+ * A classic bucketed hash
  */
 
 #include "config.h"
+
+#include <stdlib.h>
 
 #include "cache.h"
 
@@ -37,18 +39,52 @@
 
 /*--------------------------------------------------------------------*/
 
-static VSLIST_HEAD(, objhead)	hsl_head = VSLIST_HEAD_INITIALIZER(hsl_head);
-static struct lock hsl_mtx;
+struct bucket {
+	unsigned		magic;
+#define BUCKET_MAGIC		0x0f327016
+	VSLIST_HEAD(, objhead)	head;
+	struct lock		mtx;
+};
+
+static struct bucket		*buckets;
 
 /*--------------------------------------------------------------------
- * The ->init method is called during process start and allows
+ * This method is called during cache process start and allows
  * initialization to happen before the first lookup.
  */
 
-static void
-hsl_start(void)
+void
+HTB_Start(void)
 {
-	Lck_New(&hsl_mtx, lck_hsl);
+	unsigned hash_buckets, u;
+
+	hash_buckets = params->hash_buckets;
+	assert(hash_buckets > 0);
+	buckets = calloc(hash_buckets, sizeof(*buckets));
+	XXXAN(buckets);
+
+	for (u = 0; u < hash_buckets; u++) {
+		buckets[u].magic = BUCKET_MAGIC;
+		VSLIST_INIT(&buckets[u].head);
+		Lck_New(&buckets[u].mtx, lck_htb_bucket);
+	}
+}
+
+static struct bucket *
+get_bucket(const struct objhead *oh)
+{
+	struct bucket *b;
+	unsigned digest, u;
+
+	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
+	assert(sizeof(oh->digest) > sizeof(digest));
+	memcpy(&digest, oh->digest, sizeof(digest));
+	assert(params->hash_buckets > 0);
+	u = digest % params->hash_buckets;
+	AN(buckets);
+	b = &buckets[u];
+	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
+	return (b);
 }
 
 /*--------------------------------------------------------------------
@@ -57,26 +93,42 @@ hsl_start(void)
  * A reference to the returned object is held.
  */
 
-static struct objhead *
-hsl_lookup(const struct sess *sp, struct objhead *noh)
+struct objhead *
+HTB_Lookup(struct objhead *noh)
 {
-	struct objhead *oh;
+	struct objhead *oh, *head, **poh;
+	struct bucket *b;
 
-	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
-	Lck_Lock(&hsl_mtx);
-	VSLIST_FOREACH(oh, &hsl_head, hoh_list) {
-		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
-		if (memcmp(oh->digest, noh->digest, sizeof oh->digest))
-			continue;
+	b = get_bucket(noh);
+	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
 
+	Lck_Lock(&b->mtx);
+	head = VSLIST_FIRST(&b->head);
+	VSLIST_FOREACH_PREVPTR(oh, poh, &b->head, hoh_list) {
+		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
+		if (memcmp(oh->digest, noh->digest, sizeof oh->digest)) {
+			VSC_C_main->n_hcl_lookup_collisions++;
+			continue;
+		}
+
+		/*
+		 * Move the found object to the head of the list, so recently
+		 * looked up objects will be grouped close to the list head.
+		 * This should result in faster lookups for 'hot' objects.
+		 */
+		if (oh != head) {
+			*poh = VSLIST_NEXT(oh, hoh_list);
+			VSLIST_INSERT_HEAD(&b->head, oh, hoh_list);
+		}
 		oh->refcnt++;
-		Lck_Unlock(&hsl_mtx);
+		Lck_Unlock(&b->mtx);
 		return (oh);
 	}
 
-	VSLIST_INSERT_HEAD(&hsl_head, noh, hoh_list);
-	Lck_Unlock(&hsl_mtx);
+	VSLIST_INSERT_HEAD(&b->head, noh, hoh_list);
+
+	Lck_Unlock(&b->mtx);
 	return (noh);
 }
 
@@ -84,30 +136,29 @@ hsl_lookup(const struct sess *sp, struct objhead *noh)
  * Dereference and if no references are left, free.
  */
 
-static int
-hsl_deref(struct objhead *oh)
+int
+HTB_Deref(struct objhead *oh)
 {
+	struct bucket *b;
 	int ret;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
+	b = get_bucket(oh);
+	CHECK_OBJ_NOTNULL(b, BUCKET_MAGIC);
 
-	Lck_Lock(&hsl_mtx);
+	Lck_Lock(&b->mtx);
 	assert(oh->refcnt > 0);
 	if (--oh->refcnt == 0) {
-		VSLIST_REMOVE(&hsl_head, oh, objhead, hoh_list);
+		/*
+		 * Though removal from singly list list requires O(n) time,
+		 * this should be OK here, since hash table buckets must contain
+		 * only a few items to be fast. If this isn't the case, just
+		 * increase the number of buckets in the table (hash_buckets).
+		 */
+		VSLIST_REMOVE(&b->head, oh, objhead, hoh_list);
 		ret = 0;
 	} else
 		ret = 1;
-	Lck_Unlock(&hsl_mtx);
+	Lck_Unlock(&b->mtx);
 	return (ret);
 }
-
-/*--------------------------------------------------------------------*/
-
-const struct hash_slinger hsl_slinger = {
-	.magic	=	SLINGER_MAGIC,
-	.name	=	"simple",
-	.start	=	hsl_start,
-	.lookup =	hsl_lookup,
-	.deref	=	hsl_deref,
-};
