@@ -297,7 +297,7 @@ struct objhead {
 	struct lock		mtx;
 	unsigned char		digest[DIGEST_LEN];
 	VTAILQ_HEAD(, objcore)	objcs;
-	VTAILQ_HEAD(, sess)	waitinglist;
+	struct sess		*waitinglist;
 
 	/*
 	 * This field is for the sole private use of the hash_table.c .
