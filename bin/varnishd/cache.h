@@ -289,23 +289,15 @@ struct wrk_accept {
 
 /*--------------------------------------------------------------------*/
 
-struct waitinglist {
-	unsigned		magic;
-#define WAITINGLIST_MAGIC	0x063a477a
-	VTAILQ_HEAD(, sess)	list;
-};
-
-/*--------------------------------------------------------------------*/
-
 struct objhead {
 	unsigned		magic;
 #define OBJHEAD_MAGIC		0x1b96615d
 
 	int			refcnt;
 	struct lock		mtx;
-	VTAILQ_HEAD(, objcore)	objcs;
 	unsigned char		digest[DIGEST_LEN];
-	struct waitinglist	*waitinglist;
+	VTAILQ_HEAD(, objcore)	objcs;
+	VTAILQ_HEAD(, sess)	waitinglist;
 
 	/*
 	 * This field is for the sole private use of the hash_table.c .
@@ -321,7 +313,6 @@ struct worker {
 	struct pool		*pool;
 	struct objhead		*nobjhead;
 	struct objcore		*nobjcore;
-	struct waitinglist	*nwaitinglist;
 	struct busyobj		*nbusyobj;
 	void			*nhashpriv;
 	struct dstat		stats;

@@ -69,7 +69,6 @@ HSH_Prealloc(const struct sess *sp)
 	struct worker *w;
 	struct objhead *oh;
 	struct objcore *oc;
-	struct waitinglist *wl;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(sp->wrk, WORKER_MAGIC);
@@ -89,20 +88,12 @@ HSH_Prealloc(const struct sess *sp)
 		XXXAN(oh);
 		oh->refcnt = 1;
 		VTAILQ_INIT(&oh->objcs);
+		VTAILQ_INIT(&oh->waitinglist);
 		Lck_New(&oh->mtx, lck_objhdr);
 		w->nobjhead = oh;
 		w->stats.n_objecthead++;
 	}
 	CHECK_OBJ_NOTNULL(w->nobjhead, OBJHEAD_MAGIC);
-
-	if (w->nwaitinglist == NULL) {
-		ALLOC_OBJ(wl, WAITINGLIST_MAGIC);
-		XXXAN(wl);
-		VTAILQ_INIT(&wl->list);
-		w->nwaitinglist = wl;
-		w->stats.n_waitinglist++;
-	}
-	CHECK_OBJ_NOTNULL(w->nwaitinglist, WAITINGLIST_MAGIC);
 
 	if (w->nbusyobj == NULL) {
 		ALLOC_OBJ(w->nbusyobj, BUSYOBJ_MAGIC);
@@ -124,10 +115,6 @@ HSH_Cleanup(struct worker *w)
 		FREE_OBJ(w->nobjhead);
 		w->nobjhead = NULL;
 		w->stats.n_objecthead--;
-	}
-	if (w->nwaitinglist != NULL) {
-		FREE_OBJ(w->nwaitinglist);
-		w->nwaitinglist = NULL;
 	}
 	if (w->nhashpriv != NULL) {
 		/* XXX: If needed, add slinger method for this */
@@ -343,13 +330,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	if (busy_oc != NULL) {
 		/* There are one or more busy objects, wait for them */
 		if (sp->esi_level == 0) {
-			CHECK_OBJ_NOTNULL(w->nwaitinglist,
-			    WAITINGLIST_MAGIC);
-			if (oh->waitinglist == NULL) {
-				oh->waitinglist = w->nwaitinglist;
-				w->nwaitinglist = NULL;
-			}
-			VTAILQ_INSERT_TAIL(&oh->waitinglist->list, sp, list);
+			VTAILQ_INSERT_TAIL(&oh->waitinglist, sp, list);
 		}
 		if (params->diag_bitmap & 0x20)
 			WSP(sp, SLT_Debug,
@@ -401,19 +382,16 @@ hsh_rush(struct objhead *oh)
 {
 	unsigned u;
 	struct sess *sp;
-	struct waitinglist *wl;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	Lck_AssertHeld(&oh->mtx);
-	wl = oh->waitinglist;
-	CHECK_OBJ_NOTNULL(wl, WAITINGLIST_MAGIC);
 	for (u = 0; u < params->rush_exponent; u++) {
-		sp = VTAILQ_FIRST(&wl->list);
+		sp = VTAILQ_FIRST(&oh->waitinglist);
 		if (sp == NULL)
 			break;
 		CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 		AZ(sp->wrk);
-		VTAILQ_REMOVE(&wl->list, sp, list);
+		VTAILQ_REMOVE(&oh->waitinglist, sp, list);
 		DSL(0x20, SLT_Debug, sp->vsl_id, "off waiting list");
 		if (SES_Schedule(sp)) {
 			/*
@@ -422,10 +400,6 @@ hsh_rush(struct objhead *oh)
 			 */
 			break;
 		}
-	}
-	if (VTAILQ_EMPTY(&wl->list)) {
-		oh->waitinglist = NULL;
-		FREE_OBJ(wl);
 	}
 }
 
@@ -545,8 +519,7 @@ HSH_Unbusy(const struct sess *sp)
 	AZ(sp->wrk->nbusyobj);
 	sp->wrk->nbusyobj = oc->busyobj;
 	oc->busyobj = NULL;
-	if (oh->waitinglist != NULL)
-		hsh_rush(oh);
+	hsh_rush(oh);
 	AN(oc->ban);
 	Lck_Unlock(&oh->mtx);
 	assert(oc_getobj(sp->wrk, oc) == o);
@@ -623,8 +596,7 @@ HSH_Deref(struct worker *w, struct objcore *oc, struct object **oo)
 		/* Must have an object */
 		AN(oc->methods);
 	}
-	if (oh->waitinglist != NULL)
-		hsh_rush(oh);
+	hsh_rush(oh);
 	Lck_Unlock(&oh->mtx);
 	if (r != 0)
 		return (r);

@@ -243,7 +243,6 @@ VSC_F(n_object,			uint64_t, 1, 'i', "N struct object", "")
 VSC_F(n_vampireobject,		uint64_t, 1, 'i', "N unresurrected objects", "")
 VSC_F(n_objectcore,		uint64_t, 1, 'i', "N struct objectcore", "")
 VSC_F(n_objecthead,		uint64_t, 1, 'i', "N struct objecthead", "")
-VSC_F(n_waitinglist,		uint64_t, 1, 'i', "N struct waitinglist", "")
 
 VSC_F(n_vbc,		uint64_t, 0, 'i', "N struct vbc", "")
 

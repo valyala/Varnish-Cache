@@ -143,7 +143,6 @@ cli_debug_sizeof(struct cli *cli, const char * const *av, void *priv)
 	OFOF(struct objhead, mtx);
 	OFOF(struct objhead, objcs);
 	OFOF(struct objhead, digest);
-	OFOF(struct objhead, waitinglist);
 	OFOF(struct objhead, _u);
 #endif
 #if 0
