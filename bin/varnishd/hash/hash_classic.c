@@ -110,9 +110,9 @@ hcl_start(void)
 static struct objhead *
 hcl_lookup(const struct sess *sp, struct objhead *noh)
 {
-	struct objhead *oh, **ohp;
+	struct objhead *oh, *head, **ohp;
 	struct hcl_hd *hp;
-	unsigned u1, digest, i;
+	unsigned u1, digest;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
@@ -124,11 +124,10 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
 
 	Lck_Lock(&hp->mtx);
-	i = 0;
+	head = VSLIST_FIRST(&hp->head);
 	VSLIST_FOREACH_PREVPTR(oh, ohp, &hp->head, hoh_list) {
 		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		if (memcmp(oh->digest, noh->digest, sizeof oh->digest)) {
-			i++;
 			VSC_C_main->n_hcl_lookup_collisions++;
 			continue;
 		}
@@ -138,7 +137,7 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 		 * looked up objects will be grouped close to the list head.
 		 * This should result in faster lookups for 'hot' objects.
 		 */
-		if (i > 0) {
+		if (oh != head) {
 			VSLIST_NEXT(*ohp, hoh_list) = VSLIST_NEXT(oh, hoh_list);
 			VSLIST_INSERT_HEAD(&hp->head, oh, hoh_list);
 		}
