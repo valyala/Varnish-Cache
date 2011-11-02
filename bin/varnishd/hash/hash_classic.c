@@ -82,7 +82,7 @@ hcl_start(void)
 {
 	unsigned u;
 
-	hcl_head = calloc(sizeof *hcl_head, hcl_nhash);
+	hcl_head = calloc(hcl_nhash, sizeof(*hcl_head));
 	XXXAN(hcl_head);
 
 	for (u = 0; u < hcl_nhash; u++) {
@@ -90,6 +90,21 @@ hcl_start(void)
 		VSLIST_INIT(&hcl_head[u].head);
 		Lck_New(&hcl_head[u].mtx, lck_hcl);
 	}
+}
+
+static struct hcl_hd *
+get_hcl_hd(const struct objhead *oh)
+{
+	struct hcl_hd *hp;
+	unsigned digest, u;
+
+	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
+	assert(sizeof(oh->digest) > sizeof(digest));
+	memcpy(&digest, oh->digest, sizeof(digest));
+	u = digest % hcl_nhash;
+	hp = &hcl_head[u];
+	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
+	return hp;
 }
 
 /*--------------------------------------------------------------------
@@ -103,15 +118,10 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 {
 	struct objhead *oh, *head, **ohp;
 	struct hcl_hd *hp;
-	unsigned u1, digest;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
-
-	assert(sizeof noh->digest > sizeof digest);
-	memcpy(&digest, noh->digest, sizeof digest);
-	u1 = digest % hcl_nhash;
-	hp = &hcl_head[u1];
+	hp = get_hcl_hd(noh);
 	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
 
 	Lck_Lock(&hp->mtx);
@@ -138,7 +148,6 @@ hcl_lookup(const struct sess *sp, struct objhead *noh)
 	}
 
 	VSLIST_INSERT_HEAD(&hp->head, noh, hoh_list);
-	noh->hoh_head = hp;
 
 	Lck_Unlock(&hp->mtx);
 	return (noh);
@@ -155,7 +164,9 @@ hcl_deref(struct objhead *oh)
 	int ret;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
-	CAST_OBJ_NOTNULL(hp, oh->hoh_head, HCL_HEAD_MAGIC);
+	hp = get_hcl_hd(oh);
+	CHECK_OBJ_NOTNULL(hp, HCL_HEAD_MAGIC);
+
 	Lck_Lock(&hp->mtx);
 	assert(oh->refcnt > 0);
 	if (--oh->refcnt == 0) {
