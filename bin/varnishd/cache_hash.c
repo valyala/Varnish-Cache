@@ -238,7 +238,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	w = sp->wrk;
 
 	HSH_Prealloc(sp);
-	memcpy(sp->wrk->nobjhead->digest, sp->digest, sizeof sp->digest);
+	memcpy(w->nobjhead->digest, sp->digest, sizeof sp->digest);
 
 	if (sp->hash_objhead != NULL) {
 		/*
@@ -280,7 +280,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 			continue;
 		}
 
-		o = oc_getobj(sp->wrk, oc);
+		o = oc_getobj(w, oc);
 		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 
 		if (o->exp.ttl <= 0.)
@@ -324,14 +324,14 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	    && (busy_oc != NULL		/* Somebody else is already busy */
 	    || !VDI_Healthy(sp->director, sp))) {
 					/* Or it is impossible to fetch */
-		o = oc_getobj(sp->wrk, grace_oc);
+		o = oc_getobj(w, grace_oc);
 		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 		oc = grace_oc;
 	}
 	sp->objcore = NULL;
 
 	if (oc != NULL && !sp->hash_always_miss) {
-		o = oc_getobj(sp->wrk, oc);
+		o = oc_getobj(w, oc);
 		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
 		assert(oc->objhead == oh);
 
@@ -349,11 +349,11 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	if (busy_oc != NULL) {
 		/* There are one or more busy objects, wait for them */
 		if (sp->esi_level == 0) {
-			CHECK_OBJ_NOTNULL(sp->wrk->nwaitinglist,
+			CHECK_OBJ_NOTNULL(w->nwaitinglist,
 			    WAITINGLIST_MAGIC);
 			if (oh->waitinglist == NULL) {
-				oh->waitinglist = sp->wrk->nwaitinglist;
-				sp->wrk->nwaitinglist = NULL;
+				oh->waitinglist = w->nwaitinglist;
+				w->nwaitinglist = NULL;
 			}
 			VTAILQ_INSERT_TAIL(&oh->waitinglist->list, sp, list);
 		}
