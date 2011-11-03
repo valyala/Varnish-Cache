@@ -215,7 +215,7 @@ vdi_random_fini(const struct director *d)
 	free(vs->hosts);
 	free(vs->dir.vcl_name);
 	vs->dir.magic = 0;
-	FREE_OBJ(vs);
+	FREE_OBJ_NOTNULL(vs, VDI_RANDOM_MAGIC);
 }
 
 static void

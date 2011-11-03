@@ -197,7 +197,7 @@ vsl_m_arg(const struct VSM_data *vd, const char *opt)
 	if (m->tag < 0) {
 		fprintf(stderr, "Illegal tag %s specified\n", o);
 		free(o);
-		FREE_OBJ(m);
+		FREE_OBJ_NOTNULL(m, VSL_RE_MATCH_MAGIC);
 		return (-1);
 	}
 	/* Get tag, regex */
@@ -205,7 +205,7 @@ vsl_m_arg(const struct VSM_data *vd, const char *opt)
 	if (m->re == NULL) {
 		fprintf(stderr, "Illegal regex: %s\n", error);
 		free(o);
-		FREE_OBJ(m);
+		FREE_OBJ_NOTNULL(m, VSL_RE_MATCH_MAGIC);
 		return (-1);
 	}
 	vd->vsl->num_matchers++;

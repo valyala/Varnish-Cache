@@ -139,7 +139,7 @@ BAN_New(void)
 	ALLOC_OBJ_NOTNULL(b, BAN_MAGIC);
 	b->vsb = VSB_new_auto();
 	if (b->vsb == NULL) {
-		FREE_OBJ(b);
+		FREE_OBJ_NOTNULL(b, BAN_MAGIC);
 		return (NULL);
 	}
 	VTAILQ_INIT(&b->objcore);
@@ -158,7 +158,7 @@ BAN_Free(struct ban *b)
 		VSB_delete(b->vsb);
 	if (b->spec != NULL)
 		free(b->spec);
-	FREE_OBJ(b);
+	FREE_OBJ_NOTNULL(b, BAN_MAGIC);
 }
 
 static struct ban *

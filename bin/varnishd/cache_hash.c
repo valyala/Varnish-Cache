@@ -102,13 +102,13 @@ HSH_Cleanup(struct worker *w)
 {
 
 	if (w->nobjcore != NULL) {
-		FREE_OBJ(w->nobjcore);
+		FREE_OBJ_NOTNULL(w->nobjcore, OBJCORE_MAGIC);
 		w->stats.n_objectcore--;
 		w->nobjcore = NULL;
 	}
 	if (w->nobjhead != NULL) {
 		Lck_Delete(&w->nobjhead->mtx);
-		FREE_OBJ(w->nobjhead);
+		FREE_OBJ_NOTNULL(w->nobjhead, OBJHEAD_MAGIC);
 		w->nobjhead = NULL;
 		w->stats.n_objecthead--;
 	}
@@ -118,7 +118,7 @@ HSH_Cleanup(struct worker *w)
 		w->nhashpriv = NULL;
 	}
 	if (w->nbusyobj != NULL) {
-		FREE_OBJ(w->nbusyobj);
+		FREE_OBJ_NOTNULL(w->nbusyobj, BUSYOBJ_MAGIC);
 		w->nbusyobj = NULL;
 	}
 }
@@ -126,12 +126,12 @@ HSH_Cleanup(struct worker *w)
 void
 HSH_DeleteObjHead(struct worker *w, struct objhead *oh)
 {
-
+	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	AZ(oh->refcnt);
 	assert(VTAILQ_EMPTY(&oh->objcs));
 	Lck_Delete(&oh->mtx);
 	w->stats.n_objecthead--;
-	FREE_OBJ(oh);
+	FREE_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 }
 
 void
@@ -609,7 +609,7 @@ HSH_Deref(struct worker *w, struct objcore *oc, struct object **oo)
 		if (w->nbusyobj == NULL)
 			w->nbusyobj = oc->busyobj;
 		else
-			FREE_OBJ(oc->busyobj);
+			FREE_OBJ_NOTNULL(oc->busyobj, BUSYOBJ_MAGIC);
 		oc->busyobj = NULL;
 	}
 	AZ(oc->busyobj);
@@ -618,7 +618,7 @@ HSH_Deref(struct worker *w, struct objcore *oc, struct object **oo)
 		oc_freeobj(oc);
 		w->stats.n_object--;
 	}
-	FREE_OBJ(oc);
+	FREE_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 
 	w->stats.n_objectcore--;
 	/* Drop our ref on the objhead */

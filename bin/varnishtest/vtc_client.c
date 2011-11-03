@@ -144,7 +144,7 @@ client_delete(struct client *c)
 	free(c->spec);
 	free(c->name);
 	/* XXX: MEMLEAK (?)*/
-	FREE_OBJ(c);
+	FREE_OBJ_NOTNULL(c, CLIENT_MAGIC);
 }
 
 /**********************************************************************

@@ -105,7 +105,7 @@ VSL_Delete(struct VSM_data *vd)
 	vbit_destroy(vsl->vbm_select);
 	free(vsl->rbuf);
 
-	FREE_OBJ(vsl);
+	FREE_OBJ_NOTNULL(vsl, VSL_MAGIC);
 }
 
 /*--------------------------------------------------------------------*/

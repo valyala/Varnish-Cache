@@ -90,13 +90,14 @@ smp_save_segs(struct smp_sc *sc)
 	 * before we write the segments to disk.
 	 */
 	VTAILQ_FOREACH_SAFE(sg, &sc->segments, list, sg2) {
+		CHECK_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 		if (sg->nobj > 0)
 			break;
 		if (sg == sc->cur_seg)
 			continue;
 		VTAILQ_REMOVE(&sc->segments, sg, list);
 		LRU_Free(sg->lru);
-		FREE_OBJ(sg);
+		FREE_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 	}
 	smp_save_seg(sc, &sc->seg1);
 	smp_save_seg(sc, &sc->seg2);

@@ -148,7 +148,7 @@ server_delete(struct server *s)
 	vtc_logclose(s->vl);
 	free(s->name);
 	/* XXX: MEMLEAK (?) (VSS ??) */
-	FREE_OBJ(s);
+	FREE_OBJ_NOTNULL(s, SERVER_MAGIC);
 }
 
 /**********************************************************************

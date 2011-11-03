@@ -80,7 +80,7 @@ VRT_Vmod_Init(void **hdl, void *ptr, int len, const char *nm,
 			VCLI_Out(cli, "Loading VMOD %s from %s:\n", nm, path);
 			VCLI_Out(cli, "dlopen() failed: %s\n", dlerror());
 			VCLI_Out(cli, "Check child process permissions.\n");
-			FREE_OBJ(v);
+			FREE_OBJ_NOTNULL(v, VMOD_MAGIC);
 			return (1);
 		}
 
@@ -93,7 +93,7 @@ VRT_Vmod_Init(void **hdl, void *ptr, int len, const char *nm,
 			VCLI_Out(cli, "VMOD symbols not found\n");
 			VCLI_Out(cli, "Check relative pathnames.\n");
 			(void)dlclose(v->hdl);
-			FREE_OBJ(v);
+			FREE_OBJ_NOTNULL(v, VMOD_MAGIC);
 			return (1);
 		}
 		AN(x);
@@ -105,7 +105,7 @@ VRT_Vmod_Init(void **hdl, void *ptr, int len, const char *nm,
 			VCLI_Out(cli, "File contain wrong VMOD (\"%s\")\n", x);
 			VCLI_Out(cli, "Check relative pathnames ?.\n");
 			(void)dlclose(v->hdl);
-			FREE_OBJ(v);
+			FREE_OBJ_NOTNULL(v, VMOD_MAGIC);
 			return (1);
 		}
 
@@ -147,7 +147,7 @@ VRT_Vmod_Fini(void **hdl)
 	free(v->path);
 	VTAILQ_REMOVE(&vmods, v, list);
 	VSC_C_main->vmods--;
-	FREE_OBJ(v);
+	FREE_OBJ_NOTNULL(v, VMOD_MAGIC);
 }
 
 /*---------------------------------------------------------------------*/

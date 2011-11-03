@@ -542,18 +542,19 @@ VBP_Remove(struct backend *b, struct vrt_backend_probe const *p)
 	CHECK_OBJ_NOTNULL(b, BACKEND_MAGIC);
 	AN(b->probe);
 	vt = b->probe;
+	CHECK_OBJ_NOTNULL(vt, VBP_TARGET_MAGIC);
 
 	VTAILQ_FOREACH(vcl, &vt->vcls, list)
 		if (vcl->probep == p)
 			break;
 
-	AN(vcl);
+	CHECK_OBJ_NOTNULL(vcl, VBP_VCL_MAGIC);
 
 	Lck_Lock(&vbp_mtx);
 	VTAILQ_REMOVE(&vt->vcls, vcl, list);
 	Lck_Unlock(&vbp_mtx);
 
-	FREE_OBJ(vcl);
+	FREE_OBJ_NOTNULL(vcl, VBP_VCL_MAGIC);
 
 	if (!VTAILQ_EMPTY(&vt->vcls))
 		return;
@@ -571,7 +572,7 @@ VBP_Remove(struct backend *b, struct vrt_backend_probe const *p)
 	VTAILQ_REMOVE(&vbp_list, vt, list);
 	b->probe = NULL;
 	VSB_delete(vt->vsb);
-	FREE_OBJ(vt);
+	FREE_OBJ_NOTNULL(vt, VBP_TARGET_MAGIC);
 }
 
 /*--------------------------------------------------------------------

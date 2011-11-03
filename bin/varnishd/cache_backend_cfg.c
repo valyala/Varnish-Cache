@@ -57,6 +57,7 @@ VBE_Nuke(struct backend *b)
 {
 
 	ASSERT_CLI();
+	CHECK_OBJ_NOTNULL(b, BACKEND_MAGIC);
 	VTAILQ_REMOVE(&backends, b, list);
 	free(b->ipv4);
 	free(b->ipv4_addr);
@@ -64,7 +65,7 @@ VBE_Nuke(struct backend *b)
 	free(b->ipv6_addr);
 	free(b->port);
 	VSM_Free(b->vsc);
-	FREE_OBJ(b);
+	FREE_OBJ_NOTNULL(b, BACKEND_MAGIC);
 	VSC_C_main->n_backend--;
 }
 

@@ -208,7 +208,7 @@ vev_destroy_base(struct vev_base *evb)
 {
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(evb->thread == pthread_self());
-	FREE_OBJ(evb);
+	FREE_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 }
 
 /*--------------------------------------------------------------------*/

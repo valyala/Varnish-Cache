@@ -335,7 +335,7 @@ clean_listen_sock_head(struct listen_sock_head *lsh)
 		VTAILQ_REMOVE(lsh, ls, list);
 		free(ls->name);
 		free(ls->addr);
-		FREE_OBJ(ls);
+		FREE_OBJ_NOTNULL(ls, LISTEN_SOCK_MAGIC);
 	}
 }
 

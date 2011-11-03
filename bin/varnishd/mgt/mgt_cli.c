@@ -447,7 +447,7 @@ telnet_close(void *priv)
 
 	CAST_OBJ_NOTNULL(tn, priv, TELNET_MAGIC);
 	(void)close(tn->fd);
-	FREE_OBJ(tn);
+	FREE_OBJ_NOTNULL(tn, TELNET_MAGIC);
 }
 
 static struct telnet *

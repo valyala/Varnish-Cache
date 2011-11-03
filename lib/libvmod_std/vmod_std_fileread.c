@@ -76,9 +76,10 @@ free_frfile(void *ptr)
 		VTAILQ_REMOVE(&frlist, frf, list);
 	AZ(pthread_mutex_unlock(&frmtx));
 	if (frf != NULL) {
+		CHECK_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
 		free(frf->contents);
 		free(frf->file_name);
-		FREE_OBJ(frf);
+		FREE_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
 	}
 }
 

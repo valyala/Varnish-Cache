@@ -167,10 +167,10 @@ vdi_dns_pop_cache(struct vdi_dns *vs,
 {
 	if (group == NULL)
 		group = VTAILQ_LAST( &vs->cachelist, _cachelist );
-	assert(group != NULL);
+	CHECK_OBJ_NOTNULL(group, VDI_DNSDIR_MAGIC);
 	free(group->hostname);
 	VTAILQ_REMOVE(&vs->cachelist, group, list);
-	FREE_OBJ(group);
+	FREE_OBJ_NOTNULL(group, VDI_DNSDIR_MAGIC);
 	vs->ncachelist--;
 }
 
@@ -425,7 +425,7 @@ vdi_dns_fini(const struct director *d)
 	vs->dir.magic = 0;
 	/* FIXME: Free the cache */
 	AZ(pthread_rwlock_destroy(&vs->rwlock));
-	FREE_OBJ(vs);
+	FREE_OBJ_NOTNULL(vs, VDI_DNS_MAGIC);
 }
 
 void

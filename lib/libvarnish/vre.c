@@ -93,5 +93,5 @@ VRE_free(vre_t **vv)
 	*vv = NULL;
 	CHECK_OBJ_NOTNULL(v, VRE_MAGIC);
 	pcre_free(v->re);
-	FREE_OBJ(v);
+	FREE_OBJ_NOTNULL(v, VRE_MAGIC);
 }

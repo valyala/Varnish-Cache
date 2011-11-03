@@ -189,7 +189,7 @@ Lck_Delete(struct lock *lck)
 	VTAILQ_REMOVE(&ilck_head, ilck, list);
 	AZ(pthread_mutex_unlock(&lck_mtx));
 	AZ(pthread_mutex_destroy(&ilck->mtx));
-	FREE_OBJ(ilck);
+	FREE_OBJ_NOTNULL(ilck, ILCK_MAGIC);
 }
 
 #define LOCK(nam) struct VSC_C_lck *lck_##nam;

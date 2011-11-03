@@ -148,14 +148,14 @@ VCL_Load(const char *fn, const char *name, struct cli *cli)
 
 	if (vcl->dlh == NULL) {
 		VCLI_Out(cli, "dlopen(%s): %s\n", fn, dlerror());
-		FREE_OBJ(vcl);
+		FREE_OBJ_NOTNULL(vcl, VVCLS_MAGIC);
 		return (1);
 	}
 	cnf = dlsym(vcl->dlh, "VCL_conf");
 	if (cnf == NULL) {
 		VCLI_Out(cli, "Internal error: No VCL_conf symbol\n");
 		(void)dlclose(vcl->dlh);
-		FREE_OBJ(vcl);
+		FREE_OBJ_NOTNULL(vcl, VVCLS_MAGIC);
 		return (1);
 	}
 	memcpy(vcl->conf, cnf, sizeof *cnf);
@@ -163,13 +163,13 @@ VCL_Load(const char *fn, const char *name, struct cli *cli)
 	if (!CMP_MAGIC(vcl->conf, VCL_CONF_MAGIC)) {
 		VCLI_Out(cli, "Wrong VCL_CONF_MAGIC\n");
 		(void)dlclose(vcl->dlh);
-		FREE_OBJ(vcl);
+		FREE_OBJ_NOTNULL(vcl, VVCLS_MAGIC);
 		return (1);
 	}
 	if (vcl->conf->init_vcl(cli)) {
 		VCLI_Out(cli, "VCL \"%s\" Failed to initialize", name);
 		(void)dlclose(vcl->dlh);
-		FREE_OBJ(vcl);
+		FREE_OBJ_NOTNULL(vcl, VVCLS_MAGIC);
 		return (1);
 	}
 	REPLACE(vcl->name, name);
@@ -195,6 +195,7 @@ VCL_Nuke(struct vcls *vcl)
 {
 
 	ASSERT_CLI();
+	CHECK_OBJ_NOTNULL(vcl, VVCLS_MAGIC);
 	assert(vcl != vcl_active);
 	assert(vcl->conf->discard);
 	assert(vcl->conf->busy == 0);
@@ -203,7 +204,7 @@ VCL_Nuke(struct vcls *vcl)
 	vcl->conf->fini_vcl(NULL);
 	free(vcl->name);
 	(void)dlclose(vcl->dlh);
-	FREE_OBJ(vcl);
+	FREE_OBJ_NOTNULL(vcl, VVCLS_MAGIC);
 	VSC_C_main->n_vcl--;
 	VSC_C_main->n_vcl_discard--;
 }

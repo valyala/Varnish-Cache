@@ -82,7 +82,7 @@ VLU_Destroy(struct vlu *l)
 
 	CHECK_OBJ_NOTNULL(l, LINEUP_MAGIC);
 	free(l->buf);
-	FREE_OBJ(l);
+	FREE_OBJ_NOTNULL(l, LINEUP_MAGIC);
 }
 
 static int

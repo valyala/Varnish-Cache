@@ -391,7 +391,7 @@ vfp_esi_end(struct worker *w)
 		if (VGZ_Destroy(&vef->vgz,  -1) != VGZ_END)
 			retval = FetchError(w, 
 			    "ESI+Gzip Failed at the very end");
-		FREE_OBJ(vef);
+		FREE_OBJ_NOTNULL(vef, VEF_MAGIC);
 	}
 	return (retval);
 }

@@ -25,8 +25,9 @@
 		SET_MAGIC((to), (type_magic));				\
 	} while (0)
 
-#define FREE_OBJ(to)							\
+#define FREE_OBJ_NOTNULL(to, type_magic)				\
 	do {								\
+		CHECK_OBJ_NOTNULL((to), (type_magic));			\
 		SET_MAGIC((to), 0);					\
 		free(to);						\
 	} while (0)

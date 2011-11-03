@@ -117,7 +117,7 @@ vdi_round_robin_fini(const struct director *d)
 	free(vs->dir.vcl_name);
 	vs->dir.magic = 0;
 	vs->next_host = 0;
-	FREE_OBJ(vs);
+	FREE_OBJ_NOTNULL(vs, VDI_ROUND_ROBIN_MAGIC);
 }
 
 static void

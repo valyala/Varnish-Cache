@@ -434,7 +434,7 @@ VGZ_Destroy(struct vgz **vgp, int vsl_id)
 		i = inflateEnd(&vg->vz);
 	if (vg->last_i == Z_STREAM_END && i == Z_OK)
 		i = Z_STREAM_END;
-	FREE_OBJ(vg);
+	FREE_OBJ_NOTNULL(vg, VGZ_MAGIC);
 	if (i == Z_OK)
 		return (VGZ_OK);
 	if (i == Z_STREAM_END)

@@ -210,12 +210,13 @@ Pool_Work_Thread(void *priv, struct worker *w)
 		} else if (!VTAILQ_EMPTY(&pp->socks)) {
 			/* Accept on a socket */
 			ps = VTAILQ_FIRST(&pp->socks);
+			CHECK_OBJ_NOTNULL(ps, POOLSOCK_MAGIC);
 			VTAILQ_REMOVE(&pp->socks, ps, list);
 			i = pool_accept(pp, w, ps);
 			Lck_AssertHeld(&pp->mtx);
 			if (i < 0) {
 				/* Socket Shutdown */
-				FREE_OBJ(ps);
+				FREE_OBJ_NOTNULL(ps, POOLSOCK_MAGIC);
 				WS_Release(w->ws, 0);
 				continue;
 			}

@@ -239,7 +239,7 @@ tst_cb(const struct vev *ve, int what)
 		if (jp->evt != NULL)
 			vev_del(vb, jp->evt);
 
-		FREE_OBJ(jp);
+		FREE_OBJ_NOTNULL(jp, JOB_MAGIC);
 		return (1);
 	}
 	return (0);

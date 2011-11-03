@@ -437,7 +437,7 @@ cls_close_fd(struct VCLS *cs, struct VCLS_fd *cfd)
 	}
 	if (cfd->cli->ident != NULL)
 		free(cfd->cli->ident);
-	FREE_OBJ(cfd);
+	FREE_OBJ_NOTNULL(cfd, VCLS_FD_MAGIC);
 }
 
 
@@ -551,9 +551,10 @@ VCLS_Destroy(struct VCLS **csp)
 
 	while (!VTAILQ_EMPTY(&cs->funcs)) {
 		cfn = VTAILQ_FIRST(&cs->funcs);
+		CHECK_OBJ_NOTNULL(cfn, VCLS_FUNC_MAGIC);
 		VTAILQ_REMOVE(&cs->funcs, cfn, list);
-		FREE_OBJ(cfn);
+		FREE_OBJ_NOTNULL(cfn, VCLS_FUNC_MAGIC);
 	}
-	FREE_OBJ(cs);
+	FREE_OBJ_NOTNULL(cs, VCLS_MAGIC);
 }
 

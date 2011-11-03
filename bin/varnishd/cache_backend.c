@@ -87,7 +87,7 @@ VBE_ReleaseConn(struct vbc *vc)
 	Lck_Lock(&VBE_mtx);
 	VSC_C_main->n_vbc--;
 	Lck_Unlock(&VBE_mtx);
-	FREE_OBJ(vc);
+	FREE_OBJ_NOTNULL(vc, VBC_MAGIC);
 }
 
 #define FIND_TMO(tmx, dst, sp, be)		\
@@ -306,7 +306,7 @@ vbe_Healthy(const struct vdi_simple *vs, const struct sess *sp)
 	Lck_Unlock(&backend->mtx);
 
 	if (old != NULL)
-		FREE_OBJ(old);
+		FREE_OBJ_NOTNULL(old, TROUBLE_MAGIC);
 
 	return (retval);
 }
@@ -476,7 +476,7 @@ vdi_simple_fini(const struct director *d)
 	VBE_DropRefVcl(vs->backend);
 	free(vs->dir.vcl_name);
 	vs->dir.magic = 0;
-	FREE_OBJ(vs);
+	FREE_OBJ_NOTNULL(vs, VDI_SIMPLE_MAGIC);
 }
 
 void

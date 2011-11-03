@@ -272,7 +272,7 @@ vcc_delete_expr(struct expr *e)
 		return;
 	CHECK_OBJ_NOTNULL(e, EXPR_MAGIC);
 	VSB_delete(e->vsb);
-	FREE_OBJ(e);
+	FREE_OBJ_NOTNULL(e, EXPR_MAGIC);
 }
 /*--------------------------------------------------------------------
  * We want to get the indentation right in the emitted C code so we have

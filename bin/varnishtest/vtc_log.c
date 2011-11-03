@@ -89,7 +89,7 @@ vtc_logclose(struct vtclog *vl)
 	CHECK_OBJ_NOTNULL(vl, VTCLOG_MAGIC);
 	VSB_delete(vl->vsb);
 	AZ(pthread_mutex_destroy(&vl->mtx));
-	FREE_OBJ(vl);
+	FREE_OBJ_NOTNULL(vl, VTCLOG_MAGIC);
 }
 
 static const char * const lead[] = {

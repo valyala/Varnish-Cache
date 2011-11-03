@@ -546,8 +546,9 @@ vcc_DestroyTokenList(struct vcc *tl, char *ret)
 
 	while (!VTAILQ_EMPTY(&tl->symbols)) {
 		sym = VTAILQ_FIRST(&tl->symbols);
+		CHECK_OBJ_NOTNULL(sym, SYMBOL_MAGIC);
 		VTAILQ_REMOVE(&tl->symbols, sym, list);
-		FREE_OBJ(sym);
+		FREE_OBJ_NOTNULL(sym, SYMBOL_MAGIC);
 	}
 
 	VSB_delete(tl->fh);

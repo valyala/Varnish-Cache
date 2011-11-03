@@ -115,7 +115,7 @@ LRU_Free(struct lru *lru)
 {
 	CHECK_OBJ_NOTNULL(lru, LRU_MAGIC);
 	Lck_Delete(&lru->mtx);
-	FREE_OBJ(lru);
+	FREE_OBJ_NOTNULL(lru, LRU_MAGIC);
 }
 
 /*--------------------------------------------------------------------

@@ -98,11 +98,12 @@ VSC_Delete(struct VSM_data *vd)
 	CHECK_OBJ_NOTNULL(vsc, VSC_MAGIC);
 	while(!VTAILQ_EMPTY(&vsc->sf_list)) {
 		sf = VTAILQ_FIRST(&vsc->sf_list);
+		CHECK_OBJ_NOTNULL(sf, VSL_SF_MAGIC);
 		VTAILQ_REMOVE(&vsc->sf_list, sf, next);
 		free(sf->class);
 		free(sf->ident);
 		free(sf->name);
-		FREE_OBJ(sf);
+		FREE_OBJ_NOTNULL(sf, VSL_SF_MAGIC);
 	}
 }
 

@@ -284,7 +284,7 @@ varnish_delete(struct varnish *v)
 	 */
 
 	/* XXX: MEMLEAK (?) */
-	FREE_OBJ(v);
+	FREE_OBJ_NOTNULL(v, VARNISH_MAGIC);
 }
 
 /**********************************************************************

@@ -406,12 +406,12 @@ SES_DeletePool(struct sesspool *sp, struct worker *wrk)
 		sm = VTAILQ_FIRST(&sp->freelist);
 		CHECK_OBJ_NOTNULL(sm, SESSMEM_MAGIC);
 		VTAILQ_REMOVE(&sp->freelist, sm, list);
-		FREE_OBJ(sm);
+		FREE_OBJ_NOTNULL(sm, SESSMEM_MAGIC);
 		wrk->stats.sessmem_free++;
 		sp->nsess--;
 	}
 	AZ(sp->nsess);
 	Lck_Unlock(&sp->mtx);
 	Lck_Delete(&sp->mtx);
-	FREE_OBJ(sp);
+	FREE_OBJ_NOTNULL(sp, SESSPOOL_MAGIC);
 }
