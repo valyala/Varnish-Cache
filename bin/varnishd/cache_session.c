@@ -124,7 +124,7 @@ ses_sm_alloc(void)
 	sm = (void*)p;
 	p += sizeof *sm;
 
-	sm->magic = SESSMEM_MAGIC;
+	SET_MAGIC(sm, SESSMEM_MAGIC);
 	sm->workspace = nws;
 	sm->nhttp = nhttp;
 
@@ -156,9 +156,8 @@ ses_setup(struct sessmem *sm)
 	memset(sp, 0, sizeof *sp);
 
 	/* We assume that the sess has been zeroed by the time we get here */
-	AZ(sp->magic);
-
-	sp->magic = SESS_MAGIC;
+	CHECK_MAGIC(sp, 0);
+	SET_MAGIC(sp, SESS_MAGIC);
 	sp->mem = sm;
 	sp->sockaddrlen = sizeof(sp->sockaddr);
 	sp->mysockaddrlen = sizeof(sp->mysockaddr);

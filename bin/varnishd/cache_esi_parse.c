@@ -1004,7 +1004,7 @@ VEP_Init(struct worker *w, vep_callback_t *cb)
 
 	vep = w->vep;
 	memset(vep, 0, sizeof *vep);
-	vep->magic = VEP_MAGIC;
+	SET_MAGIC(vep, VEP_MAGIC);
 	vep->wrk = w;
 	vep->vsb = VSB_new_auto();
 	AN(vep->vsb);

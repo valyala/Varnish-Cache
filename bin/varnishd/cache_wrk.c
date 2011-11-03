@@ -147,7 +147,7 @@ wrk_thread_real(void *priv, unsigned shm_workspace, unsigned sess_workspace,
 	THR_SetName("cache-worker");
 	w = &ww;
 	memset(w, 0, sizeof *w);
-	w->magic = WORKER_MAGIC;
+	SET_MAGIC(w, WORKER_MAGIC);
 	w->lastused = NAN;
 	w->wlb = w->wlp = wlog;
 	w->wle = wlog + (sizeof wlog) / 4;

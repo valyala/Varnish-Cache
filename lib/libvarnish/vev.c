@@ -183,14 +183,11 @@ vev_new_base(void)
 {
 	struct vev_base *evb;
 
-	evb = calloc(sizeof *evb, 1);
-	if (evb == NULL)
-		return (evb);
+	ALLOC_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	if (vev_get_pfd(evb)) {
 		free(evb);
 		return (NULL);
 	}
-	evb->magic = VEV_BASE_MAGIC;
 	VTAILQ_INIT(&evb->events);
 	evb->binheap = binheap_new(vev_bh_cmp, vev_bh_update);
 	AN(evb->binheap);
@@ -211,8 +208,7 @@ vev_destroy_base(struct vev_base *evb)
 {
 	CHECK_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
 	assert(evb->thread == pthread_self());
-	evb->magic = 0;
-	free(evb);
+	FREE_OBJ(evb);
 }
 
 /*--------------------------------------------------------------------*/
@@ -222,9 +218,7 @@ vev_new(void)
 {
 	struct vev *e;
 
-	e = calloc(1, sizeof(*e));
-	XXXAN(e);
-	e->magic = VEV_MAGIC;
+	ALLOC_OBJ_NOTNULL(e, VEV_MAGIC);
 	e->fd = -1;
 	e->__binheap_idx = BINHEAP_NOIDX;
 	return (e);
@@ -342,9 +336,7 @@ vev_del(struct vev_base *evb, struct vev *e)
 
 	VTAILQ_REMOVE(&evb->events, e, __list);
 
-	e->magic = 0;
 	e->__vevb = NULL;
-
 	evb->disturbed = 1;
 }
 

@@ -148,7 +148,7 @@ pool_accept(struct pool *pp, struct worker *w, const struct poolsock *ps)
 	wa = (void*)w->ws->f;
 	while (1) {
 		memset(wa, 0, sizeof *wa);
-		wa->magic = WRK_ACCEPT_MAGIC;
+		SET_MAGIC(wa, WRK_ACCEPT_MAGIC);
 
 		if (ps->lsock->sock < 0) {
 			/* Socket Shutdown */

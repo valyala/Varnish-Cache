@@ -120,7 +120,7 @@ HTTP_create(void *p, uint16_t nhttp)
 	struct http *hp;
 
 	hp = p;
-	hp->magic = HTTP_MAGIC;
+	SET_MAGIC(hp, HTTP_MAGIC);
 	hp->hd = (void*)(hp + 1);
 	hp->shd = nhttp;
 	hp->hdf = (void*)(hp->hd + nhttp);
@@ -143,7 +143,7 @@ http_Setup(struct http *hp, struct ws *ws)
 	memset(hp, 0, sizeof *hp);
 	memset(hd, 0, sizeof *hd * shd);
 	memset(hdf, 0, sizeof *hdf * shd);
-	hp->magic = HTTP_MAGIC;
+	SET_MAGIC(hp, HTTP_MAGIC);
 	hp->ws = ws;
 	hp->nhd = HTTP_HDR_FIRST;
 	hp->shd = shd;

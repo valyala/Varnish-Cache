@@ -347,7 +347,7 @@ smp_loaded_st(const struct smp_sc *sc, const struct smp_seg *sg,
 		return (0x08);		/* Claiming segment not loaded */
 
 	/* It is now safe to access the storage structure */
-	if (st->magic != STORAGE_MAGIC)
+	if (!CMP_MAGIC(st, STORAGE_MAGIC))
 		return (0x10);		/* Not enough magic */
 
 	if (o + st->space >= sg2->p.objlist)

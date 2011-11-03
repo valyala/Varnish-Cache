@@ -64,7 +64,7 @@ WS_Init(struct ws *ws, const char *id, void *space, unsigned len)
 	    "WS_Init(%p, \"%s\", %p, %u)", ws, id, space, len);
 	assert(space != NULL);
 	memset(ws, 0, sizeof *ws);
-	ws->magic = WS_MAGIC;
+	SET_MAGIC(ws, WS_MAGIC);
 	ws->s = space;
 	assert(PAOK(space));
 	ws->e = ws->s + len;

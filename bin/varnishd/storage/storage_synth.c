@@ -91,7 +91,7 @@ SMS_Makesynth(struct object *obj)
 	sto->fd = -1;
 #endif
 	sto->stevedore = &sms_stevedore;
-	sto->magic = STORAGE_MAGIC;
+	SET_MAGIC(sto, STORAGE_MAGIC);
 
 	VTAILQ_INSERT_TAIL(&obj->store, sto, list);
 	return (vsb);

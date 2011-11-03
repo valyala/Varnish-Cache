@@ -199,7 +199,7 @@ run_dlopen(void *priv)
 		exit(1);
 	}
 
-	if (cnf->magic != VCL_CONF_MAGIC) {
+	if (!CMP_MAGIC(cnf, VCL_CONF_MAGIC)) {
 		fprintf(stderr, "Compiled VCL program, mangled metadata\n");
 		exit(1);
 	}

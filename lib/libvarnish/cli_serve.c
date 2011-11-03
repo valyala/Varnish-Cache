@@ -406,7 +406,7 @@ VCLS_AddFd(struct VCLS *cs, int fdi, int fdo, cls_cb_f *closefunc, void *priv)
 	cfd->fdi = fdi;
 	cfd->fdo = fdo;
 	cfd->cli = &cfd->clis;
-	cfd->cli->magic = CLI_MAGIC;
+	SET_MAGIC(cfd->cli, CLI_MAGIC);
 	cfd->cli->vlu = VLU_New(cfd, cls_vlu, cs->maxlen);
 	cfd->cli->sb = VSB_new_auto();
 	cfd->closefunc = closefunc;

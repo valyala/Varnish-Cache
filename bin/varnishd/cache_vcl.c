@@ -160,7 +160,7 @@ VCL_Load(const char *fn, const char *name, struct cli *cli)
 	}
 	memcpy(vcl->conf, cnf, sizeof *cnf);
 
-	if (vcl->conf->magic != VCL_CONF_MAGIC) {
+	if (!CMP_MAGIC(vcl->conf, VCL_CONF_MAGIC)) {
 		VCLI_Out(cli, "Wrong VCL_CONF_MAGIC\n");
 		(void)dlclose(vcl->dlh);
 		FREE_OBJ(vcl);

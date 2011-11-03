@@ -166,9 +166,7 @@ binheap_new(binheap_cmp_t cmp_f, binheap_update_t update_f)
 
 	AN(cmp_f);
 	AN(update_f);
-	bh = malloc(sizeof(*bh));
-	XXXAN(bh);
-	bh->magic = BINHEAP_MAGIC;
+	ALLOC_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	bh->cmp_f = cmp_f;
 	bh->update_f = update_f;
 	bh->length = 16;
@@ -545,10 +543,9 @@ foo_insert(struct binheap *bh, unsigned n, unsigned items_count)
 	paranoia_check(bh);
 	assert(n < items_count);
 	AZ(ff[n]);
-	fp = ff[n] = malloc(sizeof(*fp));
-	XXXAN(fp);
+	ALLOC_OBJ_NOTNULL(fp, FOO_MAGIC);
+	ff[n] = fp;
 	key = random();
-	fp->magic = FOO_MAGIC;
 	fp->idx = BINHEAP_NOIDX;
 	fp->key = key;
 	fp->n = n;

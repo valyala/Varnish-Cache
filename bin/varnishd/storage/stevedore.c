@@ -236,7 +236,7 @@ STV_MkObject(struct sess *sp, void *ptr, unsigned ltot,
 
 	o = ptr;
 	memset(o, 0, sizeof *o);
-	o->magic = OBJECT_MAGIC;
+	SET_MAGIC(o, OBJECT_MAGIC);
 
 	l = PRNDDN(ltot - (sizeof *o + soc->lhttp));
 	assert(l >= soc->wsl);
@@ -247,7 +247,7 @@ STV_MkObject(struct sess *sp, void *ptr, unsigned ltot,
 	assert(o->ws_o->e <= (char*)ptr + ltot);
 
 	http_Setup(o->http, o->ws_o);
-	o->http->magic = HTTP_MAGIC;
+	SET_MAGIC(o->http, HTTP_MAGIC);
 	o->exp = *soc->exp;
 	VTAILQ_INIT(&o->store);
 	sp->wrk->stats.n_object++;
