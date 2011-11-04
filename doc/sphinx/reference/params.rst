@@ -150,6 +150,14 @@ expiry_sleep
 
 	How long the expiry thread sleeps when there is nothing for it to do.
 
+expiry_batch_size
+	- Units: objects
+	- Default: 1000
+
+	How much objects the expiry thread can process at once before flushing stats.
+	Too low value will result in CPU waste spent on frequent stats flushing.
+	Too high value can result in stats lags when expiration list contains too many objects.
+
 fetch_chunksize
 	- Units: kilobytes
 	- Default: 128

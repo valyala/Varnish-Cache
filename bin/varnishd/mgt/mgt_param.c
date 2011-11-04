@@ -601,6 +601,15 @@ static const struct parspec input_parspec[] = {
 		"for it to do.\n",
 		0,
 		"1", "seconds" },
+	{ "expiry_batch_size", tweak_uint, &master.expiry_batch_size,
+		1, UINT_MAX,
+		"How much objects the expiry thread can process at once before "
+		"flushing stats.\n"
+		"Too low value will result in CPU waste spent on frequent "
+		"stats flushing. Too high value can result in stats lags if "
+		"expiration list contains too many objects.",
+		0,
+		"1000", "objects" },
 	{ "pipe_timeout", tweak_timeout, &master.pipe_timeout, 0, 0,
 		"Idle timeout for PIPE sessions. "
 		"If nothing have been received in either direction for "

@@ -431,6 +431,7 @@ exp_timer_thread(struct sess *sp, void *priv)
 	struct worker *w;
 	struct objcore *oc;
 	struct object *o;
+	unsigned n = 0;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	w = sp->wrk;
@@ -439,11 +440,14 @@ exp_timer_thread(struct sess *sp, void *priv)
 
 	while (1) {
 		Lck_Lock(&exp_list_mtx);
-		if (exp_list == NULL) {
+		assert(params->expiry_batch_size > 0);
+		if (exp_list == NULL || n >= params->expiry_batch_size) {
 			Lck_Unlock(&exp_list_mtx);
 			WSL_Flush(w, 0);
 			WRK_SumStat(w);
-			VTIM_sleep(params->expiry_sleep);
+			if (n < params->expiry_batch_size)
+				VTIM_sleep(params->expiry_sleep);
+			n = 0;
 			continue;
 		}
 		oc = exp_list;
@@ -453,6 +457,7 @@ exp_timer_thread(struct sess *sp, void *priv)
 		Lck_Unlock(&exp_list_mtx);
 
 		VSC_C_main->n_expired++;
+		n++;
 
 		o = oc_getobj(w, oc);
 		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
