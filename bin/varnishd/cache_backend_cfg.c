@@ -151,7 +151,7 @@ copy_sockaddr(struct sockaddr_storage **sa, socklen_t *len,
 {
 
 	assert(*src > 0);
-	CALLOC_NOTNULL(*sa, 1, sizeof **sa);
+	CALLOC_NOTNULL(*sa, 1);
 	memcpy(*sa, src + 1, *src);
 	*len = *src;
 }

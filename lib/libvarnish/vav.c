@@ -114,7 +114,7 @@ VAV_BackSlashDecode(const char *s, const char *e)
 	if (e == NULL)
 		e = strchr(s, '\0');
 	assert(e != NULL);
-	CALLOC_NOTNULL(p, (e - s) + 1, 1);
+	CALLOC_NOTNULL(p, (e - s) + 1);
 	for (r = p, q = s; q < e; ) {
 		if (*q != '\\') {
 			*r++ = *q++;
@@ -142,7 +142,7 @@ VAV_Parse(const char *s, int *argc, int flag)
 	assert(s != NULL);
 	nargv = 1;
 	largv = 16;
-	CALLOC_NOTNULL(argv, largv, sizeof *argv);
+	CALLOC_NOTNULL(argv, largv);
 
 	for (;;) {
 		if (*s == '\0')

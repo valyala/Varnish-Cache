@@ -235,7 +235,7 @@ vrt_init(struct cli *cli, struct director **bp, int idx,
 	t = priv;
 
 	ALLOC_OBJ_NOTNULL(vs, VDI_RANDOM_MAGIC);
-	CALLOC_NOTNULL(vs->hosts, t->nmember, sizeof *vh);
+	CALLOC_NOTNULL(vs->hosts, t->nmember);
 
 	SET_MAGIC(&vs->dir, DIRECTOR_MAGIC);
 	vs->dir.priv = vs;

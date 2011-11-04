@@ -142,7 +142,7 @@ vev_get_sig(int sig)
 	if (sig < vev_nsig)
 		return;
 
-	CALLOC_NOTNULL(os, sig + 1L, sizeof *os);
+	CALLOC_NOTNULL(os, sig + 1L);
 	memcpy(os, vev_sigs, vev_nsig * sizeof *os);
 
 	FREE_ORNULL(vev_sigs);

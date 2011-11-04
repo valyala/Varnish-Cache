@@ -32,9 +32,9 @@
 		XXXAN((to));						\
 	} while (0)
 
-#define CALLOC_NOTNULL(to, items, item_size)				\
+#define CALLOC_NOTNULL(to, items)					\
 	do {								\
-		(to) = calloc((items), (item_size));			\
+		(to) = calloc((items), sizeof(*(to)));			\
 		XXXAN((to));						\
 	} while (0)
 
@@ -58,7 +58,7 @@
 
 #define ALLOC_OBJ_NOTNULL(to, type_magic)				\
 	do {								\
-		CALLOC_NOTNULL((to), 1, sizeof(*(to)));			\
+		CALLOC_NOTNULL((to), 1);				\
 		SET_MAGIC((to), (type_magic));				\
 	} while (0)
 

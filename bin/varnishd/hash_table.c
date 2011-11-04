@@ -58,7 +58,7 @@ HTB_Init(void)
 
 	hashtable_buckets = params->hashtable_buckets;
 	assert(hashtable_buckets > 0);
-	CALLOC_NOTNULL(buckets, hashtable_buckets, sizeof(*buckets));
+	CALLOC_NOTNULL(buckets, hashtable_buckets);
 
 	for (u = 0; u < hashtable_buckets; u++) {
 		VSLIST_INIT(&buckets[u].head);

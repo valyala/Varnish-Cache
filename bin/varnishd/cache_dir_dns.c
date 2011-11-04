@@ -443,7 +443,7 @@ VRT_init_dir_dns(struct cli *cli, struct director **bp, int idx,
 	(void)cli;
 	t = priv;
 	ALLOC_OBJ_NOTNULL(vs, VDI_DNS_MAGIC);
-	CALLOC_NOTNULL(vs->hosts, t->nmember, sizeof(*vs->hosts));
+	CALLOC_NOTNULL(vs->hosts, t->nmember);
 
 	SET_MAGIC(&vs->dir, DIRECTOR_MAGIC);
 	vs->dir.priv = vs;

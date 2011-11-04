@@ -89,7 +89,7 @@ init_mem(unsigned resident_pages_count)
 	FREE_ORNULL(m.lru);
 	m.lru = NULL;
 	if (resident_pages_count > 0)
-		CALLOC_NOTNULL(m.lru, resident_pages_count, sizeof(*m.lru));
+		CALLOC_NOTNULL(m.lru, resident_pages_count);
 	m.page_mask = ~(page_size - 1);
 	m.pagefaults_count = 0;
 	m.resident_pages_count = resident_pages_count;
@@ -168,7 +168,7 @@ binheap_new(binheap_cmp_t cmp_f, binheap_update_t update_f)
 	bh->cmp_f = cmp_f;
 	bh->update_f = update_f;
 	bh->length = 16;
-	CALLOC_NOTNULL(bh->array, bh->length, sizeof(*bh->array));
+	CALLOC_NOTNULL(bh->array, bh->length);
 	bh->next = ROOT_IDX;
 	return (bh);
 }

@@ -161,7 +161,7 @@ VSS_resolve(const char *addr, const char *port, struct vss_addr ***vap)
 		freeaddrinfo(res0);
 		return (0);
 	}
-	CALLOC_NOTNULL(va, i, sizeof *va);
+	CALLOC_NOTNULL(va, i);
 	*vap = va;
 	for (res = res0, i = 0; res != NULL; res = res->ai_next, ++i) {
 		ALLOC_OBJ_NOTNULL(va[i], VSS_ADDR_MAGIC);

@@ -90,10 +90,10 @@ TlDoFree(struct vcc *tl, void *p)
 void *
 TlAlloc(struct vcc *tl, unsigned len)
 {
-	void *p;
+	char *p;
 
 	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
-	CALLOC_NOTNULL(p, len, 1);
+	CALLOC_NOTNULL(p, len);
 	TlDoFree(tl, p);
 	return (p);
 }

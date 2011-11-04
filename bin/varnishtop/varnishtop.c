@@ -121,7 +121,7 @@ accumulate(uint32_t * const p)
 	if (tp == NULL) {
 		ntop++;
 		ALLOC_OBJ_NOTNULL(tp, TOP_MAGIC);
-		CALLOC_NOTNULL(tp->rec_data, l + 1, 1);
+		CALLOC_NOTNULL(tp->rec_data, l + 1);
 		tp->hash = u;
 		tp->count = 1.0;
 		tp->clen = l;
