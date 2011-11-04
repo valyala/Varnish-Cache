@@ -91,7 +91,7 @@ get_bucket(const struct objhead *oh)
 struct objhead *
 HTB_Lookup(struct objhead *noh)
 {
-	struct objhead *oh, *head, **poh;
+	struct objhead *oh, **poh;
 	struct bucket *b;
 
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
@@ -101,7 +101,6 @@ HTB_Lookup(struct objhead *noh)
 	AN(b);
 
 	Lck_Lock(&b->mtx);
-	head = VSLIST_FIRST(&b->head);
 	VSLIST_FOREACH_PREVPTR(oh, poh, &b->head, htb_list) {
 		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		if (memcmp(oh->digest, noh->digest, sizeof oh->digest)) {
@@ -114,7 +113,7 @@ HTB_Lookup(struct objhead *noh)
 		 * looked up objects will be grouped close to the list head.
 		 * This should result in faster lookups for 'hot' objects.
 		 */
-		if (oh != head) {
+		if (oh != VSLIST_FIRST(&b->head)) {
 			*poh = VSLIST_NEXT(oh, htb_list);
 			VSLIST_INSERT_HEAD(&b->head, oh, htb_list);
 		}
