@@ -88,7 +88,6 @@ HSH_Prealloc(const struct sess *sp)
 		XXXAN(oh);
 		oh->refcnt = 1;
 		VTAILQ_INIT(&oh->objcs);
-		oh->waitinglist = NULL;
 		Lck_New(&oh->mtx, lck_objhdr);
 		w->nobjhead = oh;
 		w->stats.n_objecthead++;
@@ -128,6 +127,8 @@ HSH_DeleteObjHead(struct worker *w, struct objhead *oh)
 
 	AZ(oh->refcnt);
 	assert(VTAILQ_EMPTY(&oh->objcs));
+	AZ(oh->waitinglist);
+	AZ(VSLIST_NEXT(oh, htb_list));
 	Lck_Delete(&oh->mtx);
 	w->stats.n_objecthead--;
 	FREE_OBJ(oh);
@@ -213,6 +214,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	w = sp->wrk;
 
 	HSH_Prealloc(sp);
+	AN(w->nobjhead);
 	memcpy(w->nobjhead->digest, sp->digest, sizeof sp->digest);
 
 	if (sp->hash_objhead != NULL) {

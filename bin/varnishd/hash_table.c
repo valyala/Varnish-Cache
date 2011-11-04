@@ -95,6 +95,8 @@ HTB_Lookup(struct objhead *noh)
 	struct bucket *b;
 
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
+	AZ(VSLIST_NEXT(noh, htb_list));
+
 	b = get_bucket(noh);
 	AN(b);
 
@@ -151,6 +153,7 @@ HTB_Deref(struct objhead *oh)
 		 * increase the number of hashtable buckets (hashtable_buckets).
 		 */
 		VSLIST_REMOVE(&b->head, oh, objhead, htb_list);
+		VSLIST_NEXT(oh, htb_list) = NULL;
 		ret = 0;
 	} else
 		ret = 1;
