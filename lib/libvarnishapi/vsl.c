@@ -81,7 +81,7 @@ VSL_Setup(struct VSM_data *vd)
 	vsl->r_fd = -1;
 	/* XXX: Allocate only if -r option given ? */
 	vsl->rbuflen = 256;      /* XXX ?? */
-	MALLOC_NOTNULL(vsl->rbuf, vsl->rbuflen * 4L);
+	REALLOC_ARRAY_NOTNULL(vsl->rbuf, vsl->rbuflen);
 
 	vsl->num_matchers = 0;
 	VTAILQ_INIT(&vsl->matchers);

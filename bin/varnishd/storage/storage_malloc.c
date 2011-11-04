@@ -63,7 +63,7 @@ sma_alloc(struct stevedore *st, size_t size)
 {
 	struct sma_sc *sma_sc;
 	struct sma *sma = NULL;
-	void *p;
+	unsigned char *p;
 
 	CAST_OBJ_NOTNULL(sma_sc, st->priv, SMA_SC_MAGIC);
 	Lck_Lock(&sma_sc->sma_mtx);
@@ -91,7 +91,8 @@ sma_alloc(struct stevedore *st, size_t size)
 	 * allocations growing another full page, just to accomodate the sma.
 	 */
 
-	MALLOC_NOTNULL(p, size);
+	p = NULL;
+	REALLOC_ARRAY_NOTNULL(p, size);
 	ALLOC_OBJ_NOTNULL(sma, SMA_MAGIC);
 	sma->s.ptr = p;
 	sma->sc = sma_sc;
