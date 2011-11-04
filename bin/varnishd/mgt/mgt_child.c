@@ -582,7 +582,7 @@ MGT_Run(void)
 	setproctitle("Varnish-Mgr %s", heritage.name);
 #endif
 
-	memset(&sac, 0, sizeof sac);
+	ZERO_OBJ(&sac);
 	sac.sa_handler = SIG_IGN;
 	sac.sa_flags = SA_RESTART;
 

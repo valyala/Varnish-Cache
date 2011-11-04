@@ -52,6 +52,8 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
+
 /*--------------------------------------------------------------------
  */
 
@@ -252,7 +254,7 @@ WRW_Sendfile(struct worker *w, int fd, off_t off, unsigned len)
 #if defined(__FreeBSD__) || defined(__DragonFly__)
 	do {
 		struct sf_hdtr sfh;
-		memset(&sfh, 0, sizeof sfh);
+		ZERO_OBJ(&sfh);
 		if (wrw->niov > 0) {
 			sfh.headers = wrw->iov;
 			sfh.hdr_cnt = wrw->niov;

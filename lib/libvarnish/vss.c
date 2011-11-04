@@ -135,7 +135,7 @@ VSS_resolve(const char *addr, const char *port, struct vss_addr ***vap)
 	char *adp, *hop;
 
 	*vap = NULL;
-	memset(&hints, 0, sizeof hints);
+	ZERO_OBJ(&hints);
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 

@@ -41,6 +41,7 @@
 
 #include "vcc_compile.h"
 
+#include "miniobj.h"
 #include "vrt.h"
 
 struct acl_e {
@@ -165,7 +166,7 @@ vcc_acl_try_getaddrinfo(struct vcc *tl, struct acl_e *ae)
 	unsigned char *u, i4, i6;
 	int error;
 
-	memset(&hint, 0, sizeof hint);
+	ZERO_OBJ(&hint);
 	hint.ai_family = PF_UNSPEC;
 	hint.ai_socktype = SOCK_STREAM;
 	error = getaddrinfo(ae->t_addr->dec, "0", &hint, &res0);
@@ -248,7 +249,7 @@ vcc_acl_try_netnotation(struct vcc *tl, struct acl_e *ae)
 	unsigned u;
 	const char *p;
 
-	memset(b, 0, sizeof b);
+	ZERO_OBJ(&b);
 	p = ae->t_addr->dec;
 	for (i = 0; i < 4; i++) {
 		j = sscanf(p, "%u%n", &u, &k);

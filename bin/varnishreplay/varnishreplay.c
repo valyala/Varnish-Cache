@@ -237,13 +237,13 @@ thread_clear(struct replay_thread *thr)
 	CHECK_OBJ_NOTNULL(thr, REPLAY_THREAD_MAGIC);
 	thr->method = thr->proto = thr->url = NULL;
 	thr->conn = NULL;
-	memset(&thr->hdr, 0, sizeof thr->hdr);
+	ZERO_OBJ(&thr->hdr);
 	thr->nhdr = 0;
 	thr->bogus = 0;
-	memset(&thr->arena, 0, sizeof thr->arena);
+	ZERO_OBJ(&thr->arena);
 	thr->top = 0;
-	memset(&thr->line, 0, sizeof thr->line);
-	memset(&thr->temp, 0, sizeof thr->temp);
+	ZERO_OBJ(&thr->line);
+	ZERO_OBJ(&thr->temp);
 	if (thr->sock != -1)
 		close(thr->sock);
 	thr->sock = -1;
@@ -265,8 +265,7 @@ thread_get(int fd, void *(*thread_main)(void *))
 		while (fd >= newnthreads)
 			newnthreads += newnthreads + 1;
 		REALLOC_ARRAY_NOTNULL(newthreads, newnthreads);
-		memset(newthreads + nthreads, 0,
-		    (newnthreads - nthreads) * sizeof *newthreads);
+		ZERO_ARRAY(newthreads + nthreads, newnthreads - nthreads);
 		threads = newthreads;
 		nthreads = newnthreads;
 	}

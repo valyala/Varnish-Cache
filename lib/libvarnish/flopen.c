@@ -38,6 +38,7 @@
 #include <unistd.h>
 
 #include "flopen.h"
+#include "miniobj.h"
 
 int
 flopen(const char *path, int flags, ...)
@@ -60,7 +61,7 @@ flopen(const char *path, int flags, ...)
 		va_end(ap);
 	}
 
-	memset(&lock, 0, sizeof lock);
+	ZERO_OBJ(&lock);
 	lock.l_type = ((flags & O_ACCMODE) == O_RDONLY) ? F_RDLCK : F_WRLCK;
 	lock.l_whence = SEEK_SET;
 	operation = (flags & O_NONBLOCK) ? F_SETLK : F_SETLKW;
@@ -119,7 +120,7 @@ fltest(int fd, pid_t *pid)
 {
 	struct flock lock;
 
-	memset(&lock, 0, sizeof lock);
+	ZERO_OBJ(&lock);
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
 

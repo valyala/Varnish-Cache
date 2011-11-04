@@ -260,7 +260,7 @@ vdi_dns_cache_add(const struct sess *sp,
 	if (vdi_dns_cache_has(sp, vs, hostname, backend, 1))
 		return (1);
 
-	memset(&hint, 0, sizeof hint);
+	ZERO_OBJ(&hint);
 	hint.ai_family = PF_UNSPEC;
 	hint.ai_socktype = SOCK_STREAM;
 

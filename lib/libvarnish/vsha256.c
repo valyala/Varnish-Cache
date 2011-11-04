@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "miniobj.h"
 #include "vas.h"
 #include "vend.h"
 #include "vsha256.h"
@@ -290,7 +291,7 @@ SHA256_Final(unsigned char digest[32], SHA256_CTX * ctx)
 	be32enc_vect(digest, ctx->state, 32);
 
 	/* Clear the context state */
-	memset((void *)ctx, 0, sizeof(*ctx));
+	ZERO_OBJ(ctx);
 }
 
 /*

@@ -37,6 +37,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
+#include "miniobj.h"
 #include "vtcp.h"
 #include "vtim.h"
 
@@ -95,7 +96,7 @@ PipeSession(struct sess *sp)
 
 	sp->t_resp = VTIM_real();
 
-	memset(fds, 0, sizeof fds);
+	ZERO_OBJ(&fds);
 
 	// XXX: not yet (void)VTCP_linger(vc->fd, 0);
 	fds[0].fd = vc->fd;

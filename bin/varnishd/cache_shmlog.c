@@ -35,6 +35,7 @@
 
 #include "cache_backend.h"	// For w->vbc
 
+#include "miniobj.h"
 #include "vapi/vsm_int.h"
 #include "vmb.h"
 #include "vtim.h"
@@ -317,8 +318,8 @@ VSL_Init(void)
 
 	vsl_wrap();
 	VSM_head->starttime = (intmax_t)VTIM_real();
-	memset(VSM_head->panicstr, '\0', sizeof *VSM_head->panicstr);
-	memset(VSC_C_main, 0, sizeof *VSC_C_main);
+	ZERO_OBJ(&VSM_head->panicstr);
+	ZERO_OBJ(VSC_C_main);
 	VSM_head->child_pid = getpid();
 }
 

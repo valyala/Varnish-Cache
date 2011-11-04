@@ -112,7 +112,7 @@ Emit_Sockaddr(struct vcc *tl, const struct token *t_host, const char *port)
 
 	AN(t_host->dec);
 	retval = 0;
-	memset(&hint, 0, sizeof hint);
+	ZERO_OBJ(&hint);
 	hint.ai_family = PF_UNSPEC;
 	hint.ai_socktype = SOCK_STREAM;
 

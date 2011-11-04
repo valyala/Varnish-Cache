@@ -262,7 +262,7 @@ start_test(void)
 	jp->buf = mmap(NULL, jp->bufsiz, PROT_READ|PROT_WRITE,
 	    MAP_ANON | MAP_SHARED, -1, 0);
 	assert(jp->buf != MAP_FAILED);
-	memset(jp->buf, 0, jp->bufsiz);
+	ZERO_ARRAY(jp->buf, jp->bufsiz);
 
 	srandomdev();
 	bprintf(tmpdir, "/tmp/vtc.%d.%08x", (int)getpid(), (unsigned)random());

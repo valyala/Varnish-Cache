@@ -101,6 +101,7 @@
 
 #include "flopen.h"
 #include "heritage.h"
+#include "miniobj.h"
 #include "vapi/vsc_int.h"
 #include "vapi/vsl_int.h"
 #include "vapi/vsm_int.h"
@@ -149,7 +150,7 @@ vsl_n_check(int fd)
 	}
 
 	/* Read owning pid from SHMFILE */
-	memset(&slh, 0, sizeof slh);	/* XXX: for flexelint */
+	ZERO_OBJ(&slh);		/* XXX: for flexelint */
 	i = read(fd, &slh, sizeof slh);
 	if (i != sizeof slh)
 		return;
@@ -190,7 +191,7 @@ vsl_buildnew(const char *fn, unsigned size, int fill)
 	flags &= ~O_NONBLOCK;
 	AZ(fcntl(vsl_fd, F_SETFL, flags));
 
-	memset(&slh, 0, sizeof slh);
+	ZERO_OBJ(&slh);
 	SET_MAGIC(&slh, VSM_HEAD_MAGIC);
 	slh.hdrsize = sizeof slh;
 	slh.shm_size = size;
@@ -198,7 +199,7 @@ vsl_buildnew(const char *fn, unsigned size, int fill)
 	xxxassert(i == sizeof slh);
 
 	if (fill) {
-		memset(buf, 0, sizeof buf);
+		ZERO_OBJ(&buf);
 		for (u = sizeof slh; u < size; ) {
 			i = write(vsl_fd, buf, sizeof buf);
 			if (i <= 0) {
@@ -308,7 +309,7 @@ mgt_SHM_Init(const char *l_arg)
 	xxxassert(VSM_head != MAP_FAILED);
 	(void)mlock((void*)VSM_head, size);
 
-	memset(&VSM_head->head, 0, sizeof VSM_head->head);
+	ZERO_OBJ(&VSM_head->head);
 	SET_MAGIC(&VSM_head->head, VSM_CHUNK_MAGIC);
 	VSM_head->head.len =
 	    (uint8_t*)(VSM_head) + size - (uint8_t*)&VSM_head->head;

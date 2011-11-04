@@ -136,7 +136,7 @@ vdi_random_pick_one(struct sess *sp, const struct vdi_random *vs, double r)
 
 	assert(r >= 0.0 && r < 1.0);
 
-	memset(w, 0, sizeof w);
+	ZERO_OBJ(&w);
 	/* Sum up the weights of healty backends */
 	s1 = 0.0;
 	for (i = 0; i < vs->nhosts; i++) {

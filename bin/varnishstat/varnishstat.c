@@ -41,6 +41,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "varnishstat.h"
 
 
@@ -120,7 +121,7 @@ do_once(struct VSM_data *vd, const struct VSC_C_main *VSC_C_main)
 {
 	struct once_priv op;
 
-	memset(&op, 0, sizeof op);
+	ZERO_OBJ(&op);
 	op.up = VSC_C_main->uptime;
 	op.pad = 18;
 

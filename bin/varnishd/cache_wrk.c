@@ -57,7 +57,7 @@ wrk_sumstat(struct worker *w)
 #undef VSC_DO_MAIN
 #undef L0
 #undef L1
-	memset(&w->stats, 0, sizeof w->stats);
+	ZERO_OBJ(&w->stats);
 }
 
 void
@@ -104,7 +104,7 @@ wrk_bgthread(void *arg)
 	THR_SetName(bt->name);
 	sp = SES_Alloc();
 	XXXAN(sp);
-	memset(&ww, 0, sizeof ww);
+	ZERO_OBJ(&ww);
 	sp->wrk = &ww;
 	SET_MAGIC(&ww, WORKER_MAGIC);
 	ww.wlp = ww.wlb = logbuf;
@@ -147,7 +147,7 @@ wrk_thread_real(void *priv, unsigned shm_workspace, unsigned sess_workspace,
 
 	THR_SetName("cache-worker");
 	w = &ww;
-	memset(w, 0, sizeof *w);
+	ZERO_OBJ(w);
 	SET_MAGIC(w, WORKER_MAGIC);
 	w->lastused = NAN;
 	w->wlb = w->wlp = wlog;

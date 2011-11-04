@@ -118,7 +118,7 @@ ses_sm_alloc(void)
 	q = p + l;
 
 	/* Don't waste time zeroing the workspace */
-	memset(p, 0, l - nws);
+	ZERO_ARRAY(p, l - nws);
 
 	sm = (void*)p;
 	p += sizeof *sm;
@@ -152,8 +152,7 @@ ses_setup(struct sessmem *sm)
 
 	CHECK_OBJ_NOTNULL(sm, SESSMEM_MAGIC);
 	sp = &sm->sess;
-	memset(sp, 0, sizeof *sp);
-
+	ZERO_OBJ(sp);
 	SET_MAGIC(sp, SESS_MAGIC);
 	sp->mem = sm;
 	sp->sockaddrlen = sizeof(sp->sockaddr);

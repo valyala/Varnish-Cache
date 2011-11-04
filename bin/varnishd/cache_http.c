@@ -140,9 +140,9 @@ http_Setup(struct http *hp, struct ws *ws)
 	shd = hp->shd;
 	hd = hp->hd;
 	hdf = hp->hdf;
-	memset(hp, 0, sizeof *hp);
-	memset(hd, 0, sizeof *hd * shd);
-	memset(hdf, 0, sizeof *hdf * shd);
+	ZERO_OBJ(hp);
+	ZERO_ARRAY(hd, shd);
+	ZERO_ARRAY(hdf, shd);
 	SET_MAGIC(hp, HTTP_MAGIC);
 	hp->ws = ws;
 	hp->nhd = HTTP_HDR_FIRST;
@@ -929,7 +929,7 @@ http_ClrHeader(struct http *to)
 	to->status = 0;
 	to->protover = 0;
 	to->conds = 0;
-	memset(to->hd, 0, sizeof *to->hd * to->shd);
+	ZERO_ARRAY(to->hd, to->shd);
 }
 
 /*--------------------------------------------------------------------*/

@@ -44,6 +44,7 @@
 #include "cache.h"
 #include "storage/storage.h"
 
+#include "miniobj.h"
 #include "vsha256.h"
 
 #include "persistent.h"
@@ -70,7 +71,7 @@ smp_def_sign(const struct smp_sc *sc, struct smp_signctx *ctx,
 	AZ(off & 7);			/* Alignment */
 	assert(strlen(id) < sizeof ctx->ss->ident);
 
-	memset(ctx, 0, sizeof *ctx);
+	ZERO_OBJ(ctx);
 	ctx->ss = (void*)(sc->base + off);
 	ctx->unique = sc->unique;
 	ctx->id = id;
@@ -139,7 +140,7 @@ void
 smp_reset_sign(struct smp_signctx *ctx)
 {
 
-	memset(ctx->ss, 0, sizeof *ctx->ss);
+	ZERO_OBJ(ctx->ss);;
 	strcpy(ctx->ss->ident, ctx->id);
 	ctx->ss->unique = ctx->unique;
 	ctx->ss->mapped = (uintptr_t)ctx->ss;
@@ -198,7 +199,7 @@ smp_newsilo(struct smp_sc *sc)
 	smp_reset_sign(&sc->idn);
 	si = sc->ident;
 
-	memset(si, 0, sizeof *si);
+	ZERO_OBJ(si);
 	strcpy(si->ident, SMP_IDENT_STRING);
 	si->byte_order = 0x12345678;
 	si->size = sizeof *si;

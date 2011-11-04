@@ -305,7 +305,7 @@ varnish_thread(void *priv)
 	(void)VTCP_nonblocking(v->fds[0]);
 	while (1) {
 		fds = &fd;
-		memset(fds, 0, sizeof *fds);
+		ZERO_OBJ(fds);
 		fds->fd = v->fds[0];
 		fds->events = POLLIN;
 		i = poll(fds, 1, 1000);
@@ -399,7 +399,7 @@ varnish_launch(struct varnish *v)
 	AZ(pthread_create(&v->tp_vsl, NULL, varnishlog_thread, v));
 
 	/* Wait for the varnish to call home */
-	memset(fd, 0, sizeof fd);
+	ZERO_OBJ(&fd);
 	fd[0].fd = v->cli_fd;
 	fd[0].events = POLLIN;
 	fd[1].fd = v->fds[0];

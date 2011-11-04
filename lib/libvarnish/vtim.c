@@ -56,6 +56,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vas.h"
 #include "vtim.h"
 
@@ -127,7 +128,7 @@ VTIM_parse(const char *p)
 	const char **r;
 
 	for (r = fmts; *r != NULL; r++) {
-		memset(&tm, 0, sizeof tm);
+		ZERO_OBJ(&tm);
 		if (strptime(p, *r, &tm) != NULL) {
 			/*
 			 * Make sure this is initialized on the off-chance
@@ -278,7 +279,7 @@ main(int argc, char **argv)
 	char buf[BUFSIZ];
 
 	time(&t);
-	memset(buf, 0x55, sizeof buf);
+	memset(&buf, 0x55, sizeof buf);
 	VTIM_format(t, buf);
 	printf("scan = %d <%s>\n", VTIM_parse(buf), buf);
 

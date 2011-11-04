@@ -32,6 +32,8 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
+
 void
 WS_Assert(const struct ws *ws)
 {
@@ -63,7 +65,7 @@ WS_Init(struct ws *ws, const char *id, void *space, unsigned len)
 	DSL(0x02, SLT_Debug, 0,
 	    "WS_Init(%p, \"%s\", %p, %u)", ws, id, space, len);
 	assert(space != NULL);
-	memset(ws, 0, sizeof *ws);
+	ZERO_OBJ(ws);
 	SET_MAGIC(ws, WS_MAGIC);
 	ws->s = space;
 	assert(PAOK(space));

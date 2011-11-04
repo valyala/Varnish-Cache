@@ -241,7 +241,7 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 	AZ(close(sfd));
 
 	/* Run the VCC compiler in a sub-process */
-	memset(&vp, 0, sizeof vp);
+	ZERO_OBJ(&vp);
 	SET_MAGIC(&vp, VCC_PRIV_MAGIC);
 	vp.sf = sf;
 	vp.vcl = vcl;

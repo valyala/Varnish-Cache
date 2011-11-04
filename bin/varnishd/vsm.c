@@ -54,6 +54,7 @@
 
 #include "common.h"
 
+#include "miniobj.h"
 #include "vapi/vsm_int.h"
 #include "vmb.h"
 #include "vtim.h"
@@ -121,7 +122,7 @@ vsm_cleanup(void)
 		CHECK_OBJ_NOTNULL(sha2, VSM_CHUNK_MAGIC);
 		if (!strcmp(sha2->class, VSM_CLASS_FREE)) {
 			sha->len += sha2->len;
-			memset(sha2, 0, sizeof *sha2);
+			ZERO_OBJ(sha2);
 		}
 		sha->state = 0;
 	}
@@ -136,7 +137,7 @@ vsm_cleanup(void)
 		CHECK_OBJ_NOTNULL(sha2, VSM_CHUNK_MAGIC);
 		if (!strcmp(sha2->class, VSM_CLASS_FREE)) {
 			sha->len += sha2->len;
-			memset(sha2, 0, sizeof *sha2);
+			ZERO_OBJ(sha2);
 		}
 	}
 	vsm_release(seq);
@@ -174,7 +175,7 @@ VSM__Alloc(unsigned size, const char *class, const char *type, const char *ident
 		if (size + sizeof (*sha) < sha->len) {
 			sha2 = (void*)((uintptr_t)sha + size);
 
-			memset(sha2, 0, sizeof *sha2);
+			ZERO_OBJ(sha2);
 			SET_MAGIC(sha2, VSM_CHUNK_MAGIC);
 			sha2->len = sha->len - size;
 			bprintf(sha2->class, "%s", VSM_CLASS_FREE);

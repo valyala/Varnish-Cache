@@ -280,7 +280,7 @@ clean_logline(struct logline *lp)
 		FREE_NOTNULL(h->value);
 		FREE_OBJ_NOTNULL(h, HDR_MAGIC);
 	}
-	memset(lp, 0, sizeof *lp);
+	ZERO_OBJ(lp);
 	SET_MAGIC(lp, LOGLINE_MAGIC);
 }
 
@@ -599,7 +599,7 @@ h_ncsa(void *priv, enum VSL_tag_e tag, unsigned fd,
 		while (fd >= newnll)
 			newnll += newnll + 1;
 		REALLOC_ARRAY_NOTNULL(newll, newnll);
-		memset(newll + nll, 0, (newnll - nll) * sizeof *newll);
+		ZERO_ARRAY(newll + nll, newnll - nll);
 		ll = newll;
 		nll = newnll;
 	}

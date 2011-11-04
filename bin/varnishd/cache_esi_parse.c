@@ -36,6 +36,7 @@
 #include "cache.h"
 
 #include "cache_esi.h"
+#include "miniobj.h"
 #include "vas.h"
 #include "vct.h"
 #include "vend.h"
@@ -1005,7 +1006,7 @@ VEP_Init(struct worker *w, vep_callback_t *cb)
 	AN(w->vep);
 
 	vep = w->vep;
-	memset(vep, 0, sizeof *vep);
+	ZERO_OBJ(vep);
 	SET_MAGIC(vep, VEP_MAGIC);
 	vep->wrk = w;
 	vep->vsb = VSB_new_auto();

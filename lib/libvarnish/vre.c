@@ -34,7 +34,6 @@
 
 #include "miniobj.h"
 #include "vas.h"
-
 #include "vre.h"
 
 struct vre {
@@ -73,7 +72,7 @@ VRE_exec(const vre_t *code, const char *subject, int length,
 		ovecsize = sizeof(ov)/sizeof(ov[0]);
 	}
 
-	memset(&extra, 0, sizeof extra);
+	ZERO_OBJ(&extra);
 	if (lim != NULL) {
 		extra.match_limit = lim->match;
 		extra.flags |= PCRE_EXTRA_MATCH_LIMIT;

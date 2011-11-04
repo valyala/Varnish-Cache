@@ -24,13 +24,15 @@
 
 #define MALLOC_NOTNULL(to, size)					\
 	do {								\
+		assert((size) > 0);					\
 		(to) = malloc((size));					\
 		XXXAN((to));						\
 	} while (0)
 
-#define CALLOC_NOTNULL(to, items)					\
+#define CALLOC_NOTNULL(to, items_count)					\
 	do {								\
-		(to) = calloc((items), sizeof(*(to)));			\
+		assert((items_count) > 0);				\
+		(to) = calloc((items_count), sizeof(*(to)));		\
 		XXXAN((to));						\
 	} while (0)
 
@@ -48,7 +50,7 @@ realloc_array_notnull(void *a, size_t items_count, size_t item_size)
 
 #define REALLOC_ARRAY_NOTNULL(to, items_count)				\
 	do {								\
-		(to) = realloc_array_notnull((to), (items_count), 	\
+		(to) = realloc_array_notnull((to), (items_count),	\
 					      sizeof(*(to)));		\
 	} while (0)
 
@@ -116,6 +118,24 @@ strdup_notnull(const char *s)
 			(to) = strdup_notnull((from));			\
 		else							\
 			(to) = NULL;					\
+	} while (0)
+
+#define ZERO_OBJ(ptr)							\
+	do {								\
+		memset(ptr, 0, sizeof(*(ptr)));				\
+	} while (0)
+
+static inline void
+zero_array(void *a, size_t items_count, size_t item_size)
+{
+	assert(items_count > 0);
+	assert(item_size > 0);
+	memset(a, 0, items_count * item_size);
+}
+
+#define ZERO_ARRAY(a, items_count)					\
+	do {								\
+		zero_array((a), (items_count), sizeof(*(a)));		\
 	} while (0)
 
 #endif

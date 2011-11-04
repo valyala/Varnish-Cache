@@ -35,6 +35,7 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "vre.h"
 #include "vrt.h"
 
@@ -97,7 +98,7 @@ VRT_regsub(const struct sess *sp, int all, const char *str, void *re,
 	if (str == NULL)
 		str = "";
 	t = re;
-	memset(ovector, 0, sizeof(ovector));
+	ZERO_OBJ(&ovector);
 	len = strlen(str);
 	i = VRE_exec(t, str, len, 0, options, ovector, 30,
 	    &params->vre_limits);
@@ -138,7 +139,7 @@ VRT_regsub(const struct sess *sp, int all, const char *str, void *re,
 		len -= ovector[1];
 		if (!all)
 			break;
-		memset(&ovector, 0, sizeof(ovector));
+		ZERO_OBJ(&ovector);
 		options |= VRE_NOTEMPTY_ATSTART;
 		i = VRE_exec(t, str, len, 0, options, ovector, 30,
 		    &params->vre_limits);

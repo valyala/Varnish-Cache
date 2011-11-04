@@ -47,6 +47,7 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "waiter/cache_waiter.h"
 #include "vtcp.h"
 #include "vtim.h"
@@ -147,7 +148,7 @@ pool_accept(struct pool *pp, struct worker *w, const struct poolsock *ps)
 	assert(sizeof *wa == WS_Reserve(w->ws, sizeof *wa));
 	wa = (void*)w->ws->f;
 	while (1) {
-		memset(wa, 0, sizeof *wa);
+		ZERO_OBJ(wa);
 		SET_MAGIC(wa, WRK_ACCEPT_MAGIC);
 
 		if (ps->lsock->sock < 0) {

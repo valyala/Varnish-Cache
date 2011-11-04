@@ -50,6 +50,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vas.h"
 #include "vtcp.h"
 
@@ -137,7 +138,7 @@ VTCP_filter_http(int sock)
 	struct accept_filter_arg afa;
 	int i;
 
-	memset(&afa, 0, sizeof(afa));
+	ZERO_OBJ(&afa);
 	strcpy(afa.af_name, "httpready");
 	errno = 0;
 	i = setsockopt(sock, SOL_SOCKET, SO_ACCEPTFILTER,
@@ -287,7 +288,7 @@ VTCP_linger(int sock, int linger)
 	struct linger lin;
 	int i;
 
-	memset(&lin, 0, sizeof lin);
+	ZERO_OBJ(&lin);
 	lin.l_onoff = linger;
 	i = setsockopt(sock, SOL_SOCKET, SO_LINGER, &lin, sizeof lin);
 	VTCP_Assert(i);

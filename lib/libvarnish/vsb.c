@@ -161,7 +161,7 @@ static void
 VSB_newbuf(struct vsb *s, char *buf, int length, int flags)
 {
 
-	memset(s, 0, sizeof(*s));
+	ZERO_OBJ(s);
 	SET_MAGIC(s, VSB_MAGIC);
 	s->s_flags = flags;
 	s->s_size = length;
@@ -514,7 +514,7 @@ VSB_delete(struct vsb *s)
 	if (VSB_ISDYNSTRUCT(s))
 		FREE_OBJ_NOTNULL(s, VSB_MAGIC);
 	else
-		memset(s, 0, sizeof(*s));
+		ZERO_OBJ(s);
 }
 
 /*

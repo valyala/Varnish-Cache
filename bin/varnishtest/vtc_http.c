@@ -260,10 +260,10 @@ http_splitheader(struct http *hp, int req)
 
 	CHECK_OBJ_NOTNULL(hp, HTTP_MAGIC);
 	if (req) {
-		memset(hp->req, 0, sizeof hp->req);
+		ZERO_OBJ(&hp->req);
 		hh = hp->req;
 	} else {
-		memset(hp->resp, 0, sizeof hp->resp);
+		ZERO_OBJ(&hp->resp);
 		hh = hp->resp;
 	}
 
@@ -545,7 +545,7 @@ cmd_http_gunzip_body(CMD_ARGS)
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	ONLY_CLIENT(hp, av);
 
-	memset(&vz, 0, sizeof vz);
+	ZERO_OBJ(&vz);
 
 	if (hp->body[0] != (char)0x1f || hp->body[1] != (char)0x8b)
 		vtc_log(hp->vl, hp->fatal,
@@ -593,7 +593,7 @@ gzip_body(const struct http *hp, const char *txt, char **body, int *bodylen)
 	int l, i;
 	z_stream vz;
 
-	memset(&vz, 0, sizeof vz);
+	ZERO_OBJ(&vz);
 
 	l = strlen(txt);
 	CALLOC_NOTNULL(*body, l + OVERHEAD);
@@ -1245,7 +1245,7 @@ xxx(void)
 	for (n = 0; n < 8; n++)
 		fl[n] = 9999;
 
-	memset(&vz, 0, sizeof vz);
+	ZERO_OBJ(&vz);
 
 	for(n = 0;  n < 999999999; n++) {
 		*ibuf = 0;

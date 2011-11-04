@@ -300,7 +300,7 @@ mcf_auth(struct cli *cli, const char *const *av, void *priv)
 		return;
 	}
 	cli->auth = MCF_AUTH;
-	memset(cli->challenge, 0, sizeof cli->challenge);
+	ZERO_OBJ(&cli->challenge);
 	VCLI_SetResult(cli, CLIS_OK);
 	mcf_banner(cli, av, priv);
 }
