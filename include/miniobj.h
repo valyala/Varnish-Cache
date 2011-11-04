@@ -22,11 +22,6 @@
 		(ptr)->magic = (type_magic);				\
 	} while (0)
 
-#define CHECK_MAGIC(ptr, type_magic)					\
-	do {								\
-		AN(CMP_MAGIC((ptr), (type_magic)));			\
-	} while (0)
-
 #define MALLOC_NOTNULL(to, size)					\
 	do {								\
 		(to) = malloc((size));					\
@@ -87,7 +82,7 @@ realloc_array_notnull(void *a, size_t items_count, size_t item_size)
 #define CHECK_OBJ_NOTNULL(ptr, type_magic)				\
 	do {								\
 		AN((ptr));						\
-		CHECK_MAGIC((ptr), (type_magic));			\
+		AN(CMP_MAGIC((ptr), (type_magic)));			\
 	} while (0)
 
 #define CHECK_OBJ_ORNULL(ptr, type_magic)				\

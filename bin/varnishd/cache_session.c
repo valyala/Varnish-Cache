@@ -154,8 +154,6 @@ ses_setup(struct sessmem *sm)
 	sp = &sm->sess;
 	memset(sp, 0, sizeof *sp);
 
-	/* We assume that the sess has been zeroed by the time we get here */
-	CHECK_MAGIC(sp, 0);
 	SET_MAGIC(sp, SESS_MAGIC);
 	sp->mem = sm;
 	sp->sockaddrlen = sizeof(sp->sockaddr);
