@@ -73,7 +73,7 @@ get_bucket(const struct objhead *oh)
 	unsigned digest, u;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
-	assert(sizeof(oh->digest) > sizeof(digest));
+	assert(sizeof(oh->digest) >= sizeof(digest));
 	memcpy(&digest, oh->digest, sizeof(digest));
 	assert(params->hashtable_buckets > 0);
 	u = digest % params->hashtable_buckets;
