@@ -326,6 +326,7 @@ expire(struct objcore *oc)
 	Lck_Lock(&exp_list_mtx);
 	VTAILQ_NEXT(oc, lru_list) = exp_list;
 	exp_list = oc;
+	VSC_C_main->n_exp_list_size++;
 	Lck_Unlock(&exp_list_mtx);
 }
 
@@ -427,32 +428,43 @@ EXP_NukeOne(struct worker *w, struct lru *lru)
 static void * __match_proto__(void *start_routine(void *))
 exp_timer_thread(struct sess *sp, void *priv)
 {
+	struct worker *w;
 	struct objcore *oc;
 	struct object *o;
+	unsigned n = 0;
 
+	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
+	w = sp->wrk;
+	CHECK_OBJ_NOTNULL(w, WORKER_MAGIC);
 	(void)priv;
+
 	while (1) {
 		Lck_Lock(&exp_list_mtx);
-		if (exp_list == NULL) {
+		assert(params->expiry_batch_size > 0);
+		if (exp_list == NULL || n >= params->expiry_batch_size) {
 			Lck_Unlock(&exp_list_mtx);
-			WSL_Flush(sp->wrk, 0);
-			WRK_SumStat(sp->wrk);
-			VTIM_sleep(params->expiry_sleep);
+			WSL_Flush(w, 0);
+			WRK_SumStat(w);
+			if (n < params->expiry_batch_size)
+				VTIM_sleep(params->expiry_sleep);
+			n = 0;
 			continue;
 		}
 		oc = exp_list;
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		AZ(oc->on_lru);
 		exp_list = VTAILQ_NEXT(oc, lru_list);
+		VSC_C_main->n_exp_list_size--;
 		Lck_Unlock(&exp_list_mtx);
 
 		VSC_C_main->n_expired++;
+		n++;
 
-		o = oc_getobj(sp->wrk, oc);
+		o = oc_getobj(w, oc);
 		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
-		WSL(sp->wrk, SLT_ExpKill, 0, "%u %.0f",
+		WSL(w, SLT_ExpKill, 0, "%u %.0f",
 		    o->xid, EXP_Ttl(NULL, o) - VTIM_real());
-		(void)HSH_Deref(sp->wrk, oc, NULL);
+		(void)HSH_Deref(w, oc, NULL);
 	}
 	NEEDLESS_RETURN(NULL);
 }

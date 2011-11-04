@@ -249,6 +249,16 @@ VSC_F(n_vbc,		uint64_t, 0, 'i', "N struct vbc", "")
 VSC_F(n_backend,		uint64_t, 0, 'i', "N backends", "")
 
 VSC_F(n_expired,		uint64_t, 0, 'i', "N expired objects", "")
+VSC_F(n_exp_list_size,		uint64_t, 0, 'g',
+    "The number of objects in exp_list",
+	"The number of objects, which are scheduled to be deleted by the "
+	"expiration thread. This value must be close to zero under ideal "
+	"conditions. Too high value means that the expiration thread cannot "
+	"deal with expired objects in a timely manner. If your computer is "
+	"swapping like mad, but this counter isn't going to decrease in a few "
+	"minutes, then it is likely Varnish needs more RAM than the computer "
+	"has to work properly."
+)
 VSC_F(n_lru_nuked,		uint64_t, 0, 'i', "N LRU nuked objects", "")
 VSC_F(n_lru_moved,		uint64_t, 0, 'i', "N LRU moved objects", "")
 
