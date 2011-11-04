@@ -38,6 +38,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
+#include "miniobj.h"
 #include "vrt.h"
 #include "vtcp.h"
 
@@ -474,8 +475,9 @@ vdi_simple_fini(const struct director *d)
 	if (vs->vrt->probe != NULL)
 		VBP_Remove(vs->backend, vs->vrt->probe);
 	VBE_DropRefVcl(vs->backend);
-	free(vs->dir.vcl_name);
-	vs->dir.magic = 0;
+	CHECK_OBJ_NOTNULL(&vs->dir, DIRECTOR_MAGIC);
+	FREE_ORNULL(vs->dir.vcl_name);
+	SET_MAGIC(&vs->dir, 0);
 	FREE_OBJ_NOTNULL(vs, VDI_SIMPLE_MAGIC);
 }
 
@@ -491,7 +493,7 @@ VRT_init_dir_simple(struct cli *cli, struct director **bp, int idx,
 	t = priv;
 
 	ALLOC_OBJ_NOTNULL(vs, VDI_SIMPLE_MAGIC);
-	vs->dir.magic = DIRECTOR_MAGIC;
+	SET_MAGIC(&vs->dir, DIRECTOR_MAGIC);
 	vs->dir.priv = vs;
 	vs->dir.name = "simple";
 	REPLACE(vs->dir.vcl_name, t->vcl_name);

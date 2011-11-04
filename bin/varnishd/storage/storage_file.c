@@ -37,6 +37,7 @@
 #include <stdlib.h>
 
 #include "cache.h"
+#include "miniobj.h"
 #include "storage/storage.h"
 
 #include "vnum.h"
@@ -120,7 +121,6 @@ smf_init(struct stevedore *parent, int ac, char * const *av)
 	uintmax_t page_size;
 
 	AZ(av[ac]);
-
 	fn = default_filename;
 	size = default_size;
 	page_size = getpagesize();
@@ -167,6 +167,7 @@ insfree(struct smf_sc *sc, struct smf *sp)
 	struct smf *sp2;
 	size_t ns;
 
+	CHECK_OBJ_NOTNULL(sp, SMF_MAGIC);
 	assert(sp->alloc == 0);
 	assert(sp->flist == NULL);
 	Lck_AssertHeld(&sc->mtx);
@@ -197,6 +198,7 @@ remfree(const struct smf_sc *sc, struct smf *sp)
 {
 	size_t b;
 
+	CHECK_OBJ_NOTNULL(sp, SMF_MAGIC);
 	assert(sp->alloc == 0);
 	assert(sp->flist != NULL);
 	Lck_AssertHeld(&sc->mtx);
@@ -232,13 +234,16 @@ alloc_smf(struct smf_sc *sc, size_t bytes)
 			break;
 	}
 	if (sp == NULL) {
-		VTAILQ_FOREACH(sp, &sc->free[NBUCKET -1], status)
+		VTAILQ_FOREACH(sp, &sc->free[NBUCKET -1], status) {
+			CHECK_OBJ_NOTNULL(sp, SMF_MAGIC);
 			if (sp->size >= bytes)
 				break;
+		}
 	}
 	if (sp == NULL)
 		return (sp);
 
+	CHECK_OBJ_NOTNULL(sp, SMF_MAGIC);
 	assert(sp->size >= bytes);
 	remfree(sc, sp);
 
@@ -249,8 +254,7 @@ alloc_smf(struct smf_sc *sc, size_t bytes)
 	}
 
 	/* Split from front */
-	sp2 = malloc(sizeof *sp2);
-	XXXAN(sp2);
+	ALLOC_OBJ_NOTNULL(sp2, SMF_MAGIC);
 	sc->stats->g_smf++;
 	*sp2 = *sp;
 
@@ -292,7 +296,7 @@ free_smf(struct smf *sp)
 		sp->size += sp2->size;
 		VTAILQ_REMOVE(&sc->order, sp2, order);
 		remfree(sc, sp2);
-		free(sp2);
+		FREE_OBJ_NOTNULL(sp2, SMF_MAGIC);
 		sc->stats->g_smf--;
 	}
 
@@ -304,7 +308,7 @@ free_smf(struct smf *sp)
 		remfree(sc, sp2);
 		sp2->size += sp->size;
 		VTAILQ_REMOVE(&sc->order, sp, order);
-		free(sp);
+		FREE_OBJ_NOTNULL(sp, SMF_MAGIC);
 		sc->stats->g_smf--;
 		sp = sp2;
 	}
@@ -322,14 +326,14 @@ trim_smf(struct smf *sp, size_t bytes)
 	struct smf *sp2;
 	struct smf_sc *sc = sp->sc;
 
+	CHECK_OBJ_NOTNULL(sp, SMF_MAGIC);
 	assert(sp->alloc != 0);
 	assert(bytes > 0);
 	assert(bytes < sp->size);
 	assert(!(bytes % sc->pagesize));
 	assert(!(sp->size % sc->pagesize));
 	CHECK_OBJ_NOTNULL(sp, SMF_MAGIC);
-	sp2 = malloc(sizeof *sp2);
-	XXXAN(sp2);
+	ALLOC_OBJ_NOTNULL(sp2, SMF_MAGIC);
 	sc->stats->g_smf++;
 	*sp2 = *sp;
 
@@ -471,7 +475,6 @@ smf_alloc(struct stevedore *st, size_t size)
 	sc->stats->g_space -= smf->size;
 	Lck_Unlock(&sc->mtx);
 	CHECK_OBJ_NOTNULL(&smf->s, STORAGE_MAGIC);	/*lint !e774 */
-	XXXAN(smf);
 	assert(smf->size == size);
 	smf->s.space = size;
 	smf->s.priv = smf;
@@ -565,16 +568,19 @@ dumpit(void)
 	printf("----------------\n");
 	printf("Order:\n");
 	VTAILQ_FOREACH(s, &sc->order, order) {
+		CHECK_OBJ_NOTNULL(s, SMF_MAGIC);
 		printf("%10p %12ju %12ju %12ju\n",
 		    s, s->offset, s->size, s->offset + s->size);
 	}
 	printf("Used:\n");
 	VTAILQ_FOREACH(s, &sc->used, status) {
+		CHECK_OBJ_NOTNULL(s, SMF_MAGIC);
 		printf("%10p %12ju %12ju %12ju\n",
 		    s, s->offset, s->size, s->offset + s->size);
 	}
 	printf("Free:\n");
 	VTAILQ_FOREACH(s, &sc->free, status) {
+		CHECK_OBJ_NOTNULL(s, SMF_MAGIC);
 		printf("%10p %12ju %12ju %12ju\n",
 		    s, s->offset, s->size, s->offset + s->size);
 	}

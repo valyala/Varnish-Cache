@@ -39,10 +39,9 @@
 #include <string.h>
 #include <time.h>
 
+#include "binary_heap.h"
 #include "miniobj.h"
 #include "vas.h"
-
-#include "binary_heap.h"
 #include "vqueue.h"
 #include "vev.h"
 #include "vtim.h"
@@ -115,14 +114,13 @@ vev_bh_cmp(void *a, void *b)
 
 /*--------------------------------------------------------------------*/
 
-static int
+static void
 vev_get_pfd(struct vev_base *evb)
 {
 	unsigned u;
-	void *p;
 
 	if (evb->lpfd + 1 < evb->npfd)
-		return (0);
+		return;
 
 	if (evb->npfd < 8)
 		u = 8;
@@ -130,35 +128,26 @@ vev_get_pfd(struct vev_base *evb)
 		u = evb->npfd + 256;
 	else
 		u = evb->npfd * 2;
-	p = realloc(evb->pfd, sizeof *evb->pfd * u);
-	if (p == NULL)
-		return (1);
+	REALLOC_NOTNULL(evb->pfd, sizeof *evb->pfd * u);
 	evb->npfd = u;
-	evb->pfd = p;
-	return (0);
 }
 
 /*--------------------------------------------------------------------*/
 
-static int
+static void
 vev_get_sig(int sig)
 {
 	struct vevsig *os;
 
 	if (sig < vev_nsig)
-		return (0);
+		return;
 
-	os = calloc(sizeof *os, (sig + 1L));
-	if (os == NULL)
-		return (ENOMEM);
-
+	CALLOC_NOTNULL(os, sig + 1L, sizeof *os);
 	memcpy(os, vev_sigs, vev_nsig * sizeof *os);
 
-	free(vev_sigs);
+	FREE_ORNULL(vev_sigs);
 	vev_sigs = os;
 	vev_nsig = sig + 1;
-
-	return (0);
 }
 
 /*--------------------------------------------------------------------*/
@@ -184,10 +173,7 @@ vev_new_base(void)
 	struct vev_base *evb;
 
 	ALLOC_OBJ_NOTNULL(evb, VEV_BASE_MAGIC);
-	if (vev_get_pfd(evb)) {
-		free(evb);
-		return (NULL);
-	}
+	vev_get_pfd(evb);
 	VTAILQ_INIT(&evb->events);
 	evb->binheap = binheap_new(vev_bh_cmp, vev_bh_update);
 	AN(evb->binheap);
@@ -226,7 +212,7 @@ vev_new(void)
 
 /*--------------------------------------------------------------------*/
 
-int
+void
 vev_add(struct vev_base *evb, struct vev *e)
 {
 	struct vevsig *es;
@@ -240,16 +226,15 @@ vev_add(struct vev_base *evb, struct vev *e)
 	assert(evb->thread == pthread_self());
 	DBG(evb, "ev_add(%p) fd = %d\n", e, e->fd);
 
-	if (e->sig > 0 && vev_get_sig(e->sig))
-		return (ENOMEM);
+	if (e->sig > 0)
+		vev_get_sig(e->sig);
 
-	if (e->fd >= 0 && vev_get_pfd(evb))
-		return (ENOMEM);
+	if (e->fd >= 0)
+		vev_get_pfd(evb);
 
 	if (e->sig > 0) {
 		es = &vev_sigs[e->sig];
-		if (es->vev != NULL)
-			return (EBUSY);
+		XXXAZ(es->vev);
 		assert(es->happened == 0);
 		es->vev = e;
 		es->vevb = evb;
@@ -289,8 +274,6 @@ vev_add(struct vev_base *evb, struct vev *e)
 		assert(es != NULL);
 		assert(sigaction(e->sig, &es->sigact, NULL) == 0);
 	}
-
-	return (0);
 }
 
 /*--------------------------------------------------------------------*/
@@ -337,6 +320,7 @@ vev_del(struct vev_base *evb, struct vev *e)
 	VTAILQ_REMOVE(&evb->events, e, __list);
 
 	e->__vevb = NULL;
+	FREE_OBJ_NOTNULL(e, VEV_MAGIC);
 	evb->disturbed = 1;
 }
 
@@ -395,10 +379,9 @@ vev_sched_timeout(struct vev_base *evb, struct vev *e, double t)
 	int i;
 
 	i = e->callback(e, 0);
-	if (i) {
+	if (i)
 		vev_del(evb, e);
-		free(e);
-	} else {
+	else {
 		e->__when = t + e->timeout;
 		assert(e->__binheap_idx != BINHEAP_NOIDX);
 		binheap_reorder(evb->binheap, e->__binheap_idx);
@@ -423,10 +406,8 @@ vev_sched_signal(struct vev_base *evb)
 		e = es->vev;
 		assert(e != NULL);
 		i = e->callback(e, EV_SIG);
-		if (i) {
+		if (i)
 			vev_del(evb, e);
-			free(e);
-		}
 	}
 	return (1);
 }
@@ -504,7 +485,6 @@ vev_schedule_one(struct vev_base *evb)
 		if (j) {
 			vev_del(evb, e);
 			evb->disturbed = 0;
-			free(e);
 		}
 	}
 	assert(i == 0);

@@ -33,6 +33,7 @@
 #include <stdlib.h>
 
 #include "cache.h"
+#include "miniobj.h"
 #include "storage/storage.h"
 
 
@@ -49,13 +50,12 @@ sms_free(struct storage *sto)
 	VSC_C_main->sms_bfree += sto->len;
 	Lck_Unlock(&sms_mtx);
 	VSB_delete(sto->priv);
-	free(sto);
+	FREE_OBJ_NOTNULL(sto, STORAGE_MAGIC);
 }
 
 void
 SMS_Init(void)
 {
-
 	Lck_New(&sms_mtx, lck_sms);
 }
 
@@ -80,10 +80,9 @@ SMS_Makesynth(struct object *obj)
 	VSC_C_main->sms_nobj++;
 	Lck_Unlock(&sms_mtx);
 
-	sto = calloc(sizeof *sto, 1);
-	XXXAN(sto);
+	ALLOC_OBJ_NOTNULL(sto, STORAGE_MAGIC);
 	vsb = VSB_new_auto();
-	XXXAN(vsb);
+	AN(vsb);
 	sto->priv = vsb;
 	sto->len = 0;
 	sto->space = 0;
@@ -91,7 +90,6 @@ SMS_Makesynth(struct object *obj)
 	sto->fd = -1;
 #endif
 	sto->stevedore = &sms_stevedore;
-	SET_MAGIC(sto, STORAGE_MAGIC);
 
 	VTAILQ_INSERT_TAIL(&obj->store, sto, list);
 	return (vsb);
@@ -105,6 +103,7 @@ SMS_Finish(struct object *obj)
 
 	CHECK_OBJ_NOTNULL(obj, OBJECT_MAGIC);
 	sto = VTAILQ_FIRST(&obj->store);
+	CHECK_OBJ_NOTNULL(sto, STORAGE_MAGIC);
 	assert(sto->stevedore == &sms_stevedore);
 	vsb = sto->priv;
 	AZ(VSB_finish(vsb));

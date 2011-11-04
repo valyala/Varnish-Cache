@@ -45,6 +45,7 @@
 
 #include "../../bin/varnishd/cache.h"
 
+#include "miniobj.h"
 #include "vrt.h"
 #include "vfil.h"
 
@@ -77,8 +78,8 @@ free_frfile(void *ptr)
 	AZ(pthread_mutex_unlock(&frmtx));
 	if (frf != NULL) {
 		CHECK_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
-		free(frf->contents);
-		free(frf->file_name);
+		FREE_ORNULL(frf->contents);
+		FREE_ORNULL(frf->file_name);
 		FREE_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
 	}
 }
@@ -113,8 +114,7 @@ vmod_fileread(struct sess *sp, struct vmod_priv *priv, const char *file_name)
 	s = VFIL_readfile(NULL, file_name, NULL);
 	if (s != NULL) {
 		ALLOC_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
-		frf->file_name = strdup(file_name);
-		AN(frf->file_name);
+		STRDUP_NOTNULL(frf->file_name, file_name);
 		frf->refcount = 1;
 		frf->contents = s;
 		priv->free = free_frfile;

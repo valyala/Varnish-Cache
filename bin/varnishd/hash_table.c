@@ -35,6 +35,7 @@
 
 #include "cache.h"
 #include "hash_table.h"
+#include "miniobj.h"
 
 /*--------------------------------------------------------------------*/
 
@@ -57,8 +58,7 @@ HTB_Init(void)
 
 	hashtable_buckets = params->hashtable_buckets;
 	assert(hashtable_buckets > 0);
-	buckets = calloc(hashtable_buckets, sizeof(*buckets));
-	XXXAN(buckets);
+	CALLOC_NOTNULL(buckets, hashtable_buckets, sizeof(*buckets));
 
 	for (u = 0; u < hashtable_buckets; u++) {
 		VSLIST_INIT(&buckets[u].head);

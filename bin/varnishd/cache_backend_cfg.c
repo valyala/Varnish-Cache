@@ -38,6 +38,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
+#include "miniobj.h"
 #include "vcli_priv.h"
 #include "vrt.h"
 
@@ -59,11 +60,11 @@ VBE_Nuke(struct backend *b)
 	ASSERT_CLI();
 	CHECK_OBJ_NOTNULL(b, BACKEND_MAGIC);
 	VTAILQ_REMOVE(&backends, b, list);
-	free(b->ipv4);
-	free(b->ipv4_addr);
-	free(b->ipv6);
-	free(b->ipv6_addr);
-	free(b->port);
+	FREE_ORNULL(b->ipv4);
+	FREE_ORNULL(b->ipv4_addr);
+	FREE_ORNULL(b->ipv6);
+	FREE_ORNULL(b->ipv6_addr);
+	FREE_ORNULL(b->port);
 	VSM_Free(b->vsc);
 	FREE_OBJ_NOTNULL(b, BACKEND_MAGIC);
 	VSC_C_main->n_backend--;
@@ -150,8 +151,7 @@ copy_sockaddr(struct sockaddr_storage **sa, socklen_t *len,
 {
 
 	assert(*src > 0);
-	*sa = calloc(sizeof **sa, 1);
-	XXXAN(*sa);
+	CALLOC_NOTNULL(*sa, 1, sizeof **sa);
 	memcpy(*sa, src + 1, *src);
 	*len = *src;
 }

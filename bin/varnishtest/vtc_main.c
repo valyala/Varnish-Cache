@@ -42,6 +42,7 @@
 
 #include "vtc.h"
 
+#include "miniobj.h"
 #include "vev.h"
 #include "vqueue.h"
 #include "vtim.h"
@@ -121,18 +122,16 @@ read_file(const char *fn)
 	fd = open(fn, O_RDONLY);
 	if (fd < 0)
 		return (NULL);
-	buf = malloc(sz);
-	assert(buf != NULL);
+	MALLOC_NOTNULL(buf, sz);
 	s = read(fd, buf, sz - 1);
 	if (s <= 0) {
-		free(buf);
+		FREE_NOTNULL(buf);
 		return (NULL);
 	}
 	AZ(close (fd));
 	assert(s < sz);		/* XXX: increase MAX_FILESIZE */
 	buf[s] = '\0';
-	buf = realloc(buf, s + 1);
-	assert(buf != NULL);
+	REALLOC_NOTNULL(buf, s + 1);
 	return (buf);
 }
 
@@ -219,7 +218,7 @@ tst_cb(const struct vev *ve, int what)
 			(void)fprintf(f, "%s\n", jp->buf);
 			AZ(fclose(f));
 		}
-		free(jp->tmpdir);
+		FREE_NOTNULL(jp->tmpdir);
 
 		if (stx) {
 			printf("#     top  TEST %s FAILED (%.3f)",
@@ -278,8 +277,7 @@ start_test(void)
 		VTAILQ_INSERT_TAIL(&tst_head, tp, list);
 
 	jp->tst = tp;
-	jp->tmpdir = strdup(tmpdir);
-	AN(jp->tmpdir);
+	STRDUP_NOTNULL(jp->tmpdir, tmpdir);
 
 	AZ(pipe(p));
 	assert(p[0] > STDERR_FILENO);
@@ -306,7 +304,7 @@ start_test(void)
 	jp->ev->fd = p[0];
 	jp->ev->priv = jp;
 	jp->ev->callback = tst_cb;
-	AZ(vev_add(vb, jp->ev));
+	vev_add(vb, jp->ev);
 
 	jp->evt = vev_new();
 	AN(jp->evt);
@@ -314,7 +312,7 @@ start_test(void)
 	jp->evt->timeout = vtc_maxdur;
 	jp->evt->priv = jp;
 	jp->evt->callback = tst_cb;
-	AZ(vev_add(vb, jp->evt));
+	vev_add(vb, jp->evt);
 }
 
 /**********************************************************************
@@ -396,6 +394,7 @@ main(int argc, char * const *argv)
 	}
 
 	vb = vev_new_base();
+	AN(vb);
 
 	i = 0;
 	while(!VTAILQ_EMPTY(&tst_head) || i) {

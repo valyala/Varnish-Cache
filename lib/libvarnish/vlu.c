@@ -63,8 +63,7 @@ VLU_New(void *priv, vlu_f *func, unsigned bufsize)
 	l->priv = priv;
 	l->bufl = bufsize - 1;
 	l->telnet = -1;
-	l->buf = malloc(l->bufl + 1L);
-	XXXAN(l->buf);
+	MALLOC_NOTNULL(l->buf, l->bufl + 1L);
 	return (l);
 }
 
@@ -81,7 +80,7 @@ VLU_Destroy(struct vlu *l)
 {
 
 	CHECK_OBJ_NOTNULL(l, LINEUP_MAGIC);
-	free(l->buf);
+	FREE_NOTNULL(l->buf);
 	FREE_OBJ_NOTNULL(l, LINEUP_MAGIC);
 }
 

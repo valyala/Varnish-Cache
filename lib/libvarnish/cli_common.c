@@ -43,6 +43,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vas.h"
 #include "vcli.h"
 #include "vcli_common.h"
@@ -160,7 +161,7 @@ VCLI_ReadResult(int fd, unsigned *status, char **ptr, double tmo)
 	if (i != CLI_LINE0_LEN) {
 		*status = CLIS_COMMS;
 		if (ptr != NULL)
-			*ptr = strdup("CLI communication error (hdr)");
+			STRDUP_NOTNULL(*ptr, "CLI communication error (hdr)");
 		if (i != 0)
 			return (i);
 		return (*status);
@@ -172,21 +173,20 @@ VCLI_ReadResult(int fd, unsigned *status, char **ptr, double tmo)
 	j = sscanf(res, "%u %u\n", &u, &v);
 	assert(j == 2);
 	*status = u;
-	p = malloc(v + 1L);
-	assert(p != NULL);
+	MALLOC_NOTNULL(p, v + 1L);
 	i = read_tmo(fd, p, v + 1, tmo);
 	if (i < 0) {
 		*status = CLIS_COMMS;
-		free(p);
+		FREE_NOTNULL(p);
 		if (ptr != NULL)
-			*ptr = strdup("CLI communication error (body)");
+			STRDUP_NOTNULL(*ptr, "CLI communication error (body)");
 		return (i);
 	}
 	assert(i == v + 1);
 	assert(p[v] == '\n');
 	p[v] = '\0';
 	if (ptr == NULL)
-		free(p);
+		FREE_NOTNULL(p);
 	else
 		*ptr = p;
 	return (0);

@@ -895,7 +895,7 @@ cnt_streambody(struct sess *sp)
 	    params->gzip_stack_buffer : 1];
 
 	memset(&sctx, 0, sizeof sctx);
-	sctx.magic = STREAM_CTX_MAGIC;
+	SET_MAGIC(&sctx, STREAM_CTX_MAGIC);
 	AZ(sp->wrk->sctx);
 	sp->wrk->sctx = &sctx;
 

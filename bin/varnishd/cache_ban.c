@@ -67,6 +67,7 @@
 
 #include "cache.h"
 #include "cache_hash.h"
+#include "miniobj.h"
 #include "vcli.h"
 #include "vcli_priv.h"
 #include "vend.h"
@@ -138,10 +139,7 @@ BAN_New(void)
 
 	ALLOC_OBJ_NOTNULL(b, BAN_MAGIC);
 	b->vsb = VSB_new_auto();
-	if (b->vsb == NULL) {
-		FREE_OBJ_NOTNULL(b, BAN_MAGIC);
-		return (NULL);
-	}
+	AN(b->vsb);
 	VTAILQ_INIT(&b->objcore);
 	return (b);
 }
@@ -156,8 +154,7 @@ BAN_Free(struct ban *b)
 
 	if (b->vsb != NULL)
 		VSB_delete(b->vsb);
-	if (b->spec != NULL)
-		free(b->spec);
+	FREE_ORNULL(b->spec);
 	FREE_OBJ_NOTNULL(b, BAN_MAGIC);
 }
 
@@ -396,8 +393,7 @@ BAN_Insert(struct ban *b)
 	ln = VSB_len(b->vsb);
 	assert(ln >= 0);
 
-	b->spec = malloc(ln + 13L);	/* XXX */
-	XXXAN(b->spec);
+	MALLOC_NOTNULL(b->spec, ln + 13L);	/* XXX */
 
 	t0 = VTIM_real();
 	memcpy(b->spec, &t0, sizeof t0);
@@ -552,8 +548,7 @@ BAN_Reload(const uint8_t *ban, unsigned len)
 
 	b2 = BAN_New();
 	AN(b2);
-	b2->spec = malloc(len);
-	AN(b2->spec);
+	MALLOC_NOTNULL(b2->spec, len);
 	memcpy(b2->spec, ban, len);
 	b2->flags |= gone;
 	if (ban[12])
@@ -876,11 +871,7 @@ ccf_ban(struct cli *cli, const char * const *av, void *priv)
 	}
 
 	b = BAN_New();
-	if (b == NULL) {
-		VCLI_Out(cli, "Out of Memory");
-		VCLI_SetResult(cli, CLIS_CANT);
-		return;
-	}
+	AN(b);
 	for (i = 0; i < narg; i += 4)
 		if (BAN_AddTest(cli, b, av[i + 2], av[i + 3], av[i + 4])) {
 			BAN_Free(b);

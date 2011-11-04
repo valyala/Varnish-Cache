@@ -36,6 +36,7 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "vcli_priv.h"
 #include "vrt.h"
 
@@ -143,8 +144,8 @@ VRT_Vmod_Fini(void **hdl)
 #ifndef DONT_DLCLOSE_VMODS
 	AZ(dlclose(v->hdl));
 #endif
-	free(v->nm);
-	free(v->path);
+	FREE_ORNULL(v->nm);
+	FREE_ORNULL(v->path);
 	VTAILQ_REMOVE(&vmods, v, list);
 	VSC_C_main->vmods--;
 	FREE_OBJ_NOTNULL(v, VMOD_MAGIC);

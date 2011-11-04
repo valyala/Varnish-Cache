@@ -77,6 +77,7 @@ vtc_logopen(const char *id)
 	ALLOC_OBJ_NOTNULL(vl, VTCLOG_MAGIC);
 	vl->id = id;
 	vl->vsb = VSB_new_auto();
+	AN(vl->vsb);
 	AZ(pthread_mutex_init(&vl->mtx, NULL));
 	AZ(pthread_setspecific(log_key, vl));
 	return (vl);

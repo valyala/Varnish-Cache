@@ -41,7 +41,6 @@
 
 #include "miniobj.h"
 #include "vas.h"
-
 #include "vapi/vsl.h"
 #include "vapi/vsm.h"
 #include "vapi/vsm_int.h"
@@ -82,8 +81,7 @@ VSL_Setup(struct VSM_data *vd)
 	vsl->r_fd = -1;
 	/* XXX: Allocate only if -r option given ? */
 	vsl->rbuflen = 256;      /* XXX ?? */
-	vsl->rbuf = malloc(vsl->rbuflen * 4L);
-	assert(vsl->rbuf != NULL);
+	MALLOC_NOTNULL(vsl->rbuf, vsl->rbuflen * 4L);
 
 	vsl->num_matchers = 0;
 	VTAILQ_INIT(&vsl->matchers);
@@ -103,7 +101,7 @@ VSL_Delete(struct VSM_data *vd)
 
 	vbit_destroy(vsl->vbm_supress);
 	vbit_destroy(vsl->vbm_select);
-	free(vsl->rbuf);
+	FREE_NOTNULL(vsl->rbuf);
 
 	FREE_OBJ_NOTNULL(vsl, VSL_MAGIC);
 }
@@ -157,8 +155,7 @@ vsl_nextlog(struct vsl *vsl, uint32_t **pp)
 		l = 2 + VSL_WORDS(VSL_LEN(vsl->rbuf));
 		if (vsl->rbuflen < l) {
 			l += 256;
-			vsl->rbuf = realloc(vsl->rbuf, l * 4L);
-			assert(vsl->rbuf != NULL);
+			REALLOC_NOTNULL(vsl->rbuf, l * 4L);
 			vsl->rbuflen = l;
 		}
 		i = read(vsl->r_fd, vsl->rbuf + 2, l * 4L - 8L);

@@ -153,7 +153,7 @@ vsl_n_check(int fd)
 	i = read(fd, &slh, sizeof slh);
 	if (i != sizeof slh)
 		return;
-	if (slh.magic != VSM_HEAD_MAGIC)
+	if (!CMP_MAGIC(&slh, VSM_HEAD_MAGIC))
 		return;
 	if (slh.hdrsize != sizeof slh)
 		return;
@@ -191,7 +191,7 @@ vsl_buildnew(const char *fn, unsigned size, int fill)
 	AZ(fcntl(vsl_fd, F_SETFL, flags));
 
 	memset(&slh, 0, sizeof slh);
-	slh.magic = VSM_HEAD_MAGIC;
+	SET_MAGIC(&slh, VSM_HEAD_MAGIC);
 	slh.hdrsize = sizeof slh;
 	slh.shm_size = size;
 	i = write(vsl_fd, &slh, sizeof slh);
@@ -309,7 +309,7 @@ mgt_SHM_Init(const char *l_arg)
 	(void)mlock((void*)VSM_head, size);
 
 	memset(&VSM_head->head, 0, sizeof VSM_head->head);
-	VSM_head->head.magic = VSM_CHUNK_MAGIC;
+	SET_MAGIC(&VSM_head->head, VSM_CHUNK_MAGIC);
 	VSM_head->head.len =
 	    (uint8_t*)(VSM_head) + size - (uint8_t*)&VSM_head->head;
 	bprintf(VSM_head->head.class, "%s", VSM_CLASS_FREE);

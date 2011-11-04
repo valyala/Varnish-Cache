@@ -85,13 +85,11 @@ init_mem(unsigned resident_pages_count)
 	xxxassert(page_size > 0);
 	XXXAZ(page_size & (page_size - 1));
 
-	m.magic = MEM_MAGIC;
-	free(m.lru);
+	SET_MAGIC(&m, MEM_MAGIC);
+	FREE_ORNULL(m.lru);
 	m.lru = NULL;
-	if (resident_pages_count > 0) {
-		m.lru = calloc(resident_pages_count, sizeof(*m.lru));
-		XXXAN(m.lru);
-	}
+	if (resident_pages_count > 0)
+		CALLOC_NOTNULL(m.lru, resident_pages_count, sizeof(*m.lru));
 	m.page_mask = ~(page_size - 1);
 	m.pagefaults_count = 0;
 	m.resident_pages_count = resident_pages_count;
@@ -103,7 +101,7 @@ access_mem(const void *p)
 	uintptr_t addr, *lru;
 	unsigned u, v;
 
-	assert(m.magic == MEM_MAGIC);
+	CHECK_OBJ_NOTNULL(&m, MEM_MAGIC);
 	if (m.resident_pages_count == 0)
 		return;	/* mem model is disabled */
 	if (p == NULL)
@@ -170,7 +168,7 @@ binheap_new(binheap_cmp_t cmp_f, binheap_update_t update_f)
 	bh->cmp_f = cmp_f;
 	bh->update_f = update_f;
 	bh->length = 16;
-	bh->array = calloc(bh->length, sizeof(*bh->array));
+	CALLOC_NOTNULL(bh->array, bh->length, sizeof(*bh->array));
 	bh->next = ROOT_IDX;
 	return (bh);
 }
@@ -273,8 +271,7 @@ increase_array_size(struct binheap *bh)
 	xxxassert(bh->length <= UINT_MAX / sizeof(*bh->array) / 2);
 	length = bh->length * 2;
 	AN(bh->array);
-	bh->array = realloc(bh->array, sizeof(*bh->array) * length);
-	XXXAN(bh->array);
+	REALLOC_NOTNULL(bh->array, sizeof(*bh->array) * length);
 	while (bh->length < length)
 		bh->array[bh->length++] = NULL;
 }
@@ -571,7 +568,7 @@ foo_delete(struct binheap *bh, struct foo *fp, unsigned items_count)
 	assert(fp->idx == BINHEAP_NOIDX);
 	assert(fp->key == key);
 	assert(fp->n == n);
-	free(fp);
+	FREE_OBJ_NOTNULL(fp, FOO_MAGIC);
 	ff[n] = NULL;
 	paranoia_check(bh);
 }

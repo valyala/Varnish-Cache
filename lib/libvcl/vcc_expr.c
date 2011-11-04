@@ -39,6 +39,8 @@
 
 #include "vcc_compile.h"
 
+#include "miniobj.h"
+
 static const char *
 vcc_Type(enum var_type fmt)
 {
@@ -246,6 +248,7 @@ vcc_new_expr(void)
 	/* XXX: use TlAlloc() ? */
 	ALLOC_OBJ_NOTNULL(e, EXPR_MAGIC);
 	e->vsb = VSB_new_auto();
+	AN(e->vsb);
 	e->fmt = VOID;
 	return (e);
 }

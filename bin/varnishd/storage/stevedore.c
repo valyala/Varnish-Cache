@@ -38,6 +38,7 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "storage/storage.h"
 #include "vav.h"
 #include "vcli_priv.h"
@@ -204,7 +205,8 @@ stv_alloc(struct worker *w, const struct object *obj, size_t size)
 
 struct stv_objsecrets {
 	unsigned	magic;
-#define STV_OBJ_SECRETES_MAGIC	0x78c87247
+#define STV_OBJSECRETS_MAGIC	0x78c87247U
+
 	uint16_t	nhttp;
 	unsigned	lhttp;
 	unsigned	wsl;
@@ -226,7 +228,7 @@ STV_MkObject(struct sess *sp, void *ptr, unsigned ltot,
 	struct object *o;
 	unsigned l;
 
-	CHECK_OBJ_NOTNULL(soc, STV_OBJ_SECRETES_MAGIC);
+	CHECK_OBJ_NOTNULL(soc, STV_OBJSECRETS_MAGIC);
 
 	assert(PAOK(ptr));
 	assert(PAOK(soc->wsl));
@@ -277,7 +279,7 @@ stv_default_allocobj(struct stevedore *stv, struct sess *sp, unsigned ltot,
 	struct object *o;
 	struct storage *st;
 
-	CHECK_OBJ_NOTNULL(soc, STV_OBJ_SECRETES_MAGIC);
+	CHECK_OBJ_NOTNULL(soc, STV_OBJSECRETS_MAGIC);
 	st = stv->alloc(stv, ltot);
 	if (st == NULL)
 		return (NULL);
@@ -315,7 +317,7 @@ STV_NewObject(struct sess *sp, const char *hint, unsigned wsl, struct exp *ep,
 	lhttp = PRNDUP(lhttp);
 
 	memset(&soc, 0, sizeof soc);
-	soc.magic = STV_OBJ_SECRETES_MAGIC;
+	SET_MAGIC(&soc, STV_OBJSECRETS_MAGIC);
 	soc.nhttp = nhttp;
 	soc.lhttp = lhttp;
 	soc.wsl = wsl;

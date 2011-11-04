@@ -34,17 +34,17 @@
  *	>documentation.
  *	>
  *	>Unreferenced  function 'request_policy', first mention is
- *	>         Line 8 Pos 4
- *	>         sub request_policy {
- *	>         ----##############--
+ *	>	  Line 8 Pos 4
+ *	>	  sub request_policy {
+ *	>	  ----##############--
  *	>Read more about this type of error:
  *	>http://varnish/doc/error.html#Unreferenced%20function
  *	>
  *	>
- *	>         Unknown variable 'obj.bandwidth'
- *	>         At: Line 88 Pos 12
- *	>                 if (obj.bandwidth < 1 kb/h) {
- *	>         ------------#############------------
+ *	>	  Unknown variable 'obj.bandwidth'
+ *	>	  At: Line 88 Pos 12
+ *	>		  if (obj.bandwidth < 1 kb/h) {
+ *	>	  ------------#############------------
  *	>Read more about this type of error:
  *	>http://varnish/doc/error.html#Unknown%20variable
  *
@@ -62,6 +62,7 @@
 #include "vcc_compile.h"
 
 #include "libvcl.h"
+#include "miniobj.h"
 #include "vfil.h"
 
 struct method method_tab[] = {
@@ -78,8 +79,9 @@ TlDoFree(struct vcc *tl, void *p)
 {
 	struct membit *mb;
 
-	mb = calloc(sizeof *mb, 1);
-	assert(mb != NULL);
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
+	AN(p);
+	ALLOC_OBJ_NOTNULL(mb, MEMBIT_MAGIC);
 	mb->ptr = p;
 	VTAILQ_INSERT_TAIL(&tl->membits, mb, list);
 }
@@ -90,8 +92,8 @@ TlAlloc(struct vcc *tl, unsigned len)
 {
 	void *p;
 
-	p = calloc(len, 1);
-	assert(p != NULL);
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
+	CALLOC_NOTNULL(p, len, 1);
 	TlDoFree(tl, p);
 	return (p);
 }
@@ -101,6 +103,7 @@ TlDup(struct vcc *tl, const char *s)
 {
 	char *p;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	p = TlAlloc(tl, strlen(s) + 1);
 	AN(p);
 	strcpy(p, s);
@@ -113,6 +116,7 @@ TlDupTok(struct vcc *tl, const struct token *tok)
 	char *p;
 	int i;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	i = tok->e - tok->b;
 	p = TlAlloc(tl, i + 1);
 	AN(p);
@@ -145,6 +149,7 @@ Fh(const struct vcc *tl, int indent, const char *fmt, ...)
 {
 	va_list ap;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	if (indent)
 		VSB_printf(tl->fh, "%*.*s", tl->hindent, tl->hindent, "");
 	va_start(ap, fmt);
@@ -157,6 +162,7 @@ Fb(const struct vcc *tl, int indent, const char *fmt, ...)
 {
 	va_list ap;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	assert(tl->fb != NULL);
 	if (indent)
 		VSB_printf(tl->fb, "%*.*s", tl->indent, tl->indent, "");
@@ -170,6 +176,7 @@ Fc(const struct vcc *tl, int indent, const char *fmt, ...)
 {
 	va_list ap;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	if (indent)
 		VSB_printf(tl->fc, "%*.*s", tl->indent, tl->indent, "");
 	va_start(ap, fmt);
@@ -182,6 +189,7 @@ Fi(const struct vcc *tl, int indent, const char *fmt, ...)
 {
 	va_list ap;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	if (indent)
 		VSB_printf(tl->fi, "%*.*s", tl->iindent, tl->iindent, "");
 	va_start(ap, fmt);
@@ -194,6 +202,7 @@ Ff(const struct vcc *tl, int indent, const char *fmt, ...)
 {
 	va_list ap;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	if (indent)
 		VSB_printf(tl->ff, "%*.*s", tl->findent, tl->findent, "");
 	va_start(ap, fmt);
@@ -210,6 +219,7 @@ EncString(struct vsb *sb, const char *b, const char *e, int mode)
 	if (e == NULL)
 		e = strchr(b, '\0');
 
+	CHECK_OBJ_NOTNULL(sb, VSB_MAGIC);
 	VSB_cat(sb, "\"");
 	for (; b < e; b++) {
 		switch (*b) {
@@ -239,7 +249,7 @@ EncString(struct vsb *sb, const char *b, const char *e, int mode)
 void
 EncToken(struct vsb *sb, const struct token *t)
 {
-
+	CHECK_OBJ_NOTNULL(sb, VSB_MAGIC);
 	assert(t->tok == CSTR);
 	EncString(sb, t->dec, NULL, 0);
 }
@@ -257,6 +267,7 @@ LocTable(const struct vcc *tl)
 	struct source *sp;
 	const char *p;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	Fh(tl, 0, "\n#define VGC_NREFS %u\n", tl->cnt + 1);
 	Fc(tl, 0, "\nstatic struct vrt_ref VGC_ref[VGC_NREFS] = {\n");
 	lin = 1;
@@ -273,7 +284,7 @@ LocTable(const struct vcc *tl)
 			sp = t->src;
 			p = sp->b;
 		}
-		assert(sp != NULL);
+		CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 		assert(p != NULL);
 		for (;p < t->b; p++) {
 			if (*p == '\n') {
@@ -301,7 +312,7 @@ LocTable(const struct vcc *tl)
 static void
 EmitInitFunc(const struct vcc *tl)
 {
-
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	Fc(tl, 0, "\nstatic int\nVGC_Init(struct cli *cli)\n{\n\n");
 	AZ(VSB_finish(tl->fi));
 	VSB_cat(tl->fc, VSB_data(tl->fi));
@@ -314,6 +325,7 @@ EmitFiniFunc(const struct vcc *tl)
 {
 	unsigned u;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	Fc(tl, 0, "\nstatic void\nVGC_Fini(struct cli *cli)\n{\n\n");
 
 	/*
@@ -335,8 +347,10 @@ EmitStruct(const struct vcc *tl)
 {
 	struct source *sp;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	Fc(tl, 0, "\nconst char *srcname[%u] = {\n", tl->nsources);
 	VTAILQ_FOREACH(sp, &tl->sources, list) {
+		CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 		Fc(tl, 0, "\t");
 		EncString(tl->fc, sp->name, NULL, 0);
 		Fc(tl, 0, ",\n");
@@ -345,6 +359,7 @@ EmitStruct(const struct vcc *tl)
 
 	Fc(tl, 0, "\nconst char *srcbody[%u] = {\n", tl->nsources);
 	VTAILQ_FOREACH(sp, &tl->sources, list) {
+		CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 		Fc(tl, 0, "    /* ");
 		EncString(tl->fc, sp->name, NULL, 0);
 		Fc(tl, 0, "*/\n");
@@ -384,10 +399,8 @@ vcc_new_source(const char *b, const char *e, const char *name)
 
 	if (e == NULL)
 		e = strchr(b, '\0');
-	sp = calloc(sizeof *sp, 1);
-	assert(sp != NULL);
-	sp->name = strdup(name);
-	AN(sp->name);
+	ALLOC_OBJ_NOTNULL(sp, SOURCE_MAGIC);
+	STRDUP_NOTNULL(sp->name, name);
 	sp->b = b;
 	sp->e = e;
 	return (sp);
@@ -396,11 +409,10 @@ vcc_new_source(const char *b, const char *e, const char *name)
 static void
 vcc_destroy_source(struct source *sp)
 {
-
-	if (sp->freeit != NULL)
-		free(sp->freeit);
-	free(sp->name);
-	free(sp);
+	CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
+	FREE_ORNULL(sp->freeit);
+	FREE_NOTNULL(sp->name);
+	FREE_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 }
 
 /*--------------------------------------------------------------------*/
@@ -411,6 +423,8 @@ vcc_file_source(const struct vcc *tl, struct vsb *sb, const char *fn)
 	char *f;
 	struct source *sp;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
+	CHECK_OBJ_NOTNULL(sb, VSB_MAGIC);
 	f = VFIL_readfile(tl->vcl_dir, fn, NULL);
 	if (f == NULL) {
 		VSB_printf(sb, "Cannot read file '%s': %s\n",
@@ -430,6 +444,7 @@ vcc_resolve_includes(struct vcc *tl)
 	struct token *t, *t1, *t2;
 	struct source *sp;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	VTAILQ_FOREACH(t, &tl->tokens, list) {
 		if (t->tok != T_INCLUDE)
 			continue;
@@ -457,6 +472,7 @@ vcc_resolve_includes(struct vcc *tl)
 			vcc_ErrWhere(tl, t1);
 			return;
 		}
+		CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 		VTAILQ_INSERT_TAIL(&tl->sources, sp, list);
 		sp->idx = tl->nsources++;
 		tl->t = t2;
@@ -479,6 +495,7 @@ vcc_NewVcc(const struct vcc *tl0)
 	struct vcc *tl;
 	int i;
 
+	CHECK_OBJ_ORNULL(tl0, VCC_MAGIC);
 	ALLOC_OBJ_NOTNULL(tl, VCC_MAGIC);
 	if (tl0 != NULL) {
 		REPLACE(tl->default_vcl, tl0->default_vcl);
@@ -500,24 +517,24 @@ vcc_NewVcc(const struct vcc *tl0)
 
 	/* General C code */
 	tl->fc = VSB_new_auto();
-	assert(tl->fc != NULL);
+	AN(tl->fc);
 
 	/* Forward decls (.h like) */
 	tl->fh = VSB_new_auto();
-	assert(tl->fh != NULL);
+	AN(tl->fh);
 
 	/* Init C code */
 	tl->fi = VSB_new_auto();
-	assert(tl->fi != NULL);
+	AN(tl->fi);
 
 	/* Finish C code */
 	tl->ff = VSB_new_auto();
-	assert(tl->ff != NULL);
+	AN(tl->ff);
 
 	/* body code of methods */
 	for (i = 0; i < VCL_MET_MAX; i++) {
 		tl->fm[i] = VSB_new_auto();
-		assert(tl->fm[i] != NULL);
+		AN(tl->fm[i]);
 	}
 	return (tl);
 }
@@ -532,14 +549,18 @@ vcc_DestroyTokenList(struct vcc *tl, char *ret)
 	struct symbol *sym;
 	int i;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
+
 	while (!VTAILQ_EMPTY(&tl->membits)) {
 		mb = VTAILQ_FIRST(&tl->membits);
+		CHECK_OBJ_NOTNULL(mb, MEMBIT_MAGIC);
 		VTAILQ_REMOVE(&tl->membits, mb, list);
-		free(mb->ptr);
-		free(mb);
+		FREE_NOTNULL(mb->ptr);
+		FREE_OBJ_NOTNULL(mb, MEMBIT_MAGIC);
 	}
 	while (!VTAILQ_EMPTY(&tl->sources)) {
 		sp = VTAILQ_FIRST(&tl->sources);
+		CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 		VTAILQ_REMOVE(&tl->sources, sp, list);
 		vcc_destroy_source(sp);
 	}
@@ -558,7 +579,7 @@ vcc_DestroyTokenList(struct vcc *tl, char *ret)
 	for (i = 0; i < VCL_MET_MAX; i++)
 		VSB_delete(tl->fm[i]);
 
-	free(tl);
+	FREE_OBJ_NOTNULL(tl, VCC_MAGIC);
 	return (ret);
 }
 
@@ -575,7 +596,11 @@ vcc_CompileSource(const struct vcc *tl0, struct vsb *sb, struct source *sp)
 	char *of;
 	int i;
 
+	CHECK_OBJ_NOTNULL(tl0, VCC_MAGIC);
+	CHECK_OBJ_NOTNULL(sb, VSB_MAGIC);
+	CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 	tl = vcc_NewVcc(tl0);
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	tl->sb = sb;
 
 	vcc_Expr_Init(tl);
@@ -604,6 +629,7 @@ vcc_CompileSource(const struct vcc *tl0, struct vsb *sb, struct source *sp)
 	Fh(tl, 0, "#define VGCDIR(n) VCL_conf.director[VGC_backend_##n]\n");
 
 	/* Register and lex the main source */
+	CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 	VTAILQ_INSERT_TAIL(&tl->sources, sp, list);
 	sp->idx = tl->nsources++;
 	vcc_Lexer(tl, sp);
@@ -612,7 +638,7 @@ vcc_CompileSource(const struct vcc *tl0, struct vsb *sb, struct source *sp)
 
 	/* Register and lex the default VCL */
 	sp = vcc_new_source(tl->default_vcl, NULL, "Default");
-	assert(sp != NULL);
+	CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 	VTAILQ_INSERT_TAIL(&tl->sources, sp, list);
 	sp->idx = tl->nsources++;
 	vcc_Lexer(tl, sp);
@@ -685,8 +711,7 @@ vcc_CompileSource(const struct vcc *tl0, struct vsb *sb, struct source *sp)
 	VSB_cat(tl->fh, VSB_data(tl->fc));
 	AZ(VSB_finish(tl->fh));
 
-	of = strdup(VSB_data(tl->fh));
-	AN(of);
+	STRDUP_NOTNULL(of, VSB_data(tl->fh));
 
 	/* done */
 	return (vcc_DestroyTokenList(tl, of));
@@ -703,9 +728,12 @@ VCC_Compile(const struct vcc *tl, struct vsb *sb, const char *b)
 	struct source *sp;
 	char *r;
 
+	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
+	CHECK_OBJ_NOTNULL(sb, VSB_MAGIC);
 	sp = vcc_new_source(b, NULL, "input");
 	if (sp == NULL)
 		return (NULL);
+	CHECK_OBJ_NOTNULL(sp, SOURCE_MAGIC);
 	r = vcc_CompileSource(tl, sb, sp);
 	return (r);
 }

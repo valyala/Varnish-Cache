@@ -35,6 +35,7 @@
 #include <stdlib.h>
 
 #include "cache.h"
+#include "miniobj.h"
 #include "storage/storage.h"
 
 #include "vnum.h"
@@ -50,7 +51,8 @@ struct sma_sc {
 
 struct sma {
 	unsigned		magic;
-#define SMA_MAGIC		0x69ae9bb9
+#define SMA_MAGIC		0x69ae9bb9U
+
 	struct storage		s;
 	size_t			sz;
 	struct sma_sc		*sc;
@@ -89,8 +91,7 @@ sma_alloc(struct stevedore *st, size_t size)
 	 * allocations growing another full page, just to accomodate the sma.
 	 */
 
-	p = malloc(size);
-	XXXAN(p);
+	MALLOC_NOTNULL(p, size);
 	ALLOC_OBJ_NOTNULL(sma, SMA_MAGIC);
 	sma->s.ptr = p;
 	sma->sc = sma_sc;
@@ -102,7 +103,7 @@ sma_alloc(struct stevedore *st, size_t size)
 	sma->s.fd = -1;
 #endif
 	sma->s.stevedore = st;
-	sma->s.magic = STORAGE_MAGIC;
+	SET_MAGIC(&sma->s, STORAGE_MAGIC);
 	return (&sma->s);
 }
 
@@ -124,8 +125,9 @@ sma_free(struct storage *s)
 	if (sma_sc->sma_max != SIZE_MAX)
 		sma_sc->stats->g_space += sma->sz;
 	Lck_Unlock(&sma_sc->sma_mtx);
-	free(sma->s.ptr);
-	free(sma);
+	CHECK_OBJ_NOTNULL(&sma->s, STORAGE_MAGIC);
+	FREE_NOTNULL(sma->s.ptr);
+	FREE_OBJ_NOTNULL(sma, SMA_MAGIC);
 }
 
 static void
@@ -145,18 +147,19 @@ sma_trim(struct storage *s, size_t size)
 	delta = sma->sz - size;
 	if (delta < 256)
 		return;
-	if ((p = realloc(sma->s.ptr, size)) != NULL) {
-		Lck_Lock(&sma_sc->sma_mtx);
-		sma_sc->sma_alloc -= delta;
-		sma_sc->stats->g_bytes -= delta;
-		sma_sc->stats->c_freed += delta;
-		if (sma_sc->sma_max != SIZE_MAX)
-			sma_sc->stats->g_space += delta;
-		sma->sz = size;
-		Lck_Unlock(&sma_sc->sma_mtx);
-		sma->s.ptr = p;
-		s->space = size;
-	}
+	CHECK_OBJ_NOTNULL(&sma->s, STORAGE_MAGIC);
+	p = sma->s.ptr;
+	REALLOC_NOTNULL(p, size);
+	Lck_Lock(&sma_sc->sma_mtx);
+	sma_sc->sma_alloc -= delta;
+	sma_sc->stats->g_bytes -= delta;
+	sma_sc->stats->c_freed += delta;
+	if (sma_sc->sma_max != SIZE_MAX)
+		sma_sc->stats->g_space += delta;
+	sma->sz = size;
+	Lck_Unlock(&sma_sc->sma_mtx);
+	sma->s.ptr = p;
+	s->space = size;
 }
 
 static double

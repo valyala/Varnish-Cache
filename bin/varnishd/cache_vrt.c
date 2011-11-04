@@ -41,6 +41,7 @@
 
 #include "cache_backend.h"
 #include "cache_hash.h"
+#include "vas.h"
 #include "vav.h"
 #include "vcl.h"
 #include "vrt.h"
@@ -431,6 +432,7 @@ VRT_ban(struct sess *sp, char *cmds, ...)
 
 	(void)sp;
 	b = BAN_New();
+	AN(b);
 	va_start(ap, cmds);
 	a1 = cmds;
 	good = 0;
@@ -467,12 +469,14 @@ VRT_ban_string(struct sess *sp, const char *str)
 
 	(void)sp;
 	av = VAV_Parse(str, NULL, ARGV_NOESC);
+	AN(av);
 	if (av[0] != NULL) {
 		/* XXX: report error how ? */
 		VAV_Free(av);
 		return;
 	}
 	b = BAN_New();
+	AN(b);
 	good = 0;
 	for (i = 1; ;) {
 		a1 = av[i++];

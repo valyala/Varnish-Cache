@@ -42,7 +42,6 @@
 
 #include "miniobj.h"
 #include "vas.h"
-
 #include "vav.h"
 #include "vcli.h"
 #include "vcli_common.h"
@@ -333,7 +332,7 @@ cls_vlu(void *priv, const char *p)
 		if (av[0] != NULL) {
 			i = cls_vlu2(priv, av);
 			VAV_Free(av);
-			free(cli->cmd);
+			FREE_NOTNULL(cli->cmd);
 			cli->cmd = NULL;
 			return (i);
 		}
@@ -342,7 +341,7 @@ cls_vlu(void *priv, const char *p)
 		if (i < 3 || cli->auth == 0 || strcmp(av[i - 2], "<<")) {
 			i = cls_vlu2(priv, av);
 			VAV_Free(av);
-			free(cli->cmd);
+			FREE_NOTNULL(cli->cmd);
 			cli->cmd = NULL;
 			return (i);
 		}
@@ -361,16 +360,16 @@ cls_vlu(void *priv, const char *p)
 			return (0);
 		}
 		AZ(VSB_finish(cfd->last_arg));
-		free(cfd->argv[cfd->last_idx]);
+		FREE_NOTNULL(cfd->argv[cfd->last_idx]);
 		cfd->argv[cfd->last_idx] = NULL;
-		free(cfd->argv[cfd->last_idx + 1]);
+		FREE_NOTNULL(cfd->argv[cfd->last_idx + 1]);
 		cfd->argv[cfd->last_idx + 1] = NULL;
 		cfd->argv[cfd->last_idx] = VSB_data(cfd->last_arg);
 		i = cls_vlu2(priv, cfd->argv);
 		cfd->argv[cfd->last_idx] = NULL;
 		VAV_Free(cfd->argv);
 		cfd->argv = NULL;
-		free(cli->cmd);
+		FREE_NOTNULL(cli->cmd);
 		cli->cmd = NULL;
 		VSB_delete(cfd->last_arg);
 		cfd->last_arg = NULL;
@@ -409,6 +408,7 @@ VCLS_AddFd(struct VCLS *cs, int fdi, int fdo, cls_cb_f *closefunc, void *priv)
 	SET_MAGIC(cfd->cli, CLI_MAGIC);
 	cfd->cli->vlu = VLU_New(cfd, cls_vlu, cs->maxlen);
 	cfd->cli->sb = VSB_new_auto();
+	AN(cfd->cli->sb);
 	cfd->closefunc = closefunc;
 	cfd->priv = priv;
 	AN(cfd->cli->sb);
@@ -435,8 +435,7 @@ cls_close_fd(struct VCLS *cs, struct VCLS_fd *cfd)
 	} else {
 		cfd->closefunc(cfd->priv);
 	}
-	if (cfd->cli->ident != NULL)
-		free(cfd->cli->ident);
+	FREE_ORNULL(cfd->cli->ident);
 	FREE_OBJ_NOTNULL(cfd, VCLS_FD_MAGIC);
 }
 

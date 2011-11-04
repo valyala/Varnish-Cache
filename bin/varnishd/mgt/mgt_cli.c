@@ -45,6 +45,7 @@
 #include "mgt/mgt.h"
 
 #include "heritage.h"
+#include "miniobj.h"
 #include "vcli.h"
 #include "vcli_common.h"
 #include "vcli_priv.h"
@@ -155,6 +156,7 @@ mcf_askchild(struct cli *cli, const char * const *av, void *priv)
 		return;
 	}
 	vsb = VSB_new_auto();
+	AN(vsb);
 	for (i = 1; av[i] != NULL; i++) {
 		VSB_quote(vsb, av[i], strlen(av[i]), 0);
 		VSB_putc(vsb, ' ');
@@ -173,7 +175,7 @@ mcf_askchild(struct cli *cli, const char * const *av, void *priv)
 	(void)VCLI_ReadResult(cli_i, &u, &q, params->cli_timeout);
 	VCLI_SetResult(cli, u);
 	VCLI_Out(cli, "%s", q);
-	free(q);
+	FREE_NOTNULL(q);
 }
 
 static struct cli_proto cli_askchild[] = {
@@ -214,7 +216,7 @@ mgt_cli_askchild(unsigned *status, char **resp, const char *fmt, ...) {
 		if (status != NULL)
 			*status = CLIS_COMMS;
 		if (resp != NULL)
-			*resp = strdup("CLI communication error");
+			STRDUP_NOTNULL(*resp, "CLI communication error");
 		MGT_Child_Cli_Fail();
 		return (CLIS_COMMS);
 	}
@@ -385,7 +387,7 @@ mgt_cli_setup(int fdi, int fdo, int verbose, const char *ident, mgt_cli_close_f 
 
 	cli = VCLS_AddFd(cls, fdi, fdo, closefunc, priv);
 
-	cli->ident = strdup(ident);
+	STRDUP_NOTNULL(cli->ident, ident);
 
 	/* Deal with TELNET options */
 	if (fdi != 0)
@@ -409,7 +411,7 @@ mgt_cli_setup(int fdi, int fdo, int verbose, const char *ident, mgt_cli_close_f 
 	ev->fd_flags = EV_RD;
 	ev->callback = mgt_cli_callback2;
 	ev->priv = cli;
-	AZ(vev_add(mgt_evb, ev));
+	vev_add(mgt_evb, ev);
 }
 
 /*--------------------------------------------------------------------*/
@@ -536,7 +538,7 @@ mgt_cli_telnet(const char *T_arg)
 	}
 	good = 0;
 	vsb = VSB_new_auto();
-	XXXAN(vsb);
+	AN(vsb);
 	for (i = 0; i < n; ++i) {
 		sock = VSS_listen(ta[i], 10);
 		if (sock < 0)
@@ -546,15 +548,15 @@ mgt_cli_telnet(const char *T_arg)
 		good++;
 		tn = telnet_new(sock);
 		tn->ev = vev_new();
-		XXXAN(tn->ev);
+		AN(tn->ev);
 		tn->ev->fd = sock;
 		tn->ev->fd_flags = POLLIN;
 		tn->ev->callback = telnet_accept;
-		AZ(vev_add(mgt_evb, tn->ev));
-		free(ta[i]);
+		vev_add(mgt_evb, tn->ev);
+		FREE_NOTNULL(ta[i]);
 		ta[i] = NULL;
 	}
-	free(ta);
+	FREE_NOTNULL(ta);
 	if (good == 0) {
 		REPORT(LOG_ERR, "-T %s could not be listened on.", T_arg);
 		exit(2);
@@ -637,7 +639,7 @@ Marg_poker(const struct vev *e, int what)
 	M_conn->fd_flags = EV_WR;
 	M_conn->fd = s;
 	M_fd = s;
-	AZ(vev_add(mgt_evb, M_conn));
+	vev_add(mgt_evb, M_conn);
 	return (0);
 }
 
@@ -658,5 +660,5 @@ mgt_cli_master(const char *M_arg)
 	M_poker->timeout = M_poll;
 	M_poker->callback = Marg_poker;
 	M_poker->name = "-M poker";
-	AZ(vev_add(mgt_evb, M_poker));
+	vev_add(mgt_evb, M_poker);
 }

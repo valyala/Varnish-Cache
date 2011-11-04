@@ -45,6 +45,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
+#include "vas.h"
 #include "vcli_priv.h"
 #include "vrt.h"
 #include "vtcp.h"
@@ -480,7 +481,7 @@ VBP_Insert(struct backend *b, const struct vrt_backend_probe *p, const char *hos
 		VTAILQ_INIT(&vt->vcls);
 		vt->backend = b;
 		vt->vsb = VSB_new_auto();
-		XXXAN(vt->vsb);
+		AN(vt->vsb);
 		b->probe = vt;
 		startthread = 1;
 		VTAILQ_INSERT_TAIL(&vbp_list, vt, list);

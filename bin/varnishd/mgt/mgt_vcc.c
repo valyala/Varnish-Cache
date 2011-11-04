@@ -41,6 +41,7 @@
 #include "mgt/mgt.h"
 
 #include "libvcl.h"
+#include "miniobj.h"
 #include "vcl.h"
 #include "vcli.h"
 #include "vcli_priv.h"
@@ -50,6 +51,9 @@
 #include "mgt_cli.h"
 
 struct vclprog {
+	unsigned magic;
+#define VCLPROG_MAGIC	0x6982d56eU
+
 	VTAILQ_ENTRY(vclprog)	list;
 	char			*name;
 	char			*fname;
@@ -82,7 +86,7 @@ mgt_make_cc_cmd(const char *sf, const char *of)
 	char *p;
 
 	sb = VSB_new_auto();
-	XXXAN(sb);
+	AN(sb);
 	for (p = mgt_cc_cmd, pct = 0; *p; ++p) {
 		if (pct) {
 			switch (*p) {
@@ -134,7 +138,7 @@ run_vcc(void *priv)
 
 	CAST_OBJ_NOTNULL(vp, priv, VCC_PRIV_MAGIC);
 	sb = VSB_new_auto();
-	XXXAN(sb);
+	AN(sb);
 	VCC_VCL_dir(vcc, mgt_vcl_dir);
 	VCC_VMOD_dir(vcc, mgt_vmod_dir);
 	VCC_Err_Unref(vcc, mgt_vcc_err_unref);
@@ -158,7 +162,7 @@ run_vcc(void *priv)
 		exit (1);
 	}
 	AZ(close(fd));
-	free(csrc);
+	FREE_NOTNULL(csrc);
 	exit (0);
 }
 
@@ -238,7 +242,7 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 
 	/* Run the VCC compiler in a sub-process */
 	memset(&vp, 0, sizeof vp);
-	vp.magic = VCC_PRIV_MAGIC;
+	SET_MAGIC(&vp, VCC_PRIV_MAGIC);
 	vp.sf = sf;
 	vp.vcl = vcl;
 	if (VSUB_run(sb, run_vcc, &vp, "VCC-compiler", -1)) {
@@ -250,7 +254,7 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 		csrc = VFIL_readfile(NULL, sf, NULL);
 		XXXAN(csrc);
 		(void)fputs(csrc, stdout);
-		free(csrc);
+		FREE_NOTNULL(csrc);
 	}
 
 	/* Name the output shared library by "s/[.]c$/[.]so/" */
@@ -277,8 +281,7 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 		return (NULL);
 	}
 
-	retval = strdup(of);
-	XXXAN(retval);
+	STRDUP_NOTNULL(retval, of);
 	return (retval);
 }
 
@@ -290,7 +293,7 @@ mgt_VccCompile(struct vsb **sb, const char *b, int C_flag)
 	char *vf;
 
 	*sb = VSB_new_auto();
-	XXXAN(*sb);
+	AN(*sb);
 	vf = mgt_run_cc(b, *sb, C_flag);
 	AZ(VSB_finish(*sb));
 	return (vf);
@@ -303,10 +306,8 @@ mgt_vcc_add(const char *name, char *file)
 {
 	struct vclprog *vp;
 
-	vp = calloc(sizeof *vp, 1);
-	XXXAN(vp);
-	vp->name = strdup(name);
-	XXXAN(vp->name);
+	ALLOC_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
+	STRDUP_NOTNULL(vp->name, name);
 	vp->fname = file;
 	VTAILQ_INSERT_TAIL(&vclhead, vp, list);
 	return (vp);
@@ -315,12 +316,13 @@ mgt_vcc_add(const char *name, char *file)
 static void
 mgt_vcc_del(struct vclprog *vp)
 {
+	CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 	VTAILQ_REMOVE(&vclhead, vp, list);
 	printf("unlink %s\n", vp->fname);
 	XXXAZ(unlink(vp->fname));
-	free(vp->fname);
-	free(vp->name);
-	free(vp);
+	FREE_NOTNULL(vp->fname);
+	FREE_NOTNULL(vp->name);
+	FREE_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 }
 
 static struct vclprog *
@@ -328,9 +330,11 @@ mgt_vcc_byname(const char *name)
 {
 	struct vclprog *vp;
 
-	VTAILQ_FOREACH(vp, &vclhead, list)
+	VTAILQ_FOREACH(vp, &vclhead, list) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		if (!strcmp(name, vp->name))
 			return (vp);
+	}
 	return (NULL);
 }
 
@@ -342,6 +346,7 @@ mgt_vcc_delbyname(const char *name)
 
 	vp = mgt_vcc_byname(name);
 	if (vp != NULL) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		mgt_vcc_del(vp);
 		return (0);
 	}
@@ -375,13 +380,12 @@ mgt_vcc_default(const char *b_arg, const char *f_arg, char *vcl, int C_flag)
 		    "backend default {\n"
 		    "    .host = \"%s\";\n"
 		    "}\n", b_arg);
-		vcl = strdup(buf);
-		AN(vcl);
+		STRDUP_NOTNULL(vcl, buf);
 	}
 	strcpy(buf, "boot");
 
 	vf = mgt_VccCompile(&sb, vcl, C_flag);
-	free(vcl);
+	FREE_NOTNULL(vcl);
 	if (VSB_len(sb) > 0)
 		fprintf(stderr, "%s", VSB_data(sb));
 	VSB_delete(sb);
@@ -395,6 +399,7 @@ mgt_vcc_default(const char *b_arg, const char *f_arg, char *vcl, int C_flag)
 		return (1);
 	}
 	vp = mgt_vcc_add(buf, vf);
+	CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 	vp->active = 1;
 	return (0);
 }
@@ -416,20 +421,21 @@ mgt_push_vcls_and_start(unsigned *status, char **p)
 	struct vclprog *vp;
 
 	VTAILQ_FOREACH(vp, &vclhead, list) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		if (mgt_cli_askchild(status, p,
 		    "vcl.load \"%s\" %s\n", vp->name, vp->fname))
 			return (1);
-		free(*p);
+		FREE_ORNULL(*p);
 		if (!vp->active)
 			continue;
 		if (mgt_cli_askchild(status, p,
 		    "vcl.use \"%s\"\n", vp->name))
 			return (1);
-		free(*p);
+		FREE_ORNULL(*p);
 	}
 	if (mgt_cli_askchild(status, p, "start\n"))
 		return (1);
-	free(*p);
+	FREE_ORNULL(*p);
 	*p = NULL;
 	return (0);
 }
@@ -448,6 +454,7 @@ mgt_vcc_atexit(void)
 		vp = VTAILQ_FIRST(&vclhead);
 		if (vp == NULL)
 			break;
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		(void)unlink(vp->fname);
 		VTAILQ_REMOVE(&vclhead, vp, list);
 	}
@@ -477,6 +484,7 @@ mcf_config_inline(struct cli *cli, const char * const *av, void *priv)
 
 	vp = mgt_vcc_byname(av[2]);
 	if (vp != NULL) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		VCLI_Out(cli, "Already a VCL program named %s", av[2]);
 		VCLI_SetResult(cli, CLIS_PARAM);
 		return;
@@ -499,7 +507,7 @@ mcf_config_inline(struct cli *cli, const char * const *av, void *priv)
 	} else {
 		(void)mgt_vcc_add(av[2], vf);
 	}
-	free(p);
+	FREE_ORNULL(p);
 }
 
 void
@@ -514,6 +522,7 @@ mcf_config_load(struct cli *cli, const char * const *av, void *priv)
 	(void)priv;
 	vp = mgt_vcc_byname(av[2]);
 	if (vp != NULL) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		VCLI_Out(cli, "Already a VCL program named %s", av[2]);
 		VCLI_SetResult(cli, CLIS_PARAM);
 		return;
@@ -527,7 +536,7 @@ mcf_config_load(struct cli *cli, const char * const *av, void *priv)
 	}
 
 	vf = mgt_VccCompile(&sb, vcl, 0);
-	free(vcl);
+	FREE_NOTNULL(vcl);
 
 	if (VSB_len(sb) > 0)
 		VCLI_Out(cli, "%s", VSB_data(sb));
@@ -545,7 +554,7 @@ mcf_config_load(struct cli *cli, const char * const *av, void *priv)
 	} else {
 		(void)mgt_vcc_add(av[2], vf);
 	}
-	free(p);
+	FREE_ORNULL(p);
 }
 
 static struct vclprog *
@@ -554,8 +563,10 @@ mcf_find_vcl(struct cli *cli, const char *name)
 	struct vclprog *vp;
 
 	vp = mgt_vcc_byname(name);
-	if (vp != NULL)
+	if (vp != NULL) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		return (vp);
+	}
 	VCLI_SetResult(cli, CLIS_PARAM);
 	VCLI_Out(cli, "No configuration named %s known.", name);
 	return (NULL);
@@ -572,6 +583,7 @@ mcf_config_use(struct cli *cli, const char * const *av, void *priv)
 	vp = mcf_find_vcl(cli, av[2]);
 	if (vp == NULL)
 		return;
+	CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 	if (vp->active != 0)
 		return;
 	if (child_pid >= 0 &&
@@ -581,13 +593,14 @@ mcf_config_use(struct cli *cli, const char * const *av, void *priv)
 	} else {
 		vp->active = 2;
 		VTAILQ_FOREACH(vp, &vclhead, list) {
+			CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 			if (vp->active == 1)
 				vp->active = 0;
 			else if (vp->active == 2)
 				vp->active = 1;
 		}
 	}
-	free(p);
+	FREE_ORNULL(p);
 }
 
 void
@@ -600,9 +613,11 @@ mcf_config_discard(struct cli *cli, const char * const *av, void *priv)
 	(void)priv;
 	vp = mcf_find_vcl(cli, av[2]);
 	if (vp != NULL && vp->active) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		VCLI_SetResult(cli, CLIS_PARAM);
 		VCLI_Out(cli, "Cannot discard active VCL program\n");
 	} else if (vp != NULL) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		if (child_pid >= 0 &&
 		    mgt_cli_askchild(&status, &p,
 		    "vcl.discard %s\n", av[2])) {
@@ -612,7 +627,7 @@ mcf_config_discard(struct cli *cli, const char * const *av, void *priv)
 			AZ(mgt_vcc_delbyname(av[2]));
 		}
 	}
-	free(p);
+	FREE_ORNULL(p);
 }
 
 void
@@ -630,9 +645,10 @@ mcf_config_list(struct cli *cli, const char * const *av, void *priv)
 			VCLI_SetResult(cli, status);
 			VCLI_Out(cli, "%s", p);
 		}
-		free(p);
+		FREE_ORNULL(p);
 	} else {
 		VTAILQ_FOREACH(vp, &vclhead, list) {
+			CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 			if (vp->active) {
 				flg = "active";
 			} else
@@ -657,6 +673,7 @@ mcf_config_show(struct cli *cli, const char * const *av, void *priv)
 
 	(void)priv;
 	if ((vp = mcf_find_vcl(cli, av[2])) != NULL) {
+		CHECK_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
 		if ((dlh = dlopen(vp->fname, RTLD_NOW | RTLD_LOCAL)) == NULL) {
 			VCLI_Out(cli, "failed to load %s: %s\n",
 			    vp->name, dlerror());

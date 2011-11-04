@@ -71,6 +71,7 @@
 #include <unistd.h>
 
 #include "base64.h"
+#include "miniobj.h"
 #include "vapi/vsl.h"
 #include "vapi/vsm.h"
 #include "vas.h"
@@ -85,12 +86,18 @@
 static volatile sig_atomic_t reopen;
 
 struct hdr {
+	unsigned magic;
+#define HDR_MAGIC	0xbafe731aU
+
 	char *key;
 	char *value;
 	VTAILQ_ENTRY(hdr) list;
 };
 
 static struct logline {
+	unsigned magic;
+#define LOGLINE_MAGIC	0x5fbc8044U
+
 	char *df_H;			/* %H, Protocol version */
 	char *df_U;			/* %U, URL path */
 	char *df_q;			/* %q, query string */
@@ -157,8 +164,7 @@ trimfield(const char *str, const char *end)
 			break;
 
 	/* copy and return */
-	p = malloc(len + 1);
-	assert(p != NULL);
+	MALLOC_NOTNULL(p, len + 1);
 	memcpy(p, str, len);
 	p[len] = '\0';
 	return (p);
@@ -187,8 +193,7 @@ trimline(const char *str, const char *end)
 		--len;
 
 	/* copy and return */
-	p = malloc(len + 1);
-	assert(p != NULL);
+	MALLOC_NOTNULL(p, len + 1);
 	memcpy(p, str, len);
 	p[len] = '\0';
 	return (p);
@@ -198,7 +203,9 @@ static char *
 req_header(struct logline *l, const char *name)
 {
 	struct hdr *h;
+	CHECK_OBJ_NOTNULL(l, LOGLINE_MAGIC);
 	VTAILQ_FOREACH(h, &l->req_headers, list) {
+		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		if (strcasecmp(h->key, name) == 0) {
 			return h->value;
 			break;
@@ -211,7 +218,9 @@ static char *
 resp_header(struct logline *l, const char *name)
 {
 	struct hdr *h;
+	CHECK_OBJ_NOTNULL(l, LOGLINE_MAGIC);
 	VTAILQ_FOREACH(h, &l->resp_headers, list) {
+		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		if (strcasecmp(h->key, name) == 0) {
 			return h->value;
 			break;
@@ -224,7 +233,9 @@ static char *
 vcl_log(struct logline *l, const char *name)
 {
 	struct hdr *h;
+	CHECK_OBJ_NOTNULL(l, LOGLINE_MAGIC);
 	VTAILQ_FOREACH(h, &l->vcl_log, list) {
+		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		if (strcasecmp(h->key, name) == 0) {
 			return h->value;
 			break;
@@ -237,36 +248,40 @@ static void
 clean_logline(struct logline *lp)
 {
 	struct hdr *h, *h2;
-#define freez(x) do { if (x) free(x); x = NULL; } while (0);
-	freez(lp->df_H);
-	freez(lp->df_U);
-	freez(lp->df_q);
-	freez(lp->df_b);
-	freez(lp->df_h);
-	freez(lp->df_m);
-	freez(lp->df_s);
-	freez(lp->df_u);
-	freez(lp->df_ttfb);
+
+	CHECK_OBJ_NOTNULL(lp, LOGLINE_MAGIC);
+	FREE_ORNULL(lp->df_H);
+	FREE_ORNULL(lp->df_U);
+	FREE_ORNULL(lp->df_q);
+	FREE_ORNULL(lp->df_b);
+	FREE_ORNULL(lp->df_h);
+	FREE_ORNULL(lp->df_m);
+	FREE_ORNULL(lp->df_s);
+	FREE_ORNULL(lp->df_u);
+	FREE_ORNULL(lp->df_ttfb);
 	VTAILQ_FOREACH_SAFE(h, &lp->req_headers, list, h2) {
+		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		VTAILQ_REMOVE(&lp->req_headers, h, list);
-		freez(h->key);
-		freez(h->value);
-		freez(h);
+		FREE_ORNULL(h->key);
+		FREE_ORNULL(h->value);
+		FREE_OBJ_NOTNULL(h, HDR_MAGIC);
 	}
 	VTAILQ_FOREACH_SAFE(h, &lp->resp_headers, list, h2) {
+		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		VTAILQ_REMOVE(&lp->resp_headers, h, list);
-		freez(h->key);
-		freez(h->value);
-		freez(h);
+		FREE_ORNULL(h->key);
+		FREE_ORNULL(h->value);
+		FREE_OBJ_NOTNULL(h, HDR_MAGIC);
 	}
 	VTAILQ_FOREACH_SAFE(h, &lp->vcl_log, list, h2) {
+		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		VTAILQ_REMOVE(&lp->vcl_log, h, list);
-		freez(h->key);
-		freez(h->value);
-		freez(h);
+		FREE_ORNULL(h->key);
+		FREE_ORNULL(h->value);
+		FREE_OBJ_NOTNULL(h, HDR_MAGIC);
 	}
-#undef freez
 	memset(lp, 0, sizeof *lp);
+	SET_MAGIC(lp, LOGLINE_MAGIC);
 }
 
 static int
@@ -275,6 +290,7 @@ collect_backend(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 {
 	const char *end, *next, *split;
 
+	CHECK_OBJ_NOTNULL(lp, LOGLINE_MAGIC);
 	assert(spec & VSL_S_BACKEND);
 	end = ptr + len;
 
@@ -364,8 +380,7 @@ collect_backend(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 		} else {
 			struct hdr *h;
 			size_t l;
-			h = malloc(sizeof(struct hdr));
-			AN(h);
+			ALLOC_OBJ_NOTNULL(h, HDR_MAGIC);
 			AN(split);
 			l = strlen(split);
 			h->key = trimline(ptr, split-1);
@@ -397,6 +412,7 @@ collect_client(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 	long l;
 	time_t t;
 
+	CHECK_OBJ_NOTNULL(lp, LOGLINE_MAGIC);
 	assert(spec & VSL_S_CLIENT);
 	end = ptr + len;
 
@@ -469,12 +485,11 @@ collect_client(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 		if (tag == SLT_RxHeader &&
 		    isprefix(ptr, "authorization:", end, &next) &&
 		    isprefix(next, "basic", end, &next)) {
-			free(lp->df_u);
+			FREE_ORNULL(lp->df_u);
 			lp->df_u = trimline(next, end);
 		} else {
 			struct hdr *h;
-			h = malloc(sizeof(struct hdr));
-			AN(h);
+			ALLOC_OBJ_NOTNULL(h, HDR_MAGIC);
 			AN(split);
 			h->key = trimline(ptr, split);
 			h->value = trimline(split+1, end);
@@ -494,8 +509,7 @@ collect_client(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 			break;
 
 		struct hdr *h;
-		h = malloc(sizeof(struct hdr));
-		AN(h);
+		ALLOC_OBJ_NOTNULL(h, HDR_MAGIC);
 		AN(split);
 
 		h->key = trimline(ptr, split);
@@ -553,7 +567,7 @@ collect_client(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 			clean_logline(lp);
 			break;
 		}
-		lp->df_ttfb = strdup(ttfb);
+		STRDUP_NOTNULL(lp->df_ttfb, ttfb);
 		t = l;
 		localtime_r(&t, &lp->df_t);
 		/* got it all */
@@ -584,17 +598,15 @@ h_ncsa(void *priv, enum VSL_tag_e tag, unsigned fd,
 
 		while (fd >= newnll)
 			newnll += newnll + 1;
-		newll = realloc(newll, newnll * sizeof *newll);
-		assert(newll != NULL);
+		REALLOC_NOTNULL(newll, newnll * sizeof *newll);
 		memset(newll + nll, 0, (newnll - nll) * sizeof *newll);
 		ll = newll;
 		nll = newnll;
 	}
-	if (ll[fd] == NULL) {
-		ll[fd] = calloc(sizeof *ll[fd], 1);
-		assert(ll[fd] != NULL);
-	}
+	if (ll[fd] == NULL)
+		ALLOC_OBJ_NOTNULL(ll[fd], LOGLINE_MAGIC);
 	lp = ll[fd];
+	CHECK_OBJ_NOTNULL(lp, LOGLINE_MAGIC);
 
 	if (spec & VSL_S_BACKEND) {
 		collect_backend(lp, tag, spec, ptr, len);
@@ -626,6 +638,7 @@ h_ncsa(void *priv, enum VSL_tag_e tag, unsigned fd,
 
 	fo = priv;
 	os = VSB_new_auto();
+	AN(os);
 
 	for (p = format; *p != '\0'; p++) {
 
@@ -714,14 +727,13 @@ h_ncsa(void *priv, enum VSL_tag_e tag, unsigned fd,
 
 				VB64_init();
 				rulen = ((strlen(lp->df_u) + 3) * 4) / 3;
-				rubuf = malloc(rulen);
-				assert(rubuf != NULL);
+				MALLOC_NOTNULL(rubuf, rulen);
 				VB64_decode(rubuf, rulen, lp->df_u);
 				q = strchr(rubuf, ':');
 				if (q != NULL)
 					*q = '\0';
 				VSB_cat(os, rubuf);
-				free(rubuf);
+				FREE_NOTNULL(rubuf);
 			} else {
 				VSB_putc(os, '-');
 			}

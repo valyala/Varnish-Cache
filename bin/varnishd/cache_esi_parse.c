@@ -36,6 +36,7 @@
 #include "cache.h"
 
 #include "cache_esi.h"
+#include "vas.h"
 #include "vct.h"
 #include "vend.h"
 #include "vgz.h"
@@ -847,6 +848,7 @@ VEP_Parse(const struct worker *w, const char *p, size_t l)
 			}
 		} else if (vep->state == VEP_ATTRGETVAL) {
 			vep->attr_vsb = VSB_new_auto();
+			AN(vep->attr_vsb);
 			vep->state = VEP_ATTRDELIM;
 		} else if (vep->state == VEP_ATTRDELIM) {
 			AZ(vep->attr_delim);

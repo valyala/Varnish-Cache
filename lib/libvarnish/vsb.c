@@ -36,16 +36,14 @@ __FBSDID("$FreeBSD: head/sys/kern/subr_vsb.c 222004 2011-05-17 06:36:32Z phk $")
 #include <stdlib.h>
 #include <string.h>
 
+#include "miniobj.h"
 #include "vas.h"
 #include "vsb.h"
 
 #define	KASSERT(e, m)		assert(e)
-#define	SBMALLOC(size)		malloc(size)
-#define	SBFREE(buf)		free(buf)
 
 #define	roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
 
-#define VSB_MAGIC		0x4a82dd8a
 /*
  * Predicates
  */
@@ -82,10 +80,7 @@ _assert_VSB_integrity(const char *fun, struct vsb *s)
 
 	(void)fun;
 	(void)s;
-	KASSERT(s != NULL,
-	    ("%s called with a NULL vsb pointer", fun));
-	KASSERT(s->s_magic == VSB_MAGIC,
-	    ("%s called wih an unintialized vsb pointer", fun));
+	CHECK_OBJ_NOTNULL(s, VSB_MAGIC);
 	KASSERT(s->s_buf != NULL,
 	    ("%s called with uninitialized or corrupt vsb", fun));
 	KASSERT(s->s_len < s->s_size,
@@ -141,15 +136,15 @@ VSB_extend(struct vsb *s, int addlen)
 	char *newbuf;
 	int newsize;
 
+	assert_VSB_integrity(s);
+
 	if (!VSB_CANEXTEND(s))
 		return (-1);
 	newsize = VSB_extendsize(s->s_size + addlen);
-	newbuf = SBMALLOC(newsize);
-	if (newbuf == NULL)
-		return (-1);
+	MALLOC_NOTNULL(newbuf, newsize);
 	memcpy(newbuf, s->s_buf, s->s_size);
 	if (VSB_ISDYNAMIC(s))
-		SBFREE(s->s_buf);
+		FREE_NOTNULL(s->s_buf);
 	else
 		VSB_SETFLAG(s, VSB_DYNAMIC);
 	s->s_buf = newbuf;
@@ -162,12 +157,12 @@ VSB_extend(struct vsb *s, int addlen)
  * If buf is non-NULL, it points to a static or already-allocated string
  * big enough to hold at least length characters.
  */
-static struct vsb *
+static void
 VSB_newbuf(struct vsb *s, char *buf, int length, int flags)
 {
 
 	memset(s, 0, sizeof(*s));
-	s->s_magic = VSB_MAGIC;
+	SET_MAGIC(s, VSB_MAGIC);
 	s->s_flags = flags;
 	s->s_size = length;
 	s->s_buf = buf;
@@ -178,16 +173,13 @@ VSB_newbuf(struct vsb *s, char *buf, int length, int flags)
 	}
 
 	if (s->s_buf != NULL)
-		return (s);
+		return;
 
 	if ((flags & VSB_AUTOEXTEND) != 0)
 		s->s_size = VSB_extendsize(s->s_size);
 
-	s->s_buf = SBMALLOC(s->s_size);
-	if (s->s_buf == NULL)
-		return (NULL);
+	MALLOC_NOTNULL(s->s_buf, s->s_size);
 	VSB_SETFLAG(s, VSB_DYNAMIC);
-	return (s);
 }
 
 /*
@@ -205,17 +197,12 @@ VSB_new(struct vsb *s, char *buf, int length, int flags)
 	    ("%s called with invalid flags", __func__));
 
 	flags &= VSB_USRFLAGMSK;
-	if (s != NULL)
-		return (VSB_newbuf(s, buf, length, flags));
-
-	s = SBMALLOC(sizeof(*s));
-	if (s == NULL)
-		return (NULL);
-	if (VSB_newbuf(s, buf, length, flags) == NULL) {
-		SBFREE(s);
-		return (NULL);
+	if (s == NULL) {
+		ALLOC_OBJ_NOTNULL(s, VSB_MAGIC);
+		VSB_SETFLAG(s, VSB_DYNSTRUCT);
 	}
-	VSB_SETFLAG(s, VSB_DYNSTRUCT);
+	VSB_newbuf(s, buf, length, flags);
+	assert_VSB_integrity(s);
 	return (s);
 }
 
@@ -225,7 +212,6 @@ VSB_new(struct vsb *s, char *buf, int length, int flags)
 void
 VSB_clear(struct vsb *s)
 {
-
 	assert_VSB_integrity(s);
 	/* don't care if it's finished or not */
 
@@ -265,7 +251,6 @@ VSB_setpos(struct vsb *s, ssize_t pos)
 static void
 VSB_put_byte(struct vsb *s, int c)
 {
-
 	assert_VSB_integrity(s);
 	assert_VSB_state(s, 0);
 
@@ -520,17 +505,16 @@ VSB_len(struct vsb *s)
 void
 VSB_delete(struct vsb *s)
 {
-	int isdyn;
 
 	assert_VSB_integrity(s);
 	/* don't care if it's finished or not */
 
 	if (VSB_ISDYNAMIC(s))
-		SBFREE(s->s_buf);
-	isdyn = VSB_ISDYNSTRUCT(s);
-	memset(s, 0, sizeof(*s));
-	if (isdyn)
-		SBFREE(s);
+		FREE_NOTNULL(s->s_buf);
+	if (VSB_ISDYNSTRUCT(s))
+		FREE_OBJ_NOTNULL(s, VSB_MAGIC);
+	else
+		memset(s, 0, sizeof(*s));
 }
 
 /*

@@ -29,6 +29,8 @@
  * Self-sizeing bitmap operations
  */
 
+#include "miniobj.h"
+
 /**********************************************************************
  * Generic bitmap functions, may be generalized at some point.
  */
@@ -40,6 +42,9 @@
 #define VBITMAP_BIT(n)	(1U << (n % VBITMAP_WORD))
 
 struct vbitmap {
+	unsigned	magic;
+#define VBITMAP_MAGIC	0x5cbe52a4U
+
 	VBITMAP_TYPE	*bits;
 	unsigned	nbits;
 };
@@ -49,10 +54,11 @@ vbit_expand(struct vbitmap *vb, unsigned bit)
 {
 	unsigned char *p;
 
+	CHECK_OBJ_NOTNULL(vb, VBITMAP_MAGIC);
 	bit += VBITMAP_LUMP - 1;
 	bit -= (bit % VBITMAP_LUMP);
-	p = realloc(vb->bits, bit / 8);
-	assert(p != NULL);
+	p = (unsigned char *)vb->bits;
+	REALLOC_NOTNULL(p, bit / 8);
 	memset(p + vb->nbits / 8, 0, (bit - vb->nbits) / 8);
 	vb->bits = (void*)p;
 	vb->nbits = bit;
@@ -63,8 +69,7 @@ vbit_init(unsigned initial)
 {
 	struct vbitmap *vb;
 
-	vb = calloc(sizeof *vb, 1);
-	assert(vb != NULL);
+	ALLOC_OBJ_NOTNULL(vb, VBITMAP_MAGIC);
 	if (initial == 0)
 		initial = VBITMAP_LUMP;
 	vbit_expand(vb, initial);
@@ -74,17 +79,17 @@ vbit_init(unsigned initial)
 static inline void
 vbit_destroy(struct vbitmap *vb)
 {
-
 	if (vb == NULL)
 		return;
-	free(vb->bits);
-	free(vb);
+	CHECK_OBJ_NOTNULL(vb, VBITMAP_MAGIC);
+	FREE_ORNULL(vb->bits);
+	FREE_OBJ_NOTNULL(vb, VBITMAP_MAGIC);
 }
 
 static inline void
 vbit_set(struct vbitmap *vb, unsigned bit)
 {
-
+	CHECK_OBJ_NOTNULL(vb, VBITMAP_MAGIC);
 	if (bit >= vb->nbits)
 		vbit_expand(vb, bit);
 	vb->bits[VBITMAP_IDX(bit)] |= VBITMAP_BIT(bit);
@@ -93,7 +98,7 @@ vbit_set(struct vbitmap *vb, unsigned bit)
 static inline void
 vbit_clr(const struct vbitmap *vb, unsigned bit)
 {
-
+	CHECK_OBJ_NOTNULL(vb, VBITMAP_MAGIC);
 	if (bit < vb->nbits)
 		vb->bits[VBITMAP_IDX(bit)] &= ~VBITMAP_BIT(bit);
 }
@@ -101,7 +106,7 @@ vbit_clr(const struct vbitmap *vb, unsigned bit)
 static inline int
 vbit_test(const struct vbitmap *vb, unsigned bit)
 {
-
+	CHECK_OBJ_NOTNULL(vb, VBITMAP_MAGIC);
 	if (bit >= vb->nbits)
 		return (0);
 	return (vb->bits[VBITMAP_IDX(bit)] & VBITMAP_BIT(bit));

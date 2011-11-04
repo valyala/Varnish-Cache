@@ -41,10 +41,14 @@
 #include <unistd.h>
 
 #include "flopen.h"
+#include "miniobj.h"
 #include "vas.h"
 #include "vpf.h"
 
 struct vpf_fh {
+	unsigned magic;
+#define VPF_FH_MAGIC	0xa5b7e438U
+
 	int	pf_fd;
 	char	pf_path[MAXPATHLEN + 1];
 	dev_t	pf_dev;
@@ -60,6 +64,9 @@ vpf_verify(const struct vpf_fh *pfh)
 
 	if (pfh == NULL || pfh->pf_fd == -1)
 		return (EINVAL);
+
+	CHECK_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
+
 	/*
 	 * Check remembered descriptor.
 	 */
@@ -101,9 +108,7 @@ VPF_Open(const char *path, mode_t mode, pid_t *pidptr)
 	struct stat sb;
 	int error, fd, len;
 
-	pfh = malloc(sizeof(*pfh));
-	if (pfh == NULL)
-		return (NULL);
+	ALLOC_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 
 #if 0
 	if (path == NULL)
@@ -117,7 +122,7 @@ VPF_Open(const char *path, mode_t mode, pid_t *pidptr)
 		    "%s", path);
 	}
 	if (len >= (int)sizeof(pfh->pf_path)) {
-		free(pfh);
+		FREE_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 		errno = ENAMETOOLONG;
 		return (NULL);
 	}
@@ -136,7 +141,7 @@ VPF_Open(const char *path, mode_t mode, pid_t *pidptr)
 			if (errno == 0)
 				errno = EEXIST;
 		}
-		free(pfh);
+		FREE_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 		return (NULL);
 	}
 	/*
@@ -147,7 +152,7 @@ VPF_Open(const char *path, mode_t mode, pid_t *pidptr)
 		error = errno;
 		(void)unlink(pfh->pf_path);
 		(void)close(fd);
-		free(pfh);
+		FREE_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 		errno = error;
 		return (NULL);
 	}
@@ -164,6 +169,8 @@ VPF_Write(struct vpf_fh *pfh)
 {
 	char pidstr[16];
 	int error, fd;
+
+	CHECK_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 
 	/*
 	 * Check remembered descriptor, so we don't overwrite some other
@@ -205,6 +212,7 @@ VPF_Close(struct vpf_fh *pfh)
 {
 	int error;
 
+	CHECK_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 	error = vpf_verify(pfh);
 	if (error != 0) {
 		errno = error;
@@ -213,7 +221,7 @@ VPF_Close(struct vpf_fh *pfh)
 
 	if (close(pfh->pf_fd) == -1)
 		error = errno;
-	free(pfh);
+	FREE_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 	if (error != 0) {
 		errno = error;
 		return (-1);
@@ -226,6 +234,7 @@ _VPF_Remove(struct vpf_fh *pfh, int freeit)
 {
 	int error;
 
+	CHECK_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 	error = vpf_verify(pfh);
 	if (error != 0) {
 		errno = error;
@@ -239,7 +248,7 @@ _VPF_Remove(struct vpf_fh *pfh, int freeit)
 			error = errno;
 	}
 	if (freeit)
-		free(pfh);
+		FREE_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 	else
 		pfh->pf_fd = -1;
 	if (error != 0) {
@@ -253,5 +262,6 @@ int
 VPF_Remove(struct vpf_fh *pfh)
 {
 
+	CHECK_OBJ_NOTNULL(pfh, VPF_FH_MAGIC);
 	return (_VPF_Remove(pfh, 1));
 }

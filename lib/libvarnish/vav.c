@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "miniobj.h"
 #include "vas.h"
 #include "vav.h"
 
@@ -113,9 +114,7 @@ VAV_BackSlashDecode(const char *s, const char *e)
 	if (e == NULL)
 		e = strchr(s, '\0');
 	assert(e != NULL);
-	p = calloc((e - s) + 1, 1);
-	if (p == NULL)
-		return (p);
+	CALLOC_NOTNULL(p, (e - s) + 1, 1);
 	for (r = p, q = s; q < e; ) {
 		if (*q != '\\') {
 			*r++ = *q++;
@@ -143,9 +142,7 @@ VAV_Parse(const char *s, int *argc, int flag)
 	assert(s != NULL);
 	nargv = 1;
 	largv = 16;
-	argv = calloc(sizeof *argv, largv);
-	if (argv == NULL)
-		return (NULL);
+	CALLOC_NOTNULL(argv, largv, sizeof *argv);
 
 	for (;;) {
 		if (*s == '\0')
@@ -189,18 +186,16 @@ VAV_Parse(const char *s, int *argc, int flag)
 			}
 			s++;
 		}
-		if (nargv + 1 >= largv) {
-			argv = realloc(argv, sizeof (*argv) * (largv += largv));
-			assert(argv != NULL);
-		}
+		if (nargv + 1 >= largv)
+			REALLOC_NOTNULL(argv, sizeof (*argv) * (largv += largv));
 		if (flag & ARGV_NOESC) {
-			argv[nargv] = malloc(1 + (s - p));
-			assert(argv[nargv] != NULL);
+			MALLOC_NOTNULL(argv[nargv], 1 + (s - p));
 			memcpy(argv[nargv], p, s - p);
 			argv[nargv][s - p] = '\0';
 			nargv++;
 		} else {
 			argv[nargv++] = VAV_BackSlashDecode(p, s);
+			AN(argv[nargv - 1]);
 		}
 		if (*s != '\0')
 			s++;
@@ -217,8 +212,8 @@ VAV_Free(char **argv)
 	int i;
 
 	for (i = 1; argv[i] != NULL; i++)
-		free(argv[i]);
-	free(argv);
+		FREE_NOTNULL(argv[i]);
+	FREE_NOTNULL(argv);
 }
 
 #ifdef TESTPROG
@@ -244,6 +239,7 @@ Test(const char *str)
 
 	printf("Test: <%V>\n", str);
 	av = VAV_Parse(str, 0);
+	AN(av);
 	VAV_Print(av);
 }
 

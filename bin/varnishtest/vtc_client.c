@@ -37,6 +37,7 @@
 
 #include "vtc.h"
 
+#include "miniobj.h"
 #include "vss.h"
 #include "vtcp.h"
 
@@ -80,8 +81,7 @@ client_thread(void *priv)
 
 	vl = vtc_logopen(c->name);
 
-	p = strdup(c->connect);
-	AN(p);
+	STRDUP_NOTNULL(p, c->connect);
 	vsb = macro_expand(vl, p);
 	AN(vsb);
 
@@ -105,7 +105,7 @@ client_thread(void *priv)
 	}
 	vtc_log(vl, 2, "Ending");
 	VSB_delete(vsb);
-	free(p);
+	FREE_NOTNULL(p);
 	return (NULL);
 }
 
@@ -141,8 +141,8 @@ client_delete(struct client *c)
 
 	CHECK_OBJ_NOTNULL(c, CLIENT_MAGIC);
 	vtc_logclose(c->vl);
-	free(c->spec);
-	free(c->name);
+	FREE_ORNULL(c->spec);
+	FREE_NOTNULL(c->name);
 	/* XXX: MEMLEAK (?)*/
 	FREE_OBJ_NOTNULL(c, CLIENT_MAGIC);
 }

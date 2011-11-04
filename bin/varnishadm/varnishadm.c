@@ -45,6 +45,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vapi/vsl.h"
 #include "vapi/vsm.h"
 #include "vas.h"
@@ -116,7 +117,7 @@ cli_sock(const char *T_arg, const char *S_arg)
 		}
 		VCLI_AuthResponse(fd, answer, buf);
 		AZ(close(fd));
-		free(answer);
+		FREE_NOTNULL(answer);
 
 		cli_write(sock, "auth ");
 		cli_write(sock, buf);
@@ -128,7 +129,7 @@ cli_sock(const char *T_arg, const char *S_arg)
 		AZ(close(sock));
 		return (-1);
 	}
-	free(answer);
+	FREE_ORNULL(answer);
 
 	cli_write(sock, "ping\n");
 	(void)VCLI_ReadResult(sock, &status, &answer, timeout);
@@ -137,7 +138,7 @@ cli_sock(const char *T_arg, const char *S_arg)
 		AZ(close(sock));
 		return(-1);
 	}
-	free(answer);
+	FREE_ORNULL(answer);
 
 	return (sock);
 }
@@ -238,7 +239,7 @@ pass(int sock)
 			if (answer) {
 				u = write(1, answer, strlen(answer));
 				u = write(1, "\n", 1);
-				free(answer);
+				FREE_NOTNULL(answer);
 				answer = NULL;
 			}
 #ifdef HAVE_LIBEDIT
@@ -295,12 +296,13 @@ n_arg_sock(const char *n_arg)
 			fprintf(stderr, "No -T arg in shared memory\n");
 			return (-1);
 		}
-		T_start = T_arg = strdup(p);
+		STRDUP_NOTNULL(T_start, p);
+		T_arg = T_start;
 	}
 	if (S_arg == NULL) {
 		p = VSM_Find_Chunk(vsd, "Arg", "-S", "", NULL);
 		if (p != NULL)
-			S_arg = strdup(p);
+			STRDUP_NOTNULL(S_arg, p);
 	}
 	sock = -1;
 	while (*T_arg) {
@@ -312,8 +314,8 @@ n_arg_sock(const char *n_arg)
 			break;
 		T_arg = p + 1;
 	}
-	free(T_start);
-	free(S_arg);
+	FREE_NOTNULL(T_start);
+	FREE_ORNULL(S_arg);
 	return (sock);
 }
 

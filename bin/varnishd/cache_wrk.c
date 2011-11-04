@@ -36,6 +36,7 @@
 
 #include "cache.h"
 #include "cache_hash.h"
+#include "miniobj.h"
 #include "vsha256.h"
 
 static struct lock		wstat_mtx;
@@ -105,7 +106,7 @@ wrk_bgthread(void *arg)
 	XXXAN(sp);
 	memset(&ww, 0, sizeof ww);
 	sp->wrk = &ww;
-	ww.magic = WORKER_MAGIC;
+	SET_MAGIC(&ww, WORKER_MAGIC);
 	ww.wlp = ww.wlb = logbuf;
 	ww.wle = logbuf + (sizeof logbuf) / 4;
 

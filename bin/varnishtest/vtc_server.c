@@ -55,7 +55,6 @@ struct server {
 	int			depth;
 	int			sock;
 	char			listen[256];
-	struct vss_addr		**vss_addr;
 	char			*addr;
 	char			*port;
 	char			aaddr[32];
@@ -146,7 +145,7 @@ server_delete(struct server *s)
 	macro_def(s->vl, s->name, "port", NULL);
 	macro_def(s->vl, s->name, "sock", NULL);
 	vtc_logclose(s->vl);
-	free(s->name);
+	FREE_NOTNULL(s->name);
 	/* XXX: MEMLEAK (?) (VSS ??) */
 	FREE_OBJ_NOTNULL(s, SERVER_MAGIC);
 }
@@ -158,18 +157,22 @@ server_delete(struct server *s)
 static void
 server_start(struct server *s)
 {
+	struct vss_addr **ap;
 	int naddr;
 
 	CHECK_OBJ_NOTNULL(s, SERVER_MAGIC);
 	vtc_log(s->vl, 2, "Starting server");
 	if (s->sock < 0) {
-		naddr = VSS_resolve(s->addr, s->port, &s->vss_addr);
+		naddr = VSS_resolve(s->addr, s->port, &ap);
 		if (naddr != 1)
 			vtc_log(s->vl, 0,
 			    "Server s listen address not unique"
 			    " \"%s\" resolves to (%d) sockets",
 			    s->listen, naddr);
-		s->sock = VSS_listen(s->vss_addr[0], s->depth);
+		AN(ap);
+		AN(ap[0]);
+		s->sock = VSS_listen(ap[0], s->depth);
+		FREE_NOTNULL(ap);
 		assert(s->sock >= 0);
 		VTCP_myname(s->sock, s->aaddr, sizeof s->aaddr,
 		    s->aport, sizeof s->aport);

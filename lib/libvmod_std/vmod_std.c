@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 
+#include "miniobj.h"
 #include "vrt.h"
 #include "vtcp.h"
 
@@ -95,7 +96,7 @@ vmod_toupper(struct sess *sp, struct vmod_priv *priv, const char *s, ...)
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	if (priv->priv == NULL) {
-		priv->priv = strdup("BAR");
+		STRDUP_NOTNULL(priv->priv, "BAR");
 		priv->free = free;
 	} else {
 		assert(!strcmp(priv->priv, "BAR"));
@@ -125,7 +126,7 @@ init_function(struct vmod_priv *priv, const struct VCL_conf *cfg)
 {
 	(void)cfg;
 
-	priv->priv = strdup("FOO");
+	STRDUP_NOTNULL(priv->priv, "FOO");
 	priv->free = free;
 	return (0);
 }

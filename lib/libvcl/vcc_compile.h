@@ -74,11 +74,17 @@ enum var_type {
 };
 
 struct membit {
+	unsigned		magic;
+#define MEMBIT_MAGIC	0xfbdfcd84U
+
 	VTAILQ_ENTRY(membit)	list;
 	void			*ptr;
 };
 
 struct source {
+	unsigned		magic;
+#define SOURCE_MAGIC	0xd82857aeU
+
 	VTAILQ_ENTRY(source)	list;
 	char			*name;
 	const char		*b;
@@ -110,6 +116,7 @@ typedef struct symbol *sym_wildcard_t(struct vcc *tl, const struct token *t,
 struct symbol {
 	unsigned			magic;
 #define SYMBOL_MAGIC			0x3368c9fb
+
 	VTAILQ_ENTRY(symbol)		list;
 
 	char				*name;

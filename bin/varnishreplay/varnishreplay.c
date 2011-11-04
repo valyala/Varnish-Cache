@@ -44,14 +44,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vapi/vsl.h"
 #include "vapi/vsm.h"
 #include "vas.h"
 #include "vcs.h"
 #include "vqueue.h"
 #include "vss.h"
-
-#define freez(x) do { if (x) free(x); x = NULL; } while (0);
 
 static struct vss_addr *addr_info;
 static int debug;
@@ -92,6 +91,9 @@ isequal(const char *str, const char *reference, const char *end)
  */
 
 struct message {
+	unsigned magic;
+#define MESSAGE_MAGIC	0xb4143b02U
+
 	enum VSL_tag_e tag;
 	size_t len;
 	char *ptr;
@@ -101,6 +103,9 @@ struct message {
 #define MAX_MAILBOX_SIZE 30
 
 struct mailbox {
+	unsigned magic;
+#define MAILBOX_MAGIC	0x604345e2U
+
 	pthread_mutex_t lock;
 	pthread_cond_t has_mail;
 	int open;
@@ -110,7 +115,7 @@ struct mailbox {
 static void
 mailbox_create(struct mailbox *mbox)
 {
-
+	SET_MAGIC(mbox, MAILBOX_MAGIC);
 	VSTAILQ_INIT(&mbox->messages);
 	pthread_mutex_init(&mbox->lock, NULL);
 	pthread_cond_init(&mbox->has_mail, NULL);
@@ -122,18 +127,22 @@ mailbox_destroy(struct mailbox *mbox)
 {
 	struct message *msg;
 
+	CHECK_OBJ_NOTNULL(mbox, MAILBOX_MAGIC);
 	while ((msg = VSTAILQ_FIRST(&mbox->messages))) {
+		CHECK_OBJ_NOTNULL(msg, MESSAGE_MAGIC);
 		VSTAILQ_REMOVE_HEAD(&mbox->messages, list);
-		free(msg);
+		FREE_OBJ_NOTNULL(msg, MESSAGE_MAGIC);
 	}
 	pthread_cond_destroy(&mbox->has_mail);
 	pthread_mutex_destroy(&mbox->lock);
+	SET_MAGIC(mbox, 0);
 }
 
 static void
 mailbox_put(struct mailbox *mbox, struct message *msg)
 {
-
+	CHECK_OBJ_NOTNULL(mbox, MAILBOX_MAGIC);
+	CHECK_OBJ_NOTNULL(msg, MESSAGE_MAGIC);
 	pthread_mutex_lock(&mbox->lock);
 	VSTAILQ_INSERT_TAIL(&mbox->messages, msg, list);
 	pthread_cond_signal(&mbox->has_mail);
@@ -145,11 +154,14 @@ mailbox_get(struct mailbox *mbox)
 {
 	struct message *msg;
 
+	CHECK_OBJ_NOTNULL(mbox, MAILBOX_MAGIC);
 	pthread_mutex_lock(&mbox->lock);
 	while ((msg = VSTAILQ_FIRST(&mbox->messages)) == NULL && mbox->open)
 		pthread_cond_wait(&mbox->has_mail, &mbox->lock);
-	if (msg != NULL)
+	if (msg != NULL) {
+		CHECK_OBJ_NOTNULL(msg, MESSAGE_MAGIC);
 		VSTAILQ_REMOVE_HEAD(&mbox->messages, list);
+	}
 	pthread_mutex_unlock(&mbox->lock);
 	return (msg);
 }
@@ -157,6 +169,7 @@ mailbox_get(struct mailbox *mbox)
 static void
 mailbox_close(struct mailbox *mbox)
 {
+	CHECK_OBJ_NOTNULL(mbox, MAILBOX_MAGIC);
 	pthread_mutex_lock(&mbox->lock);
 	mbox->open = 0;
 	pthread_cond_signal(&mbox->has_mail);
@@ -188,6 +201,9 @@ thread_log(int lvl, int errcode, const char *fmt, ...)
 }
 
 struct replay_thread {
+	unsigned magic;
+#define REPLAY_THREAD_MAGIC	0x25c36112U
+
 	pthread_t thread_id;
 	struct mailbox mbox;
 
@@ -218,7 +234,7 @@ static size_t nthreads;
 static void
 thread_clear(struct replay_thread *thr)
 {
-
+	CHECK_OBJ_NOTNULL(thr, REPLAY_THREAD_MAGIC);
 	thr->method = thr->proto = thr->url = NULL;
 	thr->conn = NULL;
 	memset(&thr->hdr, 0, sizeof thr->hdr);
@@ -248,17 +264,14 @@ thread_get(int fd, void *(*thread_main)(void *))
 
 		while (fd >= newnthreads)
 			newnthreads += newnthreads + 1;
-		newthreads = realloc(newthreads,
-		    newnthreads * sizeof *newthreads);
-		XXXAN(newthreads != NULL);
+		REALLOC_NOTNULL(newthreads, newnthreads * sizeof *newthreads);
 		memset(newthreads + nthreads, 0,
 		    (newnthreads - nthreads) * sizeof *newthreads);
 		threads = newthreads;
 		nthreads = newnthreads;
 	}
 	if (threads[fd] == NULL) {
-		threads[fd] = malloc(sizeof *threads[fd]);
-		assert(threads[fd] != NULL);
+		ALLOC_OBJ_NOTNULL(threads[fd], REPLAY_THREAD_MAGIC);
 		threads[fd]->sock = -1;
 		thread_clear(threads[fd]);
 		mailbox_create(&threads[fd]->mbox);
@@ -266,7 +279,7 @@ thread_get(int fd, void *(*thread_main)(void *))
 		    thread_main, threads[fd]) != 0) {
 			thread_log(0, errno, "pthread_create()");
 			mailbox_destroy(&threads[fd]->mbox);
-			freez(threads[fd]);
+			FREE_OBJ_NOTNULL(threads[fd], REPLAY_THREAD_MAGIC);
 			threads[fd] = THREAD_FAIL;
 		} else {
 			threads[fd]->fd = fd;
@@ -299,7 +312,8 @@ thread_close(int fd)
 	    (void *)threads[fd]->thread_id);
 	thread_clear(threads[fd]);
 	mailbox_destroy(&threads[fd]->mbox);
-	freez(threads[fd]);
+	FREE_OBJ_NOTNULL(threads[fd], REPLAY_THREAD_MAGIC);
+	threads[fd] = NULL;
 }
 
 /*
@@ -310,6 +324,7 @@ thread_alloc(struct replay_thread *thr, size_t len)
 {
 	void *ptr;
 
+	CHECK_OBJ_NOTNULL(thr, REPLAY_THREAD_MAGIC);
 	if (sizeof thr->arena - thr->top < len)
 		return (NULL);
 	ptr = thr->arena + thr->top;
@@ -327,6 +342,7 @@ trimline(struct replay_thread *thr, const char *str)
 	size_t len;
 	char *p;
 
+	CHECK_OBJ_NOTNULL(thr, REPLAY_THREAD_MAGIC);
 	/* skip leading space */
 	while (*str && *str == ' ')
 		++str;
@@ -356,6 +372,7 @@ read_line(struct replay_thread *thr)
 {
 	int i, len;
 
+	CHECK_OBJ_NOTNULL(thr, REPLAY_THREAD_MAGIC);
 	len = 0;
 	while (1) {
 		if (len + 2 > sizeof thr->line) {
@@ -390,6 +407,7 @@ read_block(struct replay_thread *thr, int len)
 {
 	int n, r, tot;
 
+	CHECK_OBJ_NOTNULL(thr, REPLAY_THREAD_MAGIC);
 	for (tot = 0; tot < len; tot += r) {
 		n = len - tot;
 		if (n > sizeof thr->temp)
@@ -417,6 +435,7 @@ receive_response(struct replay_thread *thr)
 	int chunked, connclose, failed;
 	int n, status;
 
+	CHECK_OBJ_NOTNULL(thr, REPLAY_THREAD_MAGIC);
 	content_length = 0;
 	chunked = connclose = failed = 0;
 
@@ -493,7 +512,7 @@ replay_thread(void *arg)
 {
 	struct iovec iov[6];
 	char space[1] = " ", crlf[2] = "\r\n";
-	struct replay_thread *thr = arg;
+	struct replay_thread *thr;
 	struct message *msg;
 	enum VSL_tag_e tag;
 	char *ptr;
@@ -503,7 +522,9 @@ replay_thread(void *arg)
 
 	int reopen = 1;
 
+	CAST_OBJ_NOTNULL(thr, arg, REPLAY_THREAD_MAGIC);
 	while ((msg = mailbox_get(&thr->mbox)) != NULL) {
+		CHECK_OBJ_NOTNULL(msg, MESSAGE_MAGIC);
 		tag = msg->tag;
 		ptr = msg->ptr;
 
@@ -545,8 +566,8 @@ replay_thread(void *arg)
 			break;
 		}
 
-		freez(msg->ptr);
-		freez(msg);
+		FREE_ORNULL(msg->ptr);
+		FREE_OBJ_NOTNULL(msg, MESSAGE_MAGIC);
 
 		if (tag != SLT_ReqEnd)
 			continue;
@@ -651,11 +672,11 @@ gen_traffic(void *priv, enum VSL_tag_e tag, unsigned fd,
 	thr = thread_get(fd, replay_thread);
 	if (thr == NULL)
 		return (0);
-	msg = malloc(sizeof (struct message));
+	CHECK_OBJ_NOTNULL(thr, REPLAY_THREAD_MAGIC);
+	ALLOC_OBJ_NOTNULL(msg, MESSAGE_MAGIC);
 	msg->tag = tag;
 	msg->len = len;
-	msg->ptr = malloc(len);
-	AN(msg->ptr);
+	MALLOC_NOTNULL(msg->ptr, len);
 	memcpy(msg->ptr, ptr, len);
 	mailbox_put(&thr->mbox, msg);
 
@@ -678,12 +699,11 @@ init_connection(const char *address)
 		thread_log(0, 0, "Could not connect to server");
 		exit(2);
 	}
-	for (i = 1; i < n; ++i) {
-		free(ta[i]);
-		ta[i] = NULL;
-	}
+	for (i = 1; i < n; ++i)
+		VSS_addr_delete(ta[i]);
 	tap = ta[0];
-	free(ta);
+	AN(tap);
+	FREE_NOTNULL(ta);
 
 	return (tap);
 }
@@ -734,6 +754,7 @@ main(int argc, char *argv[])
 		exit(1);
 
 	addr_info = init_connection(address);
+	AN(addr_info);
 
 	signal(SIGPIPE, SIG_IGN);
 

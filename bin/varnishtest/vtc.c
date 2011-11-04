@@ -42,6 +42,7 @@
 
 #include "vtc.h"
 
+#include "miniobj.h"
 #include "vav.h"
 #include "vtim.h"
 
@@ -63,6 +64,9 @@ static struct vtclog	*vltop;
  */
 
 struct macro {
+	unsigned		magic;
+#define MACRO_MAGIC	0x898a1d2eU
+
 	VTAILQ_ENTRY(macro)	list;
 	char			*name;
 	char			*val;
@@ -97,27 +101,25 @@ macro_def(struct vtclog *vl, const char *instance, const char *name,
 		if (!strcmp(name, m->name))
 			break;
 	if (m == NULL && fmt != NULL) {
-		m = calloc(sizeof *m, 1);
-		AN(m);
+		ALLOC_OBJ_NOTNULL(m, MACRO_MAGIC);
 		REPLACE(m->name, name);
 		VTAILQ_INSERT_TAIL(&macro_list, m, list);
 	}
 	if (fmt != NULL) {
 		AN(m);
 		va_start(ap, fmt);
-		free(m->val);
+		FREE_ORNULL(m->val);
 		m->val = NULL;
 		vbprintf(buf2, fmt, ap);
 		va_end(ap);
-		m->val = strdup(buf2);
-		AN(m->val);
+		STRDUP_NOTNULL(m->val, buf2);
 		vtc_log(vl, 4, "macro def %s=%s", name, m->val);
 	} else if (m != NULL) {
 		vtc_log(vl, 4, "macro undef %s", name);
 		VTAILQ_REMOVE(&macro_list, m, list);
-		free(m->name);
-		free(m->val);
-		free(m);
+		FREE_ORNULL(m->name);
+		FREE_ORNULL(m->val);
+		FREE_OBJ_NOTNULL(m, MACRO_MAGIC);
 	}
 	AZ(pthread_mutex_unlock(&macro_mtx));
 }
@@ -133,8 +135,7 @@ macro_get(const char *b, const char *e)
 
 	if (l == 4 && !memcmp(b, "date", l)) {
 		double t = VTIM_real();
-		retval = malloc(64);
-		AN(retval);
+		MALLOC_NOTNULL(retval, 64);
 		VTIM_format(t, retval);
 		return (retval);
 	}
@@ -144,7 +145,7 @@ macro_get(const char *b, const char *e)
 		if (!memcmp(b, m->name, l) && m->name[l] == '\0')
 			break;
 	if (m != NULL)
-		retval = strdup(m->val);
+		STRDUP_NOTNULL(retval, m->val);
 	AZ(pthread_mutex_unlock(&macro_mtx));
 	return (retval);
 }
@@ -194,6 +195,9 @@ macro_expand(struct vtclog *vl, const char *text)
 */
 
 struct extmacro {
+	unsigned magic;
+#define EXTMACRO_MAGIC	0x3349e1ceU
+
 	VTAILQ_ENTRY(extmacro)	list;
 	char			*name;
 	char			*val;
@@ -209,28 +213,28 @@ extmacro_def(const char *name, const char *fmt, ...)
 	struct extmacro *m;
 	va_list ap;
 
-	VTAILQ_FOREACH(m, &extmacro_list, list)
+	VTAILQ_FOREACH(m, &extmacro_list, list) {
+		CHECK_OBJ_NOTNULL(m, EXTMACRO_MAGIC);
 		if (!strcmp(name, m->name))
 			break;
+	}
 	if (m == NULL && fmt != NULL) {
-		m = calloc(sizeof *m, 1);
-		AN(m);
+		ALLOC_OBJ_NOTNULL(m, EXTMACRO_MAGIC);
 		REPLACE(m->name, name);
 		VTAILQ_INSERT_TAIL(&extmacro_list, m, list);
 	}
 	if (fmt != NULL) {
 		AN(m);
 		va_start(ap, fmt);
-		free(m->val);
+		FREE_ORNULL(m->val);
 		vbprintf(buf, fmt, ap);
 		va_end(ap);
-		m->val = strdup(buf);
-		AN(m->val);
+		STRDUP_NOTNULL(m->val, buf);
 	} else if (m != NULL) {
 		VTAILQ_REMOVE(&extmacro_list, m, list);
-		free(m->name);
-		free(m->val);
-		free(m);
+		FREE_ORNULL(m->name);
+		FREE_ORNULL(m->val);
+		FREE_OBJ_NOTNULL(m, EXTMACRO_MAGIC);
 	}
 }
 
@@ -378,7 +382,7 @@ cmd_varnishtest(CMD_ARGS)
 
 	vtc_log(vl, 1, "TEST %s", av[1]);
 	AZ(av[2]);
-	vtc_desc = strdup(av[1]);
+	STRDUP_NOTNULL(vtc_desc, av[1]);
 }
 
 /**********************************************************************
@@ -560,8 +564,7 @@ exec_file(const char *fn, const char *script, const char *tmpdir,
 	vtc_desc = NULL;
 	vtc_log(vltop, 1, "TEST %s starting", fn);
 
-	p = strdup(script);
-	AN(p);
+	STRDUP_NOTNULL(p, script);
 
 	vtc_thread = pthread_self();
 	parse_string(p, cmds, NULL, vltop);
@@ -576,6 +579,6 @@ exec_file(const char *fn, const char *script, const char *tmpdir,
 	else
 		vtc_log(vltop, 1, "TEST %s completed", fn);
 
-	free(vtc_desc);
+	FREE_ORNULL(vtc_desc);
 	return (vtc_error);
 }

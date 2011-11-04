@@ -31,6 +31,7 @@ struct vss_addr;
 
 int VSS_parse(const char *str, char **addr, char **port);
 int VSS_resolve(const char *addr, const char *port, struct vss_addr ***ta);
+void VSS_addr_delete(struct vss_addr *addr);
 int VSS_bind(const struct vss_addr *addr);
 int VSS_listen(const struct vss_addr *addr, int depth);
 int VSS_connect(const struct vss_addr *addr, int nonblock);

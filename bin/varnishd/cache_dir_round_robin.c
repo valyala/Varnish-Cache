@@ -34,6 +34,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
+#include "miniobj.h"
 #include "vrt.h"
 
 /*--------------------------------------------------------------------*/
@@ -113,9 +114,10 @@ vdi_round_robin_fini(const struct director *d)
 	CHECK_OBJ_NOTNULL(d, DIRECTOR_MAGIC);
 	CAST_OBJ_NOTNULL(vs, d->priv, VDI_ROUND_ROBIN_MAGIC);
 
-	free(vs->hosts);
-	free(vs->dir.vcl_name);
-	vs->dir.magic = 0;
+	FREE_NOTNULL(vs->hosts);
+	CHECK_OBJ_NOTNULL(&vs->dir, DIRECTOR_MAGIC);
+	FREE_ORNULL(vs->dir.vcl_name);
+	SET_MAGIC(&vs->dir, 0);
 	vs->next_host = 0;
 	FREE_OBJ_NOTNULL(vs, VDI_ROUND_ROBIN_MAGIC);
 }
@@ -135,10 +137,9 @@ vrt_init_dir(struct cli *cli, struct director **bp, int idx,
 	t = priv;
 
 	ALLOC_OBJ_NOTNULL(vs, VDI_ROUND_ROBIN_MAGIC);
-	vs->hosts = calloc(sizeof *vh, t->nmember);
-	XXXAN(vs->hosts);
+	CALLOC_NOTNULL(vs->hosts, t->nmember, sizeof *vh);
 
-	vs->dir.magic = DIRECTOR_MAGIC;
+	SET_MAGIC(&vs->dir, DIRECTOR_MAGIC);
 	vs->dir.priv = vs;
 	vs->dir.name = "round_robin";
 	REPLACE(vs->dir.vcl_name, t->name);

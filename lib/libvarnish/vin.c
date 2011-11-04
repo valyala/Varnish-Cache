@@ -37,6 +37,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vapi/vsm_int.h"
 #include "vas.h"
 #include "vdef.h"
@@ -82,21 +83,13 @@ VIN_N_Arg(const char *n_arg, char **name, char **dir, char **vsl)
 
 	strcat(dn, "/");
 
-	if (name != NULL) {
-		*name = strdup(nm);
-		if (*name == NULL)
-			return (-1);
-	}
-	if (dir != NULL) {
-		*dir = strdup(dn);
-		if (*dir == NULL)
-			return (-1);
-	}
+	if (name != NULL)
+		STRDUP_NOTNULL(*name, nm);
+	if (dir != NULL)
+		STRDUP_NOTNULL(*dir, dn);
 	if (vsl != NULL) {
 		bprintf(nm, "%s%s", dn, VSM_FILENAME);
-		*vsl = strdup(nm);
-		if (*vsl == NULL)
-			return (-1);
+		STRDUP_NOTNULL(*vsl, nm);
 	}
 	return (0);
 }

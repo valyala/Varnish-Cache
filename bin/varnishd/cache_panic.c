@@ -45,6 +45,7 @@
 #include "cache_backend.h"
 #include "waiter/cache_waiter.h"
 #include "libvcl.h"
+#include "vas.h"
 #include "vcl.h"
 
 /*
@@ -290,7 +291,8 @@ pan_backtrace(void)
 		if (Symbol_Lookup(vsp, array[i]) < 0) {
 			char **strings;
 			strings = backtrace_symbols(&array[i], 1);
-			if (strings != NULL && strings[0] != NULL)
+			AN(strings);
+			if (strings[0] != NULL)
 				VSB_printf(vsp, "%p: %s", array[i], strings[0]);
 			else
 				VSB_printf(vsp, "%p: (?)", array[i]);
@@ -383,6 +385,6 @@ PAN_Init(void)
 
 	VAS_Fail = pan_ic;
 	vsp = &vsps;
-	AN(VSB_new(vsp, VSM_head->panicstr, sizeof VSM_head->panicstr,
-	    VSB_FIXEDLEN));
+	(void)VSB_new(vsp, VSM_head->panicstr, sizeof VSM_head->panicstr,
+	    VSB_FIXEDLEN);
 }

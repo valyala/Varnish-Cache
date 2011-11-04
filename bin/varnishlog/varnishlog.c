@@ -113,7 +113,7 @@ h_order(void *priv, enum VSL_tag_e tag, unsigned fd, unsigned len,
 	}
 	if (ob[fd] == NULL) {
 		ob[fd] = VSB_new_auto();
-		assert(ob[fd] != NULL);
+		AN(ob[fd]);
 	}
 	if ((tag == SLT_BackendOpen || tag == SLT_SessionOpen ||
 		(tag == SLT_ReqStart &&

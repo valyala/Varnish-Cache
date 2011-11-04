@@ -38,6 +38,8 @@
 
 #include "vtc.h"
 
+#include "miniobj.h"
+#include "vas.h"
 #include "vct.h"
 #include "vgz.h"
 #include "vtcp.h"
@@ -103,8 +105,7 @@ synth_body(const char *len, int rnd)
 	AN(len);
 	i = strtoul(len, NULL, 0);
 	assert(i > 0);
-	b = malloc(i + 1L);
-	AN(b);
+	MALLOC_NOTNULL(b, i + 1L);
 	l = k = '!';
 	for (j = 0; j < i; j++) {
 		if ((j % 64) == 63) {
@@ -553,8 +554,7 @@ cmd_http_gunzip_body(CMD_ARGS)
 	vz.avail_in = hp->bodyl;
 
 	l = hp->bodyl * 10;
-	p = calloc(l, 1);
-	AN(p);
+	CALLOC_NOTNULL(p, l, 1);
 
 	vz.next_out = TRUST_ME(p);
 	vz.avail_out = l;
@@ -563,7 +563,7 @@ cmd_http_gunzip_body(CMD_ARGS)
 	i = inflate(&vz, Z_FINISH);
 	hp->bodyl = vz.total_out;
 	memcpy(hp->body, p, hp->bodyl);
-	free(p);
+	FREE_NOTNULL(p);
 	vtc_log(hp->vl, 3, "new bodylen %u", hp->bodyl);
 	vtc_dump(hp->vl, 4, "body", hp->body, hp->bodyl);
 	bprintf(hp->bodylen, "%u", hp->bodyl);
@@ -596,8 +596,7 @@ gzip_body(const struct http *hp, const char *txt, char **body, int *bodylen)
 	memset(&vz, 0, sizeof vz);
 
 	l = strlen(txt);
-	*body = calloc(l + OVERHEAD, 1);
-	AN(*body);
+	CALLOC_NOTNULL(*body, l + OVERHEAD, 1);
 
 	vz.next_in = TRUST_ME(txt);
 	vz.avail_in = l;
@@ -925,8 +924,7 @@ cmd_http_sendhex(CMD_ARGS)
 	AN(av[1]);
 	AZ(av[2]);
 	l = strlen(av[1]) / 2;
-	p = malloc(l);
-	AN(p);
+	MALLOC_NOTNULL(p, l);
 	q = av[1];
 	for (i = 0; i < l; i++) {
 		while (vct_issp(*q))
@@ -944,7 +942,7 @@ cmd_http_sendhex(CMD_ARGS)
 	vtc_hexdump(hp->vl, 4, "sendhex", (void*)p, i);
 	j = write(hp->fd, p, i);
 	assert(j == i);
-	free(p);
+	FREE_NOTNULL(p);
 
 }
 
@@ -1122,8 +1120,7 @@ cmd_http_loop(CMD_ARGS)
 	n = strtoul(av[1], NULL, 0);
 	for (m = 1 ; m <= n; m++) {
 		vtc_log(vl, 4, "Loop #%u", m);
-		s = strdup(av[2]);
-		AN(s);
+		STRDUP_NOTNULL(s, av[2]);
 		parse_string(s, cmd, hp, vl);
 	}
 }
@@ -1193,7 +1190,8 @@ http_process(struct vtclog *vl, const char *spec, int sock, int *sfd)
 	hp->timeout = 15000;
 	hp->nrxbuf = 2048*1024;
 	hp->vsb = VSB_new_auto();
-	hp->rxbuf = malloc(hp->nrxbuf);		/* XXX */
+	AN(hp->vsb);
+	MALLOC_NOTNULL(hp->rxbuf, hp->nrxbuf);		/* XXX */
 	hp->sfd = sfd;
 	hp->vl = vl;
 	hp->gziplevel = 0;
@@ -1201,15 +1199,14 @@ http_process(struct vtclog *vl, const char *spec, int sock, int *sfd)
 	AN(hp->rxbuf);
 	AN(hp->vsb);
 
-	s = strdup(spec);
+	STRDUP_NOTNULL(s, spec);
 	q = strchr(s, '\0');
 	assert(q > s);
-	AN(s);
 	parse_string(s, http_cmds, hp, vl);
 	retval = hp->fd;
 	VSB_delete(hp->vsb);
-	free(hp->rxbuf);
-	free(hp);
+	FREE_NOTNULL(hp->rxbuf);
+	FREE_OBJ_NOTNULL(hp, HTTP_MAGIC);
 	return (retval);
 }
 

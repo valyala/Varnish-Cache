@@ -39,6 +39,7 @@
 #include "cache.h"
 
 #include "libvcl.h"
+#include "miniobj.h"
 #include "vcl.h"
 #include "vcli.h"
 #include "vcli_priv.h"
@@ -202,7 +203,7 @@ VCL_Nuke(struct vcls *vcl)
 	VTAILQ_REMOVE(&vcl_head, vcl, list);
 	(void)vcl->conf->fini_func(NULL);
 	vcl->conf->fini_vcl(NULL);
-	free(vcl->name);
+	FREE_ORNULL(vcl->name);
 	(void)dlclose(vcl->dlh);
 	FREE_OBJ_NOTNULL(vcl, VVCLS_MAGIC);
 	VSC_C_main->n_vcl--;

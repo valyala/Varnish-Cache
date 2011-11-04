@@ -59,6 +59,7 @@
 #include "cache.h"
 #include "cache_hash.h"
 #include "hash_table.h"
+#include "miniobj.h"
 #include "vsha256.h"
 
 /*---------------------------------------------------------------------*/
@@ -114,7 +115,7 @@ HSH_Cleanup(struct worker *w)
 	}
 	if (w->nhashpriv != NULL) {
 		/* XXX: If needed, add slinger method for this */
-		free(w->nhashpriv);
+		FREE_NOTNULL(w->nhashpriv);
 		w->nhashpriv = NULL;
 	}
 	if (w->nbusyobj != NULL) {

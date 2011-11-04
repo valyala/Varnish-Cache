@@ -60,6 +60,7 @@
 
 #include "vcc_compile.h"
 
+#include "miniobj.h"
 #include "vss.h"
 
 struct host {
@@ -126,8 +127,8 @@ Emit_Sockaddr(struct vcc *tl, const struct token *t_host, const char *port)
 	    hop != NULL ? hop : t_host->dec,
 	    pop != NULL ? pop : port,
 	    &hint, &res0);
-	free(hop);
-	free(pop);
+	FREE_ORNULL(hop);
+	FREE_ORNULL(pop);
 	if (error) {
 		VSB_printf(tl->sb,
 		    "Backend host '%.*s'"
@@ -618,7 +619,7 @@ vcc_ParseBackendHost(struct vcc *tl, int serial, char **nm)
 			    "\nIn backend host specification starting at:\n");
 			vcc_ErrWhere(tl, t);
 		}
-		*nm = strdup(vgcname);	 /* XXX */
+		STRDUP_NOTNULL(*nm, vgcname);	 /* XXX */
 
 		return;
 	} else {

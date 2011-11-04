@@ -42,6 +42,7 @@
 
 #include "vtc.h"
 
+#include "miniobj.h"
 #include "vapi/vsc.h"
 #include "vapi/vsl.h"
 #include "vapi/vsm.h"
@@ -112,7 +113,7 @@ varnish_ask_cli(const struct varnish *v, const char *cmd, char **repl)
 	if (repl != NULL)
 		*repl = r;
 	else
-		free(r);
+		FREE_ORNULL(r);
 	return ((enum VCLI_status_e)retval);
 }
 
@@ -133,10 +134,10 @@ wait_stopped(const struct varnish *v)
 			vtc_log(v->vl, 0,
 			    "CLI status command failed: %u %s", st, r);
 		if (!strcmp(r, "Child in state stopped")) {
-			free(r);
+			FREE_ORNULL(r);
 			break;
 		}
-		free(r);
+		FREE_ORNULL(r);
 		(void)usleep(200000);
 	}
 }
@@ -157,10 +158,10 @@ wait_running(const struct varnish *v)
 			vtc_log(v->vl, 0,
 			    "CLI status command failed: %u %s", st, r);
 		if (!strcmp(r, "Child in state running")) {
-			free(r);
+			FREE_ORNULL(r);
 			break;
 		}
-		free(r);
+		FREE_ORNULL(r);
 		(void)usleep(200000);
 	}
 }
@@ -237,8 +238,7 @@ varnish_new(const char *name)
 	bprintf(buf, "${tmpdir}/%s", name);
 	vsb = macro_expand(v->vl, buf);
 	AN(vsb);
-	v->workdir = strdup(VSB_data(vsb));
-	AN(v->workdir);
+	STRDUP_NOTNULL(v->workdir, VSB_data(vsb));
 	VSB_delete(vsb);
 
 	bprintf(buf, "rm -rf %s ; mkdir -p %s ; echo ' %ld' > %s/_S",
@@ -249,8 +249,10 @@ varnish_new(const char *name)
 		vtc_log(v->vl, 0, "Varnish name must start with 'v'");
 
 	v->args = VSB_new_auto();
+	AN(v->args);
 
 	v->storage = VSB_new_auto();
+	AN(v->storage);
 	VSB_printf(v->storage, "-sfile,%s,10M", v->workdir);
 	AZ(VSB_finish(v->storage));
 
@@ -271,8 +273,8 @@ varnish_delete(struct varnish *v)
 
 	CHECK_OBJ_NOTNULL(v, VARNISH_MAGIC);
 	vtc_logclose(v->vl);
-	free(v->name);
-	free(v->workdir);
+	FREE_NOTNULL(v->name);
+	FREE_NOTNULL(v->workdir);
 	if (v->vd != NULL)
 		VSM_Delete(v->vd);
 
@@ -341,7 +343,9 @@ varnish_launch(struct varnish *v)
 	/* Create listener socket */
 	nap = VSS_resolve("127.0.0.1", "0", &ap);
 	AN(nap);
+	AN(ap[0]);
 	v->cli_fd = VSS_listen(ap[0], 1);
+	FREE_NOTNULL(ap);
 	VTCP_myname(v->cli_fd, abuf, sizeof abuf, pbuf, sizeof pbuf);
 
 	AZ(VSB_finish(v->args));
@@ -450,7 +454,7 @@ varnish_launch(struct varnish *v)
 	strcpy(abuf, "auth ");
 	VCLI_AuthResponse(nfd, r, abuf + 5);
 	AZ(close(nfd));
-	free(r);
+	FREE_NOTNULL(r);
 	strcat(abuf, "\n");
 
 	u = varnish_ask_cli(v, abuf, &r);
@@ -458,7 +462,7 @@ varnish_launch(struct varnish *v)
 		return;
 	if (u != CLIS_OK)
 		vtc_log(v->vl, 0, "CLI auth command failed: %u %s", u, r);
-	free(r);
+	FREE_ORNULL(r);
 
 	(void)VSL_Arg(v->vd, 'n', v->workdir);
 	AZ(VSC_Open(v->vd, 1));
@@ -485,14 +489,14 @@ varnish_start(struct varnish *v)
 	if (u != CLIS_OK)
 		vtc_log(v->vl, 0, "CLI start command failed: %u %s", u, resp);
 	wait_running(v);
-	free(resp);
+	FREE_ORNULL(resp);
 	u = varnish_ask_cli(v, "debug.xid 1000", &resp);
 	if (vtc_error)
 		return;
 	if (u != CLIS_OK)
 		vtc_log(v->vl, 0, "CLI debug.xid command failed: %u %s",
 		    u, resp);
-	free(resp);
+	FREE_ORNULL(resp);
 	u = varnish_ask_cli(v, "debug.listen_address", &resp);
 	if (vtc_error)
 		return;
@@ -536,7 +540,7 @@ varnish_stop(struct varnish *v)
 		AN(r);
 		if (!strcmp(r, "Child in state stopped"))
 			break;
-		free(r);
+		FREE_NOTNULL(r);
 		(void)sleep (1);
 		/* XXX: should fail eventually */
 	}

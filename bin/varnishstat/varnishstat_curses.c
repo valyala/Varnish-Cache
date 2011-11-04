@@ -53,6 +53,7 @@
 
 #include "varnishstat.h"
 
+#include "miniobj.h"
 #include "vapi/vsc.h"
 #include "vapi/vsm.h"
 #include "vqueue.h"
@@ -64,6 +65,9 @@
 #endif
 
 struct pt {
+	unsigned		magic;
+#define PT_MAGIC	0x345011c8U
+
 	VTAILQ_ENTRY(pt)	next;
 	const volatile uint64_t	*ptr;
 	uint64_t		ref;
@@ -83,8 +87,7 @@ do_curses_cb(void *priv, const struct VSC_point * const sp)
 	(void)priv;
 	assert(!strcmp(sp->fmt, "uint64_t"));
 
-	pt = calloc(sizeof *pt, 1);
-	AN(pt);
+	ALLOC_OBJ_NOTNULL(pt, PT_MAGIC);
 	VTAILQ_INSERT_TAIL(&pthead, pt, next);
 
 	pt->ptr = sp->ptr;
@@ -103,8 +106,7 @@ do_curses_cb(void *priv, const struct VSC_point * const sp)
 	strcat(buf, sp->name);
 	strcat(buf, " - ");
 	strcat(buf, sp->desc);
-	pt->name = strdup(buf);
-	AN(pt->name);
+	STRDUP_NOTNULL(pt->name, buf);
 	return (0);
 }
 
@@ -114,9 +116,10 @@ prep_pts(struct VSM_data *vd)
 	struct pt *pt, *pt2;
 
 	VTAILQ_FOREACH_SAFE(pt, &pthead, next, pt2) {
+		CHECK_OBJ_NOTNULL(pt, PT_MAGIC);
 		VTAILQ_REMOVE(&pthead, pt, next);
-		free(pt->name);
-		free(pt);
+		FREE_NOTNULL(pt->name);
+		FREE_OBJ_NOTNULL(pt, PT_MAGIC);
 	}
 
 	(void)VSC_Iter(vd, do_curses_cb, NULL);
@@ -211,6 +214,7 @@ do_curses(struct VSM_data *vd, const struct VSC_C_main *VSC_C_main,
 
 			line = 3;
 			VTAILQ_FOREACH(pt, &pthead, next) {
+				CHECK_OBJ_NOTNULL(pt, PT_MAGIC);
 				ju = *pt->ptr;
 				if (ju == 0 && !pt->seen)
 					continue;

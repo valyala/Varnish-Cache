@@ -44,6 +44,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vapi/vsl.h"
 #include "vapi/vsm.h"
 #include "vas.h"
@@ -58,6 +59,9 @@
 #endif
 
 struct top {
+	unsigned		magic;
+#define TOP_MAGIC	0x781fff94U
+
 	uint8_t			tag;
 	char			*rec_data;
 	int			clen;
@@ -102,6 +106,7 @@ accumulate(uint32_t * const p)
 	}
 
 	VTAILQ_FOREACH(tp, &top_head, list) {
+		CHECK_OBJ_NOTNULL(tp, TOP_MAGIC);
 		if (tp->hash != u)
 			continue;
 		if (tp->tag != t)
@@ -115,10 +120,8 @@ accumulate(uint32_t * const p)
 	}
 	if (tp == NULL) {
 		ntop++;
-		tp = calloc(sizeof *tp, 1);
-		assert(tp != NULL);
-		tp->rec_data = calloc(l + 1, 1);
-		assert(tp->rec_data != NULL);
+		ALLOC_OBJ_NOTNULL(tp, TOP_MAGIC);
+		CALLOC_NOTNULL(tp->rec_data, l + 1, 1);
 		tp->hash = u;
 		tp->count = 1.0;
 		tp->clen = l;
@@ -131,6 +134,7 @@ accumulate(uint32_t * const p)
 		tp2 = VTAILQ_PREV(tp, tophead, list);
 		if (tp2 == NULL || tp2->count >= tp->count)
 			break;
+		CHECK_OBJ_NOTNULL(tp2, TOP_MAGIC);
 		VTAILQ_REMOVE(&top_head, tp2, list);
 		VTAILQ_INSERT_AFTER(&top_head, tp, tp2, list);
 	}
@@ -138,6 +142,7 @@ accumulate(uint32_t * const p)
 		tp2 = VTAILQ_NEXT(tp, list);
 		if (tp2 == NULL || tp2->count <= tp->count)
 			break;
+		CHECK_OBJ_NOTNULL(tp2, TOP_MAGIC);
 		VTAILQ_REMOVE(&top_head, tp2, list);
 		VTAILQ_INSERT_BEFORE(tp, tp2, list);
 	}
@@ -165,6 +170,7 @@ update(const struct VSM_data *vd, int period)
 	AC(mvprintw(0, 0, "%*s", COLS - 1, VSM_Name(vd)));
 	AC(mvprintw(0, 0, "list length %u", ntop));
 	VTAILQ_FOREACH_SAFE(tp, &top_head, list, tp2) {
+		CHECK_OBJ_NOTNULL(tp, TOP_MAGIC);
 		if (++l < LINES) {
 			len = tp->clen;
 			if (len > COLS - 20)
@@ -178,8 +184,8 @@ update(const struct VSM_data *vd, int period)
 		tp->count += (1.0/3.0 - tp->count) / (double)n;
 		if (tp->count * 10 < t || l > LINES * 10) {
 			VTAILQ_REMOVE(&top_head, tp, list);
-			free(tp->rec_data);
-			free(tp);
+			FREE_NOTNULL(tp->rec_data);
+			FREE_OBJ_NOTNULL(tp, TOP_MAGIC);
 			ntop--;
 		}
 	}
@@ -279,6 +285,7 @@ dump(void)
 	struct top *tp, *tp2;
 
 	VTAILQ_FOREACH_SAFE(tp, &top_head, list, tp2) {
+		CHECK_OBJ_NOTNULL(tp, TOP_MAGIC);
 		if (tp->count <= 1.0)
 			break;
 		printf("%9.2f %s %*.*s\n",

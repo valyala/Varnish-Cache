@@ -43,12 +43,16 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vas.h"
 #include "vss.h"
 #include "vtcp.h"
 
 /* lightweight addrinfo */
 struct vss_addr {
+	unsigned magic;
+#define VSS_ADDR_MAGIC	0xa96cd8e4U
+
 	int			 va_family;
 	int			 va_socktype;
 	int			 va_protocol;
@@ -84,29 +88,23 @@ VSS_parse(const char *str, char **addr, char **port)
 		    p == str + 1 ||
 		    (p[1] != '\0' && p[1] != ':'))
 			return (-1);
-		*addr = strdup(str + 1);
-		XXXAN(*addr);
+		STRDUP_NOTNULL(*addr, str + 1);
 		(*addr)[p - (str + 1)] = '\0';
-		if (p[1] == ':') {
-			*port = strdup(p + 2);
-			XXXAN(*port);
-		}
+		if (p[1] == ':')
+			STRDUP_NOTNULL(*port, p + 2);
 	} else {
 		/* IPv4 address of the form 127.0.0.1:80, or non-numeric */
 		p = strchr(str, ' ');
 		if (p == NULL)
 			p = strchr(str, ':');
-		if (p == NULL) {
-			*addr = strdup(str);
-			XXXAN(*addr);
-		} else {
+		if (p == NULL)
+			STRDUP_NOTNULL(*addr, str);
+		else {
 			if (p > str) {
-				*addr = strdup(str);
-				XXXAN(*addr);
+				STRDUP_NOTNULL(*addr, str);
 				(*addr)[p - str] = '\0';
 			}
-			*port = strdup(p + 1);
-			XXXAN(*port);
+			STRDUP_NOTNULL(*port, p + 1);
 		}
 	}
 	return (0);
@@ -120,14 +118,13 @@ VSS_parse(const char *str, char **addr, char **port)
  *
  * The value pointed to by the tap parameter receives a pointer to an
  * array of pointers to struct vss_addr.  The caller is responsible for
- * freeing each individual struct vss_addr as well as the array.
+ * freeing each individual struct vss_addr via VSS_adrr_delete() as well
+ * as the array via FREE_NOTNULL().
  *
  * The return value is the number of addresses resoved, or zero.
  *
  * If the addr argument contains a port specification, that takes
  * precedence over the port argument.
- *
- * XXX: We need a function to free the allocated addresses.
  */
 int
 VSS_resolve(const char *addr, const char *port, struct vss_addr ***vap)
@@ -151,8 +148,8 @@ VSS_resolve(const char *addr, const char *port, struct vss_addr ***vap)
 	else
 		ret = getaddrinfo(hop, adp, &hints, &res0);
 
-	free(hop);
-	free(adp);
+	FREE_ORNULL(hop);
+	FREE_ORNULL(adp);
 
 	if (ret != 0)
 		return (0);
@@ -164,12 +161,10 @@ VSS_resolve(const char *addr, const char *port, struct vss_addr ***vap)
 		freeaddrinfo(res0);
 		return (0);
 	}
-	va = calloc(i, sizeof *va);
-	XXXAN(va);
+	CALLOC_NOTNULL(va, i, sizeof *va);
 	*vap = va;
 	for (res = res0, i = 0; res != NULL; res = res->ai_next, ++i) {
-		va[i] = calloc(1, sizeof(**va));
-		XXXAN(va[i]);
+		ALLOC_OBJ_NOTNULL(va[i], VSS_ADDR_MAGIC);
 		va[i]->va_family = res->ai_family;
 		va[i]->va_socktype = res->ai_socktype;
 		va[i]->va_protocol = res->ai_protocol;
@@ -179,6 +174,15 @@ VSS_resolve(const char *addr, const char *port, struct vss_addr ***vap)
 	}
 	freeaddrinfo(res0);
 	return (i);
+}
+
+/*
+ * Deletes the given vss_addr.
+ */
+void
+VSS_addr_delete(struct vss_addr *va)
+{
+	FREE_OBJ_NOTNULL(va, VSS_ADDR_MAGIC);
 }
 
 /*
@@ -194,6 +198,7 @@ VSS_bind(const struct vss_addr *va)
 {
 	int sd, val;
 
+	CHECK_OBJ_NOTNULL(va, VSS_ADDR_MAGIC);
 	sd = socket(va->va_family, va->va_socktype, va->va_protocol);
 	if (sd < 0) {
 		perror("socket()");
@@ -235,6 +240,7 @@ VSS_listen(const struct vss_addr *va, int depth)
 {
 	int sd;
 
+	CHECK_OBJ_NOTNULL(va, VSS_ADDR_MAGIC);
 	sd = VSS_bind(va);
 	if (sd >= 0)  {
 		if (listen(sd, depth) != 0) {
@@ -255,6 +261,7 @@ VSS_connect(const struct vss_addr *va, int nonblock)
 {
 	int sd, i;
 
+	CHECK_OBJ_NOTNULL(va, VSS_ADDR_MAGIC);
 	sd = socket(va->va_family, va->va_socktype, va->va_protocol);
 	if (sd < 0) {
 		if (errno != EPROTONOSUPPORT)
@@ -285,6 +292,7 @@ VSS_open(const char *str, double tmo)
 
 	nvaddr = VSS_resolve(str, NULL, &vaddr);
 	for (n = 0; n < nvaddr; n++) {
+		CHECK_OBJ_NOTNULL(vaddr[n], VSS_ADDR_MAGIC);
 		retval = VSS_connect(vaddr[n], tmo != 0.0);
 		if (retval >= 0 && tmo != 0.0) {
 			pfd.fd = retval;
@@ -299,7 +307,7 @@ VSS_open(const char *str, double tmo)
 			break;
 	}
 	for (n = 0; n < nvaddr; n++)
-		free(vaddr[n]);
-	free(vaddr);
+		FREE_OBJ_NOTNULL(vaddr[n], VSS_ADDR_MAGIC);
+	FREE_NOTNULL(vaddr);
 	return (retval);
 }

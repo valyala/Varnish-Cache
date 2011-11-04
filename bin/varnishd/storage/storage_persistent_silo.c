@@ -39,6 +39,7 @@
 
 #include "cache.h"
 #include "cache_hash.h"
+#include "miniobj.h"
 #include "storage/storage.h"
 #include "vsha256.h"
 #include "vtim.h"
@@ -68,6 +69,7 @@ smp_save_seg(const struct smp_sc *sc, struct smp_signctx *ctx)
 	ss = SIGN_DATA(ctx);
 	length = 0;
 	VTAILQ_FOREACH(sg, &sc->segments, list) {
+		CHECK_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 		assert(sg->p.offset < sc->mediasize);
 		assert(sg->p.offset + sg->p.length <= sc->mediasize);
 		*ss = sg->p;
@@ -207,6 +209,7 @@ smp_new_seg(struct smp_sc *sc)
 
 	sg2 = VTAILQ_FIRST(&sc->segments);
 	if (sg2 != NULL && sg2->p.offset > sc->free_offset) {
+		CHECK_OBJ_NOTNULL(sg2, SMP_SEG_MAGIC);
 		if (smp_segend(sg) > sg2->p.offset) {
 			printf("Out of space in persistent silo\n");
 			printf("Committing suicide, restart will make space\n");
@@ -249,6 +252,7 @@ smp_close_seg(struct smp_sc *sc, struct smp_seg *sg)
 
 	Lck_AssertHeld(&sc->mtx);
 
+	CHECK_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 	assert(sg == sc->cur_seg);
 	AN(sg->p.offset);
 	sc->cur_seg = NULL;
@@ -256,7 +260,7 @@ smp_close_seg(struct smp_sc *sc, struct smp_seg *sg)
 	if (sg->nalloc == 0) {
 		/* XXX: if segment is empty, delete instead */
 		VTAILQ_REMOVE(&sc->segments, sg, list);
-		free(sg);
+		FREE_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 		return;
 	}
 
@@ -310,6 +314,7 @@ smp_find_so(const struct smp_seg *sg, unsigned priv2)
 {
 	struct smp_object *so;
 
+	CHECK_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 	assert(priv2 > 0);
 	assert(priv2 <= sg->p.lobjlist);
 	so = &sg->objs[sg->p.lobjlist - priv2];
@@ -339,9 +344,11 @@ smp_loaded_st(const struct smp_sc *sc, const struct smp_seg *sg,
 	o = pst - sc->base;
 
 	/* Find which segment contains the storage structure */
-	VTAILQ_FOREACH(sg2, &sc->segments, list)
+	VTAILQ_FOREACH(sg2, &sc->segments, list) {
+		CHECK_OBJ_NOTNULL(sg2, SMP_SEG_MAGIC);
 		if (o > sg2->p.offset && (o + sizeof(*st)) < sg2->p.objlist)
 			break;
+	}
 	if (sg2 == NULL)
 		return (0x04);		/* No claiming segment */
 	if (!(sg2->flags & SMP_SEG_LOADED))
@@ -415,6 +422,7 @@ smp_oc_getobj(struct worker *wrk, struct objcore *oc)
 		bad = 0;
 		l = 0;
 		VTAILQ_FOREACH(st, &o->store, list) {
+			CHECK_OBJ_NOTNULL(st, STORAGE_MAGIC);
 			bad |= smp_loaded_st(sg->sc, sg, st);
 			if (bad)
 				break;
@@ -516,7 +524,7 @@ static struct objcore_methods smp_oc_methods = {
 void
 smp_init_oc(struct objcore *oc, struct smp_seg *sg, unsigned objidx)
 {
-
+	CHECK_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
 	oc->priv = sg;
 	oc->priv2 = objidx;
 	oc->methods = &smp_oc_methods;

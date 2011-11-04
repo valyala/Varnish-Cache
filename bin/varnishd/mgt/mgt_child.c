@@ -46,6 +46,7 @@
 #include "mgt/mgt.h"
 
 #include "heritage.h"
+#include "miniobj.h"
 #include "vapi/vsm_int.h"
 #include "vbm.h"
 #include "vcli.h"
@@ -366,21 +367,21 @@ start_child(struct cli *cli)
 
 	AZ(ev_listen);
 	e = vev_new();
-	XXXAN(e);
+	AN(e);
 	e->fd = child_output;
 	e->fd_flags = EV_RD;
 	e->name = "Child listener";
 	e->callback = child_listener;
-	AZ(vev_add(mgt_evb, e));
+	vev_add(mgt_evb, e);
 	ev_listen = e;
 	AZ(ev_poker);
 	if (params->ping_interval > 0) {
 		e = vev_new();
-		XXXAN(e);
+		AN(e);
 		e->timeout = params->ping_interval;
 		e->callback = child_poker;
 		e->name = "child poker";
-		AZ(vev_add(mgt_evb, e));
+		vev_add(mgt_evb, e);
 		ev_poker = e;
 	}
 
@@ -388,7 +389,7 @@ start_child(struct cli *cli)
 	child_pid = pid;
 	if (mgt_push_vcls_and_start(&u, &p)) {
 		REPORT(LOG_ERR, "Pushing vcls failed:\n%s", p);
-		free(p);
+		FREE_NOTNULL(p);
 		child_state = CH_RUNNING;
 		mgt_stop_child();
 	} else
@@ -407,10 +408,8 @@ mgt_stop_child(void)
 	child_state = CH_STOPPING;
 
 	REPORT0(LOG_DEBUG, "Stopping Child");
-	if (ev_poker != NULL) {
+	if (ev_poker != NULL)
 		vev_del(mgt_evb, ev_poker);
-		free(ev_poker);
-	}
 	ev_poker = NULL;
 
 	mgt_cli_stop_child();
@@ -442,7 +441,7 @@ mgt_save_panic(void)
 	if (child_panic)
 		VSB_delete(child_panic);
 	child_panic = VSB_new_auto();
-	XXXAN(child_panic);
+	AN(child_panic);
 	VTIM_format(VTIM_real(), time_str);
 	VSB_printf(child_panic, "Last panic at: %s\n", time_str);
 	VSB_cat(child_panic, VSM_head->panicstr);
@@ -468,10 +467,8 @@ mgt_sigchld(const struct vev *e, int what)
 	(void)e;
 	(void)what;
 
-	if (ev_poker != NULL) {
+	if (ev_poker != NULL)
 		vev_del(mgt_evb, ev_poker);
-		free(ev_poker);
-	}
 	ev_poker = NULL;
 
 	r = waitpid(child_pid, &status, WNOHANG);
@@ -479,7 +476,7 @@ mgt_sigchld(const struct vev *e, int what)
 		return (0);
 	assert(r == child_pid);
 	vsb = VSB_new_auto();
-	XXXAN(vsb);
+	AN(vsb);
 	VSB_printf(vsb, "Child (%d) %s", r, status ? "died" : "ended");
 	if (WIFEXITED(status) && WEXITSTATUS(status)) {
 		VSB_printf(vsb, " status=%d", WEXITSTATUS(status));
@@ -513,7 +510,6 @@ mgt_sigchld(const struct vev *e, int what)
 
 	if (ev_listen != NULL) {
 		vev_del(mgt_evb, ev_listen);
-		free(ev_listen);
 		ev_listen = NULL;
 	}
 	/* Pick up any stuff lingering on stdout/stderr */
@@ -561,26 +557,26 @@ MGT_Run(void)
 	int i;
 
 	e = vev_new();
-	XXXAN(e);
+	AN(e);
 	e->sig = SIGTERM;
 	e->callback = mgt_sigint;
 	e->name = "mgt_sigterm";
-	AZ(vev_add(mgt_evb, e));
+	vev_add(mgt_evb, e);
 
 	e = vev_new();
-	XXXAN(e);
+	AN(e);
 	e->sig = SIGINT;
 	e->callback = mgt_sigint;
 	e->name = "mgt_sigint";
-	AZ(vev_add(mgt_evb, e));
+	vev_add(mgt_evb, e);
 
 	e = vev_new();
-	XXXAN(e);
+	AN(e);
 	e->sig = SIGCHLD;
 	e->sig_flags = SA_NOCLDSTOP;
 	e->callback = mgt_sigchld;
 	e->name = "mgt_sigchild";
-	AZ(vev_add(mgt_evb, e));
+	vev_add(mgt_evb, e);
 
 #ifdef HAVE_SETPROCTITLE
 	setproctitle("Varnish-Mgr %s", heritage.name);

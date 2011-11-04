@@ -40,6 +40,7 @@
 #include <umem.h>
 
 #include "cache.h"
+#include "miniobj.h"
 #include "storage/storage.h"
 
 static size_t			smu_max = SIZE_MAX;
@@ -80,7 +81,7 @@ smu_alloc(struct stevedore *st, size_t size)
 	smu->s.space = size;
 	smu->s.fd = -1;
 	smu->s.stevedore = st;
-	smu->s.magic = STORAGE_MAGIC;
+	SET_MAGIC(&smu->s, STORAGE_MAGIC);
 	return (&smu->s);
 }
 

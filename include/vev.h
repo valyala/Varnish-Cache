@@ -66,7 +66,7 @@ void vev_destroy_base(struct vev_base *evb);
 
 struct vev *vev_new(void);
 
-int vev_add(struct vev_base *evb, struct vev *e);
+void vev_add(struct vev_base *evb, struct vev *e);
 void vev_del(struct vev_base *evb, struct vev *e);
 
 int vev_schedule_one(struct vev_base *evb);

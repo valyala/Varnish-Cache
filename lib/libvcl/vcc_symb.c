@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "miniobj.h"
 #include "vcc_compile.h"
 
 /*--------------------------------------------------------------------*/
@@ -69,8 +70,7 @@ vcc_AddSymbol(struct vcc *tl, const char *nb, int l, enum symkind kind)
 		return (NULL);
 	}
 	ALLOC_OBJ_NOTNULL(sym, SYMBOL_MAGIC);
-	sym->name = malloc(l + 1);
-	XXXAN(sym->name);
+	MALLOC_NOTNULL(sym->name, l + 1);
 	memcpy(sym->name, nb, l);
 	sym->name[l] = '\0';
 	sym->nlen = l;

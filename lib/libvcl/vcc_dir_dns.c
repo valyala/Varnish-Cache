@@ -34,6 +34,8 @@
 
 #include "vcc_compile.h"
 
+#include "miniobj.h"
+
 /*--------------------------------------------------------------------
  * Parse directors
  */
@@ -182,15 +184,13 @@ vcc_dir_dns_parse_backend_options(struct vcc *tl)
 		if (vcc_IdIs(t_field, "port")) {
 			ExpectErr(tl, CSTR);
 			assert(tl->t->dec != NULL);
-			b_defaults.port = strdup(tl->t->dec);
-			assert(b_defaults.port);
+			STRDUP_NOTNULL(b_defaults.port, tl->t->dec);
 			vcc_NextToken(tl);
 			SkipToken(tl, ';');
 		} else if (vcc_IdIs(t_field, "host_header")) {
 			ExpectErr(tl, CSTR);
 			assert(tl->t->dec != NULL);
-			b_defaults.hostheader = strdup(tl->t->dec);
-			assert(b_defaults.hostheader);
+			STRDUP_NOTNULL(b_defaults.hostheader, tl->t->dec);
 			vcc_NextToken(tl);
 			SkipToken(tl, ';');
 		} else if (vcc_IdIs(t_field, "connect_timeout")) {

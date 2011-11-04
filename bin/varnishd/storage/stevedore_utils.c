@@ -51,6 +51,7 @@
 
 #include "mgt/mgt.h"
 
+#include "miniobj.h"
 #include "storage/storage.h"
 #include "vnum.h"
 
@@ -108,8 +109,7 @@ STV_GetFile(const char *fn, int *fdp, const char **fnp, const char *ctx)
 			ARGV_ERR("(%s) \"%s\" mkstemp(%s) failed (%s)\n",
 			    ctx, fn, buf, strerror(errno));
 		AZ(unlink(buf));
-		*fnp = strdup(buf);
-		AN(*fnp);
+		STRDUP_NOTNULL(*fnp, buf);
 		retval = 2;
 	} else if (S_ISREG(st.st_mode)) {
 		fd = open(fn, O_RDWR | O_LARGEFILE);

@@ -43,7 +43,6 @@
 
 #include "miniobj.h"
 #include "vas.h"
-
 #include "vapi/vsl.h"
 #include "vapi/vsm.h"
 #include "vbm.h"
@@ -186,8 +185,7 @@ vsl_m_arg(const struct VSM_data *vd, const char *opt)
 		return (-1);
 	}
 
-	o = strdup(opt);
-	AN(o);
+	STRDUP_NOTNULL(o, opt);
 	regex = strchr(o, ':');
 	*regex = '\0';
 	regex++;
@@ -196,7 +194,7 @@ vsl_m_arg(const struct VSM_data *vd, const char *opt)
 	m->tag = VSL_Name2Tag(o, -1);
 	if (m->tag < 0) {
 		fprintf(stderr, "Illegal tag %s specified\n", o);
-		free(o);
+		FREE_NOTNULL(o);
 		FREE_OBJ_NOTNULL(m, VSL_RE_MATCH_MAGIC);
 		return (-1);
 	}
@@ -204,13 +202,13 @@ vsl_m_arg(const struct VSM_data *vd, const char *opt)
 	m->re = VRE_compile(regex, vd->vsl->regflags, &error, &erroroffset);
 	if (m->re == NULL) {
 		fprintf(stderr, "Illegal regex: %s\n", error);
-		free(o);
+		FREE_NOTNULL(o);
 		FREE_OBJ_NOTNULL(m, VSL_RE_MATCH_MAGIC);
 		return (-1);
 	}
 	vd->vsl->num_matchers++;
 	VTAILQ_INSERT_TAIL(&vd->vsl->matchers, m, next);
-	free(o);
+	FREE_NOTNULL(o);
 	return (1);
 }
 

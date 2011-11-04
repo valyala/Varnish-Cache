@@ -43,7 +43,6 @@
 
 #include "miniobj.h"
 #include "vas.h"
-
 #include "vapi/vsm.h"
 #include "vapi/vsm_int.h"
 #include "vbm.h"
@@ -122,15 +121,15 @@ VSM_Delete(struct VSM_data *vd)
 
 	VSM_Close(vd);
 
-	free(vd->n_opt);
-	free(vd->fname);
+	FREE_ORNULL(vd->n_opt);
+	FREE_ORNULL(vd->fname);
 
 	if (vd->vsc != NULL)
 		VSC_Delete(vd);
 	if (vd->vsl != NULL)
 		VSL_Delete(vd);
 
-	free(vd);
+	FREE_OBJ_NOTNULL(vd, VSM_MAGIC);
 }
 
 /*--------------------------------------------------------------------*/
@@ -172,7 +171,7 @@ vsm_open(struct VSM_data *vd, int diag)
 		vd->vsm_fd = -1;
 		return (1);
 	}
-	if (slh.magic != VSM_HEAD_MAGIC) {
+	if (!CMP_MAGIC(&slh, VSM_HEAD_MAGIC)) {
 		if (diag)
 			vd->diag(vd->priv, "Wrong magic number in file %s\n",
 			    vd->fname);

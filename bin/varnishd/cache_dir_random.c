@@ -52,6 +52,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
+#include "miniobj.h"
 #include "vend.h"
 #include "vrt.h"
 #include "vsha256.h"
@@ -212,9 +213,10 @@ vdi_random_fini(const struct director *d)
 	CHECK_OBJ_NOTNULL(d, DIRECTOR_MAGIC);
 	CAST_OBJ_NOTNULL(vs, d->priv, VDI_RANDOM_MAGIC);
 
-	free(vs->hosts);
-	free(vs->dir.vcl_name);
-	vs->dir.magic = 0;
+	FREE_NOTNULL(vs->hosts);
+	CHECK_OBJ_NOTNULL(&vs->dir, DIRECTOR_MAGIC);
+	FREE_ORNULL(vs->dir.vcl_name);
+	SET_MAGIC(&vs->dir, 0);
 	FREE_OBJ_NOTNULL(vs, VDI_RANDOM_MAGIC);
 }
 
@@ -233,10 +235,9 @@ vrt_init(struct cli *cli, struct director **bp, int idx,
 	t = priv;
 
 	ALLOC_OBJ_NOTNULL(vs, VDI_RANDOM_MAGIC);
-	vs->hosts = calloc(sizeof *vh, t->nmember);
-	XXXAN(vs->hosts);
+	CALLOC_NOTNULL(vs->hosts, t->nmember, sizeof *vh);
 
-	vs->dir.magic = DIRECTOR_MAGIC;
+	SET_MAGIC(&vs->dir, DIRECTOR_MAGIC);
 	vs->dir.priv = vs;
 	vs->dir.name = "random";
 	REPLACE(vs->dir.vcl_name, t->name);

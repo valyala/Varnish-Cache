@@ -39,6 +39,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "miniobj.h"
 #include "vas.h"
 #include "vdef.h"
 #include "vfil.h"
@@ -90,8 +91,7 @@ VFIL_readfd(int fd, ssize_t *sz)
 	assert(0 == fstat(fd, &st));
 	if (!S_ISREG(st.st_mode))
 		return (NULL);
-	f = malloc(st.st_size + 1);
-	assert(f != NULL);
+	MALLOC_NOTNULL(f, st.st_size + 1);
 	i = read(fd, f, st.st_size);
 	assert(i == st.st_size);
 	f[i] = '\0';

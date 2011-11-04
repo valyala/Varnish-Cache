@@ -41,6 +41,7 @@
 
 #include "waiter/cache_waiter.h"
 #include "heritage.h"
+#include "miniobj.h"
 #include "vav.h"
 #include "vcli.h"
 #include "vcli_common.h"
@@ -333,8 +334,8 @@ clean_listen_sock_head(struct listen_sock_head *lsh)
 	VTAILQ_FOREACH_SAFE(ls, lsh, list, ls2) {
 		CHECK_OBJ_NOTNULL(ls, LISTEN_SOCK_MAGIC);
 		VTAILQ_REMOVE(lsh, ls, list);
-		free(ls->name);
-		free(ls->addr);
+		FREE_ORNULL(ls->name);
+		FREE_ORNULL(ls->addr);
 		FREE_OBJ_NOTNULL(ls, LISTEN_SOCK_MAGIC);
 	}
 }
@@ -355,11 +356,7 @@ tweak_listen_address(struct cli *cli, const struct parspec *par,
 	}
 
 	av = VAV_Parse(arg, NULL, ARGV_COMMA);
-	if (av == NULL) {
-		VCLI_Out(cli, "Parse error: out of memory");
-		VCLI_SetResult(cli, CLIS_PARAM);
-		return;
-	}
+	AN(av);
 	if (av[0] != NULL) {
 		VCLI_Out(cli, "Parse error: %s", av[0]);
 		VCLI_SetResult(cli, CLIS_PARAM);
@@ -388,11 +385,10 @@ tweak_listen_address(struct cli *cli, const struct parspec *par,
 			ALLOC_OBJ_NOTNULL(ls, LISTEN_SOCK_MAGIC);
 			ls->sock = -1;
 			ls->addr = ta[j];
-			ls->name = strdup(av[i]);
-			AN(ls->name);
+			STRDUP_NOTNULL(ls->name, av[i]);
 			VTAILQ_INSERT_TAIL(&lsh, ls, list);
 		}
-		free(ta);
+		FREE_NOTNULL(ta);
 	}
 	VAV_Free(av);
 	if (cli != NULL && cli->result != CLIS_OK) {
@@ -1132,8 +1128,7 @@ MCF_AddParams(const struct parspec *ps)
 			margin = strlen(pp->name) + 1;
 		n++;
 	}
-	parspec = realloc(parspec, (1L + nparspec + n) * sizeof *parspec);
-	XXXAN(parspec);
+	REALLOC_NOTNULL(parspec, (1L + nparspec + n) * sizeof *parspec);
 	for (pp = ps; pp->name != NULL; pp++)
 		parspec[nparspec++] = pp;
 	parspec[nparspec] = NULL;

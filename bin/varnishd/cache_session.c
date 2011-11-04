@@ -40,6 +40,7 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "waiter/cache_waiter.h"
 
 /*--------------------------------------------------------------------*/
@@ -113,9 +114,7 @@ ses_sm_alloc(void)
 	hl = HTTP_estimate(nhttp);
 	l = sizeof *sm + nws + 2 * hl;
 	VSC_C_main->sessmem_size = l;
-	p = malloc(l);
-	if (p == NULL)
-		return (NULL);
+	MALLOC_NOTNULL(p, l);
 	q = p + l;
 
 	/* Don't waste time zeroing the workspace */
@@ -357,7 +356,7 @@ SES_Delete(struct sess *sp, const char *reason)
 	if (sm->workspace != params->sess_workspace ||
 	    sm->nhttp != (uint16_t)params->http_max_hdr ||
 	    pp->nsess > params->max_sess) {
-		free(sm);
+		FREE_NOTNULL(sm);
 		Lck_Lock(&pp->mtx);
 		if (wrk != NULL)
 			wrk->stats.sessmem_free++;

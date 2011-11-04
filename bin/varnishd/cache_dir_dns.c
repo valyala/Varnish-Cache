@@ -38,6 +38,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
+#include "miniobj.h"
 #include "vrt.h"
 
 /*--------------------------------------------------------------------*/
@@ -168,7 +169,7 @@ vdi_dns_pop_cache(struct vdi_dns *vs,
 	if (group == NULL)
 		group = VTAILQ_LAST( &vs->cachelist, _cachelist );
 	CHECK_OBJ_NOTNULL(group, VDI_DNSDIR_MAGIC);
-	free(group->hostname);
+	FREE_ORNULL(group->hostname);
 	VTAILQ_REMOVE(&vs->cachelist, group, list);
 	FREE_OBJ_NOTNULL(group, VDI_DNSDIR_MAGIC);
 	vs->ncachelist--;
@@ -420,9 +421,10 @@ vdi_dns_fini(const struct director *d)
 	CHECK_OBJ_NOTNULL(d, DIRECTOR_MAGIC);
 	CAST_OBJ_NOTNULL(vs, d->priv, VDI_DNS_MAGIC);
 
-	free(vs->hosts);
-	free(vs->dir.vcl_name);
-	vs->dir.magic = 0;
+	FREE_NOTNULL(vs->hosts);
+	CHECK_OBJ_NOTNULL(&vs->dir, DIRECTOR_MAGIC);
+	FREE_ORNULL(vs->dir.vcl_name);
+	SET_MAGIC(&vs->dir, 0);
 	/* FIXME: Free the cache */
 	AZ(pthread_rwlock_destroy(&vs->rwlock));
 	FREE_OBJ_NOTNULL(vs, VDI_DNS_MAGIC);
@@ -441,10 +443,9 @@ VRT_init_dir_dns(struct cli *cli, struct director **bp, int idx,
 	(void)cli;
 	t = priv;
 	ALLOC_OBJ_NOTNULL(vs, VDI_DNS_MAGIC);
-	vs->hosts = calloc(sizeof(struct director *), t->nmember);
-	XXXAN(vs->hosts);
+	CALLOC_NOTNULL(vs->hosts, t->nmember, sizeof(*vs->hosts));
 
-	vs->dir.magic = DIRECTOR_MAGIC;
+	SET_MAGIC(&vs->dir, DIRECTOR_MAGIC);
 	vs->dir.priv = vs;
 	vs->dir.name = "dns";
 	REPLACE(vs->dir.vcl_name, t->name);

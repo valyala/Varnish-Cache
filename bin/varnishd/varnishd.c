@@ -46,6 +46,7 @@
 #include "mgt/mgt.h"
 
 #include "heritage.h"
+#include "miniobj.h"
 #include "vav.h"
 #include "vcli.h"
 #include "vcli_common.h"
@@ -286,8 +287,7 @@ Symbol_hack(const char *a0)
 		while (e > p && isspace(e[-1]))
 			e--;
 		*e = '\0';
-		s = malloc(sizeof *s + strlen(p) + 1);
-		AN(s);
+		MALLOC_NOTNULL(s, sizeof *s + strlen(p) + 1);
 		s->a = a;
 		s->n = (void*)(s + 1);
 		strcpy(s->n, p);
@@ -383,7 +383,7 @@ main(int argc, char * const *argv)
 
 	memset(cli, 0, sizeof cli);
 	cli[0].sb = VSB_new_auto();
-	XXXAN(cli[0].sb);
+	AN(cli[0].sb);
 	cli[0].result = CLIS_OK;
 
 	VTAILQ_INIT(&heritage.socks);
@@ -615,7 +615,7 @@ main(int argc, char * const *argv)
 	mgt_pid = getpid();
 
 	mgt_evb = vev_new_base();
-	XXXAN(mgt_evb);
+	AN(mgt_evb);
 
 	if (d_flag)
 		mgt_cli_setup(0, 1, 1, "debug", cli_stdin_close, NULL);
