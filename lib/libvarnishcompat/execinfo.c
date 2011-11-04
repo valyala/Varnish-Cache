@@ -42,8 +42,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "miniobj.h"
-
 static void *getreturnaddr(int);
 static void *getframeaddr(int);
 
@@ -73,7 +71,9 @@ backtrace_symbols(void *const *buffer, int size)
 	char **rval;
 
 	clen = size * sizeof(char *);
-	MALLOC_NOTNULL(rval, clen);
+	rval = malloc(clen);
+	if (rval == NULL)
+		return (NULL);
 	for (i = 0; i < size; i++) {
 
 #ifdef HAVE_DLADDR
@@ -98,7 +98,9 @@ backtrace_symbols(void *const *buffer, int size)
 			    5 +                      /* "> at " */
 			    strlen(info.dli_fname) + /* "filename" */
 			    1;                       /* "\0" */
-			REALLOC_ARRAY_NOTNULL((char *) rval, clen + alen);
+			rval = realloc(rval, clen + alen);
+			if (rval == NULL)
+				return NULL;
 			(void)snprintf((char *) rval + clen, alen,
 			    "%p <%s+%d> at %s", buffer[i], info.dli_sname,
 			    offset, info.dli_fname);
@@ -111,7 +113,9 @@ backtrace_symbols(void *const *buffer, int size)
 		alen = 2 +                      /* "0x" */
 		    (sizeof(void *) * 2) +   /* "01234567" */
 		    1;                       /* "\0" */
-		REALLOC_ARRAY_NOTNULL((char *) rval, clen + alen);
+		rval = realloc(rval, clen + alen);
+		if (rval == NULL)
+			return NULL;
 		(void)snprintf((char *) rval + clen, alen, "%p", buffer[i]);
 		rval[i] = (char *) clen;
 		clen += alen;

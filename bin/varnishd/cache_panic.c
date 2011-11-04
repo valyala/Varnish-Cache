@@ -291,8 +291,7 @@ pan_backtrace(void)
 		if (Symbol_Lookup(vsp, array[i]) < 0) {
 			char **strings;
 			strings = backtrace_symbols(&array[i], 1);
-			AN(strings);
-			if (strings[0] != NULL)
+			if (strings != NULL && strings[0] != NULL)
 				VSB_printf(vsp, "%p: %s", array[i], strings[0]);
 			else
 				VSB_printf(vsp, "%p: (?)", array[i]);
