@@ -86,8 +86,7 @@ HSH_Prealloc(const struct sess *sp)
 	if (w->nobjhead == NULL) {
 		ALLOC_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		oh->refcnt = 1;
-		VTAILQ_INIT(&oh->objcs);
-		oh->waitinglist = NULL;
+		VSLIST_INIT(&oh->objcore_head);
 		Lck_New(&oh->mtx, lck_objhdr);
 		w->nobjhead = oh;
 		w->stats.n_objecthead++;
@@ -113,11 +112,6 @@ HSH_Cleanup(struct worker *w)
 		w->nobjhead = NULL;
 		w->stats.n_objecthead--;
 	}
-	if (w->nhashpriv != NULL) {
-		/* XXX: If needed, add slinger method for this */
-		FREE_NOTNULL(w->nhashpriv);
-		w->nhashpriv = NULL;
-	}
 	if (w->nbusyobj != NULL) {
 		FREE_OBJ_NOTNULL(w->nbusyobj, BUSYOBJ_MAGIC);
 		w->nbusyobj = NULL;
@@ -129,7 +123,9 @@ HSH_DeleteObjHead(struct worker *w, struct objhead *oh)
 {
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	AZ(oh->refcnt);
-	assert(VTAILQ_EMPTY(&oh->objcs));
+	assert(VSLIST_EMPTY(&oh->objcore_head));
+	AZ(oh->waitinglist);
+	AZ(VSLIST_NEXT(oh, htb_list));
 	Lck_Delete(&oh->mtx);
 	w->stats.n_objecthead--;
 	FREE_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
@@ -186,9 +182,9 @@ HSH_Insert(const struct sess *sp)
 	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 	AZ(oc->flags & OC_F_BUSY);
 
-	VTAILQ_INSERT_HEAD(&oh->objcs, oc, list);
-	/* NB: do not deref objhead the new object inherits our reference */
+	VSLIST_INSERT_HEAD(&oh->objcore_head, oc, hsh_list);
 	oc->objhead = oh;
+	/* NB: do not deref objhead the new object inherits our reference */
 	Lck_Unlock(&oh->mtx);
 	w->stats.n_vampireobject++;
 	return (oc);
@@ -202,7 +198,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 {
 	struct worker *w;
 	struct objhead *oh;
-	struct objcore *oc;
+	struct objcore *oc, **poc;
 	struct objcore *busy_oc, *grace_oc;
 	struct object *o;
 	double grace_ttl;
@@ -215,6 +211,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	w = sp->wrk;
 
 	HSH_Prealloc(sp);
+	AN(w->nobjhead);
 	memcpy(w->nobjhead->digest, sp->digest, sizeof sp->digest);
 
 	if (sp->hash_objhead != NULL) {
@@ -238,11 +235,17 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	busy_oc = NULL;
 	grace_oc = NULL;
 	grace_ttl = NAN;
-	VTAILQ_FOREACH(oc, &oh->objcs, list) {
+	VSLIST_FOREACH_PREVPTR(oc, poc, &oh->objcore_head, hsh_list) {
 		/* Must be at least our own ref + the objcore we examine */
 		assert(oh->refcnt > 1);
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		assert(oc->objhead == oh);
+
+		/*
+		 * Speculatively increment the counter of objhead misses.
+		 * It will be decremented back on the first hit.
+		 */
+		w->stats.n_objhead_misses++;
 
 		if (oc->flags & OC_F_BUSY) {
 			CHECK_OBJ_NOTNULL(oc->busyobj, BUSYOBJ_MAGIC);
@@ -271,8 +274,19 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 			continue;
 
 		/* If still valid, use it */
-		if (EXP_Ttl(sp, o) >= sp->t_req)
+		if (EXP_Ttl(sp, o) >= sp->t_req) {
+		        /*
+		         * Move found object to the objcore_head head, because
+			 * it is likely it will be requested again soon.
+		         */
+		        if (oc != VSLIST_FIRST(&oh->objcore_head)) {
+				*poc = VSLIST_NEXT(oc, hsh_list);
+		                VSLIST_INSERT_HEAD(&oh->objcore_head, oc,
+						   hsh_list);
+		        }
+			w->stats.n_objhead_misses--;
 			break;
+		}
 
 		/*
 		 * Remember any matching objects inside their grace period
@@ -313,7 +327,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	if (oc != NULL && !sp->hash_always_miss) {
 		o = oc_getobj(w, oc);
 		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
-		assert(oc->objhead == oh);
+		assert(o->objcore == oc);
 
 		/* We found an object we like */
 		oc->refcnt++;
@@ -363,11 +377,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	oc->busyobj = w->nbusyobj;
 	w->nbusyobj = NULL;
 
-	/*
-	 * Busy objects go on the tail, so they will not trip up searches.
-	 * HSH_Unbusy() will move them to the front.
-	 */
-	VTAILQ_INSERT_TAIL(&oh->objcs, oc, list);
+	VSLIST_INSERT_HEAD(&oh->objcore_head, oc, hsh_list);
 	oc->objhead = oh;
 	/* NB: do not deref objhead the new object inherits our reference */
 	Lck_Unlock(&oh->mtx);
@@ -411,19 +421,22 @@ hsh_rush(struct objhead *oh)
 void
 HSH_Purge(const struct sess *sp, struct objhead *oh, double ttl, double grace)
 {
-	struct objcore *oc, **ocp;
+	struct objcore *oc, **poc;
 	unsigned spc, nobj, n;
 	struct object *o;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	spc = WS_Reserve(sp->wrk->ws, 0);
-	ocp = (void*)sp->wrk->ws->f;
+	poc = (void*)sp->wrk->ws->f;
 	Lck_Lock(&oh->mtx);
 	assert(oh->refcnt > 0);
 	nobj = 0;
-	VTAILQ_FOREACH(oc, &oh->objcs, list) {
+	VSLIST_FOREACH(oc, &oh->objcore_head, hsh_list) {
+		/* Must be at least our own ref + the objcore we examine */
+		assert(oh->refcnt > 1);
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		assert(oc->objhead == oh);
+
 		if (oc->flags & OC_F_BUSY) {
 			/*
 			 * We cannot purge busy objects here, because their
@@ -436,10 +449,10 @@ HSH_Purge(const struct sess *sp, struct objhead *oh, double ttl, double grace)
 
 		(void)oc_getobj(sp->wrk, oc); /* XXX: still needed ? */
 
-		xxxassert(spc >= sizeof *ocp);
+		xxxassert(spc >= sizeof *poc);
 		oc->refcnt++;
-		spc -= sizeof *ocp;
-		ocp[nobj++] = oc;
+		spc -= sizeof *poc;
+		poc[nobj++] = oc;
 	}
 	Lck_Unlock(&oh->mtx);
 
@@ -449,7 +462,7 @@ HSH_Purge(const struct sess *sp, struct objhead *oh, double ttl, double grace)
 	if (!(grace > 0.))
 		grace = -1.;
 	for (n = 0; n < nobj; n++) {
-		oc = ocp[n];
+		oc = poc[n];
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		o = oc_getobj(sp->wrk, oc);
 		if (o == NULL)
@@ -510,12 +523,8 @@ HSH_Unbusy(const struct sess *sp)
 		WSP(sp, SLT_Debug,
 		    "Object %u workspace free %u", o->xid, WS_Free(o->ws_o));
 
-	/* XXX: pretouch neighbors on oh->objcs to prevent page-on under mtx */
 	Lck_Lock(&oh->mtx);
 	assert(oh->refcnt > 0);
-	/* XXX: strictly speaking, we should sort in Date: order. */
-	VTAILQ_REMOVE(&oh->objcs, oc, list);
-	VTAILQ_INSERT_HEAD(&oh->objcs, oc, list);
 	oc->flags &= ~OC_F_BUSY;
 	AZ(sp->wrk->nbusyobj);
 	sp->wrk->nbusyobj = oc->busyobj;
@@ -592,7 +601,7 @@ HSH_Deref(struct worker *w, struct objcore *oc, struct object **oo)
 	assert(oc->refcnt > 0);
 	r = --oc->refcnt;
 	if (!r)
-		VTAILQ_REMOVE(&oh->objcs, oc, list);
+		VSLIST_REMOVE(&oh->objcore_head, oc, objcore, hsh_list);
 	else {
 		/* Must have an object */
 		AN(oc->methods);

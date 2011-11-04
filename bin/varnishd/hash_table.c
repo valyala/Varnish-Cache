@@ -73,7 +73,7 @@ get_bucket(const struct objhead *oh)
 	unsigned digest, u;
 
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
-	assert(sizeof(oh->digest) > sizeof(digest));
+	assert(sizeof(oh->digest) >= sizeof(digest));
 	memcpy(&digest, oh->digest, sizeof(digest));
 	assert(params->hashtable_buckets > 0);
 	u = digest % params->hashtable_buckets;
@@ -91,16 +91,17 @@ get_bucket(const struct objhead *oh)
 struct objhead *
 HTB_Lookup(struct objhead *noh)
 {
-	struct objhead *oh, *head, **poh;
+	struct objhead *oh, **poh;
 	struct bucket *b;
 
 	CHECK_OBJ_NOTNULL(noh, OBJHEAD_MAGIC);
+	AZ(VSLIST_NEXT(noh, htb_list));
+
 	b = get_bucket(noh);
 	AN(b);
 
 	Lck_Lock(&b->mtx);
-	head = VSLIST_FIRST(&b->head);
-	VSLIST_FOREACH_PREVPTR(oh, poh, &b->head, hoh_list) {
+	VSLIST_FOREACH_PREVPTR(oh, poh, &b->head, htb_list) {
 		CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 		if (memcmp(oh->digest, noh->digest, sizeof oh->digest)) {
 			VSC_C_main->n_htb_lookup_collisions++;
@@ -112,16 +113,16 @@ HTB_Lookup(struct objhead *noh)
 		 * looked up objects will be grouped close to the list head.
 		 * This should result in faster lookups for 'hot' objects.
 		 */
-		if (oh != head) {
-			*poh = VSLIST_NEXT(oh, hoh_list);
-			VSLIST_INSERT_HEAD(&b->head, oh, hoh_list);
+		if (oh != VSLIST_FIRST(&b->head)) {
+			*poh = VSLIST_NEXT(oh, htb_list);
+			VSLIST_INSERT_HEAD(&b->head, oh, htb_list);
 		}
 		oh->refcnt++;
 		Lck_Unlock(&b->mtx);
 		return (oh);
 	}
 
-	VSLIST_INSERT_HEAD(&b->head, noh, hoh_list);
+	VSLIST_INSERT_HEAD(&b->head, noh, htb_list);
 
 	Lck_Unlock(&b->mtx);
 	return (noh);
@@ -150,7 +151,8 @@ HTB_Deref(struct objhead *oh)
 		 * only a few items to be fast. If this isn't the case, just
 		 * increase the number of hashtable buckets (hashtable_buckets).
 		 */
-		VSLIST_REMOVE(&b->head, oh, objhead, hoh_list);
+		VSLIST_REMOVE(&b->head, oh, objhead, htb_list);
+		VSLIST_NEXT(oh, htb_list) = NULL;
 		ret = 0;
 	} else
 		ret = 1;

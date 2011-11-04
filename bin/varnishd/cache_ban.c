@@ -794,9 +794,11 @@ ban_lurker_work(const struct sess *sp)
 	 * See if the objcore is still on the objhead since we race against
 	 * HSH_Deref() which comes in the opposite locking order.
 	 */
-	VTAILQ_FOREACH(oc2, &oh->objcs, list)
+	VSLIST_FOREACH(oc2, &oh->objcore_head, hsh_list) {
+		CHECK_OBJ_NOTNULL(oc2, OBJCORE_MAGIC);
 		if (oc == oc2)
 			break;
+	}
 	if (oc2 == NULL) {
 		Lck_Unlock(&oh->mtx);
 		Lck_Unlock(&ban_mtx);
