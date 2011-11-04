@@ -141,9 +141,9 @@ cli_debug_sizeof(struct cli *cli, const char * const *av, void *priv)
 	OFOF(struct objhead, magic);
 	OFOF(struct objhead, refcnt);
 	OFOF(struct objhead, mtx);
-	OFOF(struct objhead, objcs);
+	OFOF(struct objhead, objcore_head);
 	OFOF(struct objhead, digest);
-	OFOF(struct objhead, _u);
+	OFOF(struct objhead, htb_list);
 #endif
 #if 0
 	OFOF(struct http, magic);

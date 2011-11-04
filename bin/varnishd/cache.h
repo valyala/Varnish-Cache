@@ -296,7 +296,7 @@ struct objhead {
 	int			refcnt;
 	struct lock		mtx;
 	unsigned char		digest[DIGEST_LEN];
-	VTAILQ_HEAD(, objcore)	objcs;
+	VSLIST_HEAD(, objcore)	objcore_head;
 	struct sess		*waitinglist;
 
 	/*
@@ -454,7 +454,7 @@ struct objcore {
 #define OC_F_LRUDONTMOVE	(1<<4)
 #define OC_F_PRIV		(1<<5)		/* Stevedore private flag */
 	unsigned		timer_idx;
-	VTAILQ_ENTRY(objcore)	list;
+	VSLIST_ENTRY(objcore)	hsh_list;
 	VTAILQ_ENTRY(objcore)	lru_list;
 	VTAILQ_ENTRY(objcore)	ban_list;
 	struct ban		*ban;
@@ -1034,7 +1034,7 @@ static inline void
 AssertObjBusy(const struct object *o)
 {
 	AN(o->objcore);
-	AN (o->objcore->flags & OC_F_BUSY);
+	AN(o->objcore->flags & OC_F_BUSY);
 }
 
 static inline void
