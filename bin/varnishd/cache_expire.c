@@ -327,6 +327,7 @@ expire(struct objcore *oc)
 	Lck_Lock(&exp_list_mtx);
 	VTAILQ_NEXT(oc, lru_list) = exp_list;
 	exp_list = oc;
+	VSC_C_main->n_exp_list_size++;
 	Lck_Unlock(&exp_list_mtx);
 }
 
@@ -454,6 +455,7 @@ exp_timer_thread(struct sess *sp, void *priv)
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		AZ(oc->on_lru);
 		exp_list = VTAILQ_NEXT(oc, lru_list);
+		VSC_C_main->n_exp_list_size--;
 		Lck_Unlock(&exp_list_mtx);
 
 		VSC_C_main->n_expired++;
