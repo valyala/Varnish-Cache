@@ -155,7 +155,7 @@ vsl_nextlog(struct vsl *vsl, uint32_t **pp)
 		l = 2 + VSL_WORDS(VSL_LEN(vsl->rbuf));
 		if (vsl->rbuflen < l) {
 			l += 256;
-			REALLOC_NOTNULL(vsl->rbuf, l * 4L);
+			REALLOC_ARRAY_NOTNULL(vsl->rbuf, l);
 			vsl->rbuflen = l;
 		}
 		i = read(vsl->r_fd, vsl->rbuf + 2, l * 4L - 8L);

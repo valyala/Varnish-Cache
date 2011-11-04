@@ -38,6 +38,8 @@
 #ifndef VAS_H_INCLUDED
 #define VAS_H_INCLUDED
 
+#include <errno.h>
+
 typedef void vas_f(const char *, const char *, int, const char *, int, int);
 
 extern vas_f *VAS_Fail;

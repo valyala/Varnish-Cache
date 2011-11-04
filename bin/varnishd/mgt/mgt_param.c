@@ -1128,7 +1128,7 @@ MCF_AddParams(const struct parspec *ps)
 			margin = strlen(pp->name) + 1;
 		n++;
 	}
-	REALLOC_NOTNULL(parspec, (1L + nparspec + n) * sizeof *parspec);
+	REALLOC_ARRAY_NOTNULL(parspec, 1L + nparspec + n);
 	for (pp = ps; pp->name != NULL; pp++)
 		parspec[nparspec++] = pp;
 	parspec[nparspec] = NULL;

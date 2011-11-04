@@ -268,10 +268,10 @@ increase_array_size(struct binheap *bh)
 	CHECK_OBJ_NOTNULL(bh, BINHEAP_MAGIC);
 	assert(bh->length > 0);
 	assert(bh->next == bh->length);
-	xxxassert(bh->length <= UINT_MAX / sizeof(*bh->array) / 2);
+	xxxassert(bh->length <= UINT_MAX / 2);
 	length = bh->length * 2;
 	AN(bh->array);
-	REALLOC_NOTNULL(bh->array, sizeof(*bh->array) * length);
+	REALLOC_ARRAY_NOTNULL(bh->array, length);
 	while (bh->length < length)
 		bh->array[bh->length++] = NULL;
 }

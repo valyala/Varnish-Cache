@@ -58,7 +58,7 @@ vbit_expand(struct vbitmap *vb, unsigned bit)
 	bit += VBITMAP_LUMP - 1;
 	bit -= (bit % VBITMAP_LUMP);
 	p = (unsigned char *)vb->bits;
-	REALLOC_NOTNULL(p, bit / 8);
+	REALLOC_ARRAY_NOTNULL(p, bit / 8);
 	memset(p + vb->nbits / 8, 0, (bit - vb->nbits) / 8);
 	vb->bits = (void*)p;
 	vb->nbits = bit;

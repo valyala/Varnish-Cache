@@ -69,7 +69,7 @@ vwp_pollspace(struct vwp *vwp, unsigned fd)
 	while (fd >= newnpoll)
 		newnpoll = newnpoll * 2;
 	VSL(SLT_Debug, 0, "Acceptor poll space increased to %u", newnpoll);
-	REALLOC_NOTNULL(newpollfd, newnpoll * sizeof *newpollfd);
+	REALLOC_ARRAY_NOTNULL(newpollfd, newnpoll);
 	memset(newpollfd + vwp->npoll, 0,
 	    (newnpoll - vwp->npoll) * sizeof *newpollfd);
 	vwp->pollfd = newpollfd;

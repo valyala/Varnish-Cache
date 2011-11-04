@@ -98,7 +98,7 @@ backtrace_symbols(void *const *buffer, int size)
 			    5 +                      /* "> at " */
 			    strlen(info.dli_fname) + /* "filename" */
 			    1;                       /* "\0" */
-			REALLOC_NOTNULL(rval, clen + alen);
+			REALLOC_ARRAY_NOTNULL((char *) rval, clen + alen);
 			(void)snprintf((char *) rval + clen, alen,
 			    "%p <%s+%d> at %s", buffer[i], info.dli_sname,
 			    offset, info.dli_fname);
@@ -111,7 +111,7 @@ backtrace_symbols(void *const *buffer, int size)
 		alen = 2 +                      /* "0x" */
 		    (sizeof(void *) * 2) +   /* "01234567" */
 		    1;                       /* "\0" */
-		REALLOC_NOTNULL(rval, clen + alen);
+		REALLOC_ARRAY_NOTNULL((char *) rval, clen + alen);
 		(void)snprintf((char *) rval + clen, alen, "%p", buffer[i]);
 		rval[i] = (char *) clen;
 		clen += alen;

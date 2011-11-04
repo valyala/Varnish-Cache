@@ -598,7 +598,7 @@ h_ncsa(void *priv, enum VSL_tag_e tag, unsigned fd,
 
 		while (fd >= newnll)
 			newnll += newnll + 1;
-		REALLOC_NOTNULL(newll, newnll * sizeof *newll);
+		REALLOC_ARRAY_NOTNULL(newll, newnll);
 		memset(newll + nll, 0, (newnll - nll) * sizeof *newll);
 		ll = newll;
 		nll = newnll;

@@ -131,7 +131,7 @@ read_file(const char *fn)
 	AZ(close (fd));
 	assert(s < sz);		/* XXX: increase MAX_FILESIZE */
 	buf[s] = '\0';
-	REALLOC_NOTNULL(buf, s + 1);
+	REALLOC_ARRAY_NOTNULL(buf, s + 1);
 	return (buf);
 }
 

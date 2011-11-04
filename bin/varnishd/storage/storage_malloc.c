@@ -135,7 +135,7 @@ sma_trim(struct storage *s, size_t size)
 {
 	struct sma_sc *sma_sc;
 	struct sma *sma;
-	void *p;
+	unsigned char *p;
 	size_t delta;
 
 	CHECK_OBJ_NOTNULL(s, STORAGE_MAGIC);
@@ -149,7 +149,7 @@ sma_trim(struct storage *s, size_t size)
 		return;
 	CHECK_OBJ_NOTNULL(&sma->s, STORAGE_MAGIC);
 	p = sma->s.ptr;
-	REALLOC_NOTNULL(p, size);
+	REALLOC_ARRAY_NOTNULL(p, size);
 	Lck_Lock(&sma_sc->sma_mtx);
 	sma_sc->sma_alloc -= delta;
 	sma_sc->stats->g_bytes -= delta;

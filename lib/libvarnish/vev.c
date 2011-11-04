@@ -128,7 +128,7 @@ vev_get_pfd(struct vev_base *evb)
 		u = evb->npfd + 256;
 	else
 		u = evb->npfd * 2;
-	REALLOC_NOTNULL(evb->pfd, sizeof *evb->pfd * u);
+	REALLOC_ARRAY_NOTNULL(evb->pfd, u);
 	evb->npfd = u;
 }
 

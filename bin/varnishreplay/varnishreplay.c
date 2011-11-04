@@ -264,7 +264,7 @@ thread_get(int fd, void *(*thread_main)(void *))
 
 		while (fd >= newnthreads)
 			newnthreads += newnthreads + 1;
-		REALLOC_NOTNULL(newthreads, newnthreads * sizeof *newthreads);
+		REALLOC_ARRAY_NOTNULL(newthreads, newnthreads);
 		memset(newthreads + nthreads, 0,
 		    (newnthreads - nthreads) * sizeof *newthreads);
 		threads = newthreads;

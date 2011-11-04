@@ -186,8 +186,10 @@ VAV_Parse(const char *s, int *argc, int flag)
 			}
 			s++;
 		}
-		if (nargv + 1 >= largv)
-			REALLOC_NOTNULL(argv, sizeof (*argv) * (largv += largv));
+		if (nargv + 1 >= largv) {
+			largv += largv;
+			REALLOC_ARRAY_NOTNULL(argv, largv);
+		}
 		if (flag & ARGV_NOESC) {
 			MALLOC_NOTNULL(argv[nargv], 1 + (s - p));
 			memcpy(argv[nargv], p, s - p);
