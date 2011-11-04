@@ -428,16 +428,21 @@ EXP_NukeOne(struct worker *w, struct lru *lru)
 static void * __match_proto__(void *start_routine(void *))
 exp_timer_thread(struct sess *sp, void *priv)
 {
+	struct worker *w;
 	struct objcore *oc;
 	struct object *o;
 
+	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
+	w = sp->wrk;
+	CHECK_OBJ_NOTNULL(w, WORKER_MAGIC);
 	(void)priv;
+
 	while (1) {
 		Lck_Lock(&exp_list_mtx);
 		if (exp_list == NULL) {
 			Lck_Unlock(&exp_list_mtx);
-			WSL_Flush(sp->wrk, 0);
-			WRK_SumStat(sp->wrk);
+			WSL_Flush(w, 0);
+			WRK_SumStat(w);
 			VTIM_sleep(params->expiry_sleep);
 			continue;
 		}
@@ -449,11 +454,11 @@ exp_timer_thread(struct sess *sp, void *priv)
 
 		VSC_C_main->n_expired++;
 
-		o = oc_getobj(sp->wrk, oc);
+		o = oc_getobj(w, oc);
 		CHECK_OBJ_NOTNULL(o, OBJECT_MAGIC);
-		WSL(sp->wrk, SLT_ExpKill, 0, "%u %.0f",
+		WSL(w, SLT_ExpKill, 0, "%u %.0f",
 		    o->xid, EXP_Ttl(NULL, o) - VTIM_real());
-		(void)HSH_Deref(sp->wrk, oc, NULL);
+		(void)HSH_Deref(w, oc, NULL);
 	}
 	NEEDLESS_RETURN(NULL);
 }
