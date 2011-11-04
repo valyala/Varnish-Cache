@@ -216,7 +216,7 @@ mgt_cli_askchild(unsigned *status, char **resp, const char *fmt, ...) {
 		if (status != NULL)
 			*status = CLIS_COMMS;
 		if (resp != NULL)
-			STRDUP_NOTNULL(*resp, "CLI communication error");
+			*resp = strdup_notnull("CLI communication error");
 		MGT_Child_Cli_Fail();
 		return (CLIS_COMMS);
 	}
@@ -386,8 +386,7 @@ mgt_cli_setup(int fdi, int fdo, int verbose, const char *ident, mgt_cli_close_f 
 		mgt_cli_init_cls();
 
 	cli = VCLS_AddFd(cls, fdi, fdo, closefunc, priv);
-
-	STRDUP_NOTNULL(cli->ident, ident);
+	cli->ident = strdup_notnull(ident);
 
 	/* Deal with TELNET options */
 	if (fdi != 0)
@@ -536,10 +535,12 @@ mgt_cli_telnet(const char *T_arg)
 		REPORT(LOG_ERR, "-T %s Could not be resolved\n", T_arg);
 		exit(2);
 	}
+	AN(ta);
 	good = 0;
 	vsb = VSB_new_auto();
 	AN(vsb);
 	for (i = 0; i < n; ++i) {
+		AN(ta[i]);
 		sock = VSS_listen(ta[i], 10);
 		if (sock < 0)
 			continue;
@@ -553,7 +554,7 @@ mgt_cli_telnet(const char *T_arg)
 		tn->ev->fd_flags = POLLIN;
 		tn->ev->callback = telnet_accept;
 		vev_add(mgt_evb, tn->ev);
-		FREE_NOTNULL(ta[i]);
+		VSS_addr_delete(ta[i]);
 		ta[i] = NULL;
 	}
 	FREE_NOTNULL(ta);
@@ -626,6 +627,7 @@ Marg_poker(const struct vev *e, int what)
 		return (0);
 
 	/* Try to connect asynchronously */
+	AN(M_ta[M_nxt]);
 	s = VSS_connect(M_ta[M_nxt], 1);
 	if (s < 0)
 		return (0);
@@ -653,6 +655,7 @@ mgt_cli_master(const char *M_arg)
 		fprintf(stderr, "Could resolve -M argument to address\n");
 		exit (1);
 	}
+	AN(M_ta);
 	M_nxt = 0;
 	AZ(M_poker);
 	M_poker = vev_new();

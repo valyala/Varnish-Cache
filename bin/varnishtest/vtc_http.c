@@ -1120,7 +1120,7 @@ cmd_http_loop(CMD_ARGS)
 	n = strtoul(av[1], NULL, 0);
 	for (m = 1 ; m <= n; m++) {
 		vtc_log(vl, 4, "Loop #%u", m);
-		STRDUP_NOTNULL(s, av[2]);
+		s = strdup_notnull(av[2]);
 		parse_string(s, cmd, hp, vl);
 	}
 }
@@ -1199,7 +1199,7 @@ http_process(struct vtclog *vl, const char *spec, int sock, int *sfd)
 	AN(hp->rxbuf);
 	AN(hp->vsb);
 
-	STRDUP_NOTNULL(s, spec);
+	s = strdup_notnull(spec);
 	q = strchr(s, '\0');
 	assert(q > s);
 	parse_string(s, http_cmds, hp, vl);

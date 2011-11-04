@@ -78,8 +78,8 @@ free_frfile(void *ptr)
 	AZ(pthread_mutex_unlock(&frmtx));
 	if (frf != NULL) {
 		CHECK_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
-		FREE_ORNULL(frf->contents);
-		FREE_ORNULL(frf->file_name);
+		FREE_NOTNULL(frf->contents);
+		FREE_NOTNULL(frf->file_name);
 		FREE_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
 	}
 }
@@ -114,7 +114,7 @@ vmod_fileread(struct sess *sp, struct vmod_priv *priv, const char *file_name)
 	s = VFIL_readfile(NULL, file_name, NULL);
 	if (s != NULL) {
 		ALLOC_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
-		STRDUP_NOTNULL(frf->file_name, file_name);
+		frf->file_name = strdup_notnull(file_name);
 		frf->refcount = 1;
 		frf->contents = s;
 		priv->free = free_frfile;

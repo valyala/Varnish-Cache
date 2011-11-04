@@ -262,22 +262,22 @@ clean_logline(struct logline *lp)
 	VTAILQ_FOREACH_SAFE(h, &lp->req_headers, list, h2) {
 		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		VTAILQ_REMOVE(&lp->req_headers, h, list);
-		FREE_ORNULL(h->key);
-		FREE_ORNULL(h->value);
+		FREE_NOTNULL(h->key);
+		FREE_NOTNULL(h->value);
 		FREE_OBJ_NOTNULL(h, HDR_MAGIC);
 	}
 	VTAILQ_FOREACH_SAFE(h, &lp->resp_headers, list, h2) {
 		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		VTAILQ_REMOVE(&lp->resp_headers, h, list);
-		FREE_ORNULL(h->key);
-		FREE_ORNULL(h->value);
+		FREE_NOTNULL(h->key);
+		FREE_NOTNULL(h->value);
 		FREE_OBJ_NOTNULL(h, HDR_MAGIC);
 	}
 	VTAILQ_FOREACH_SAFE(h, &lp->vcl_log, list, h2) {
 		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		VTAILQ_REMOVE(&lp->vcl_log, h, list);
-		FREE_ORNULL(h->key);
-		FREE_ORNULL(h->value);
+		FREE_NOTNULL(h->key);
+		FREE_NOTNULL(h->value);
 		FREE_OBJ_NOTNULL(h, HDR_MAGIC);
 	}
 	memset(lp, 0, sizeof *lp);
@@ -567,7 +567,7 @@ collect_client(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 			clean_logline(lp);
 			break;
 		}
-		STRDUP_NOTNULL(lp->df_ttfb, ttfb);
+		lp->df_ttfb = strdup_notnull(ttfb);
 		t = l;
 		localtime_r(&t, &lp->df_t);
 		/* got it all */

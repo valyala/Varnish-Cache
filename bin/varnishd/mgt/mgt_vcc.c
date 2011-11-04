@@ -281,7 +281,7 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 		return (NULL);
 	}
 
-	STRDUP_NOTNULL(retval, of);
+	retval = strdup_notnull(of);
 	return (retval);
 }
 
@@ -307,7 +307,7 @@ mgt_vcc_add(const char *name, char *file)
 	struct vclprog *vp;
 
 	ALLOC_OBJ_NOTNULL(vp, VCLPROG_MAGIC);
-	STRDUP_NOTNULL(vp->name, name);
+	vp->name = strdup_notnull(name);
 	vp->fname = file;
 	VTAILQ_INSERT_TAIL(&vclhead, vp, list);
 	return (vp);
@@ -380,7 +380,7 @@ mgt_vcc_default(const char *b_arg, const char *f_arg, char *vcl, int C_flag)
 		    "backend default {\n"
 		    "    .host = \"%s\";\n"
 		    "}\n", b_arg);
-		STRDUP_NOTNULL(vcl, buf);
+		vcl = strdup_notnull(buf);
 	}
 	strcpy(buf, "boot");
 

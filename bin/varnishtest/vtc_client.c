@@ -81,7 +81,7 @@ client_thread(void *priv)
 
 	vl = vtc_logopen(c->name);
 
-	STRDUP_NOTNULL(p, c->connect);
+	p = strdup_notnull(c->connect);
 	vsb = macro_expand(vl, p);
 	AN(vsb);
 
@@ -141,7 +141,7 @@ client_delete(struct client *c)
 
 	CHECK_OBJ_NOTNULL(c, CLIENT_MAGIC);
 	vtc_logclose(c->vl);
-	FREE_ORNULL(c->spec);
+	FREE_NOTNULL(c->spec);
 	FREE_NOTNULL(c->name);
 	/* XXX: MEMLEAK (?)*/
 	FREE_OBJ_NOTNULL(c, CLIENT_MAGIC);

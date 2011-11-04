@@ -277,7 +277,7 @@ start_test(void)
 		VTAILQ_INSERT_TAIL(&tst_head, tp, list);
 
 	jp->tst = tp;
-	STRDUP_NOTNULL(jp->tmpdir, tmpdir);
+	jp->tmpdir = strdup_notnull(tmpdir);
 
 	AZ(pipe(p));
 	assert(p[0] > STDERR_FILENO);

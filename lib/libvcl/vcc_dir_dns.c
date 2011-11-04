@@ -184,13 +184,13 @@ vcc_dir_dns_parse_backend_options(struct vcc *tl)
 		if (vcc_IdIs(t_field, "port")) {
 			ExpectErr(tl, CSTR);
 			assert(tl->t->dec != NULL);
-			STRDUP_NOTNULL(b_defaults.port, tl->t->dec);
+			b_defaults.port = strdup_notnull(tl->t->dec);
 			vcc_NextToken(tl);
 			SkipToken(tl, ';');
 		} else if (vcc_IdIs(t_field, "host_header")) {
 			ExpectErr(tl, CSTR);
 			assert(tl->t->dec != NULL);
-			STRDUP_NOTNULL(b_defaults.hostheader, tl->t->dec);
+			b_defaults.hostheader = strdup_notnull(tl->t->dec);
 			vcc_NextToken(tl);
 			SkipToken(tl, ';');
 		} else if (vcc_IdIs(t_field, "connect_timeout")) {

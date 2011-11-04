@@ -113,17 +113,12 @@ strdup_notnull(const char *s)
 	return p;
 }
 
-#define STRDUP_NOTNULL(to, from)					\
-	do {								\
-		(to) = strdup_notnull((from));				\
-	} while (0)
-
 #define REPLACE(to, from)						\
 	do {								\
 		if ((to) != NULL)					\
 			FREE_NOTNULL((to));				\
 		if ((from) != NULL)					\
-			STRDUP_NOTNULL((to), (from));			\
+			(to) = strdup_notnull((from));			\
 		else							\
 			(to) = NULL;					\
 	} while (0)

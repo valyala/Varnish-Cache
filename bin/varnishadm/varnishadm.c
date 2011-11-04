@@ -296,13 +296,12 @@ n_arg_sock(const char *n_arg)
 			fprintf(stderr, "No -T arg in shared memory\n");
 			return (-1);
 		}
-		STRDUP_NOTNULL(T_start, p);
-		T_arg = T_start;
+		T_start = T_arg = strdup_notnull(p);
 	}
 	if (S_arg == NULL) {
 		p = VSM_Find_Chunk(vsd, "Arg", "-S", "", NULL);
 		if (p != NULL)
-			STRDUP_NOTNULL(S_arg, p);
+			S_arg = strdup_notnull(p);
 	}
 	sock = -1;
 	while (*T_arg) {

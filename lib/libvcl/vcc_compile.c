@@ -400,7 +400,7 @@ vcc_new_source(const char *b, const char *e, const char *name)
 	if (e == NULL)
 		e = strchr(b, '\0');
 	ALLOC_OBJ_NOTNULL(sp, SOURCE_MAGIC);
-	STRDUP_NOTNULL(sp->name, name);
+	sp->name = strdup_notnull(name);
 	sp->b = b;
 	sp->e = e;
 	return (sp);
@@ -711,7 +711,7 @@ vcc_CompileSource(const struct vcc *tl0, struct vsb *sb, struct source *sp)
 	VSB_cat(tl->fh, VSB_data(tl->fc));
 	AZ(VSB_finish(tl->fh));
 
-	STRDUP_NOTNULL(of, VSB_data(tl->fh));
+	of = strdup_notnull(VSB_data(tl->fh));
 
 	/* done */
 	return (vcc_DestroyTokenList(tl, of));

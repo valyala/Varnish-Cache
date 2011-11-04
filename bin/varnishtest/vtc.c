@@ -97,9 +97,11 @@ macro_def(struct vtclog *vl, const char *instance, const char *name,
 	}
 
 	AZ(pthread_mutex_lock(&macro_mtx));
-	VTAILQ_FOREACH(m, &macro_list, list)
+	VTAILQ_FOREACH(m, &macro_list, list) {
+		CHECK_OBJ_NOTNULL(m, MACRO_MAGIC);
 		if (!strcmp(name, m->name))
 			break;
+	}
 	if (m == NULL && fmt != NULL) {
 		ALLOC_OBJ_NOTNULL(m, MACRO_MAGIC);
 		REPLACE(m->name, name);
@@ -112,7 +114,7 @@ macro_def(struct vtclog *vl, const char *instance, const char *name,
 		m->val = NULL;
 		vbprintf(buf2, fmt, ap);
 		va_end(ap);
-		STRDUP_NOTNULL(m->val, buf2);
+		m->val = strdup_notnull(buf2);
 		vtc_log(vl, 4, "macro def %s=%s", name, m->val);
 	} else if (m != NULL) {
 		vtc_log(vl, 4, "macro undef %s", name);
@@ -145,7 +147,7 @@ macro_get(const char *b, const char *e)
 		if (!memcmp(b, m->name, l) && m->name[l] == '\0')
 			break;
 	if (m != NULL)
-		STRDUP_NOTNULL(retval, m->val);
+		retval = strdup_notnull(m->val);
 	AZ(pthread_mutex_unlock(&macro_mtx));
 	return (retval);
 }
@@ -229,7 +231,7 @@ extmacro_def(const char *name, const char *fmt, ...)
 		FREE_ORNULL(m->val);
 		vbprintf(buf, fmt, ap);
 		va_end(ap);
-		STRDUP_NOTNULL(m->val, buf);
+		m->val = strdup_notnull(buf);
 	} else if (m != NULL) {
 		VTAILQ_REMOVE(&extmacro_list, m, list);
 		FREE_ORNULL(m->name);
@@ -382,7 +384,7 @@ cmd_varnishtest(CMD_ARGS)
 
 	vtc_log(vl, 1, "TEST %s", av[1]);
 	AZ(av[2]);
-	STRDUP_NOTNULL(vtc_desc, av[1]);
+	vtc_desc = strdup_notnull(av[1]);
 }
 
 /**********************************************************************
@@ -564,7 +566,7 @@ exec_file(const char *fn, const char *script, const char *tmpdir,
 	vtc_desc = NULL;
 	vtc_log(vltop, 1, "TEST %s starting", fn);
 
-	STRDUP_NOTNULL(p, script);
+	p = strdup_notnull(script);
 
 	vtc_thread = pthread_self();
 	parse_string(p, cmds, NULL, vltop);

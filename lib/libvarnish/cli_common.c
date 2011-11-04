@@ -161,7 +161,7 @@ VCLI_ReadResult(int fd, unsigned *status, char **ptr, double tmo)
 	if (i != CLI_LINE0_LEN) {
 		*status = CLIS_COMMS;
 		if (ptr != NULL)
-			STRDUP_NOTNULL(*ptr, "CLI communication error (hdr)");
+			*ptr = strdup_notnull("CLI communication error (hdr)");
 		if (i != 0)
 			return (i);
 		return (*status);
@@ -179,7 +179,7 @@ VCLI_ReadResult(int fd, unsigned *status, char **ptr, double tmo)
 		*status = CLIS_COMMS;
 		FREE_NOTNULL(p);
 		if (ptr != NULL)
-			STRDUP_NOTNULL(*ptr, "CLI communication error (body)");
+			*ptr = strdup_notnull("CLI communication error (body)");
 		return (i);
 	}
 	assert(i == v + 1);

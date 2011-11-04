@@ -619,7 +619,7 @@ vcc_ParseBackendHost(struct vcc *tl, int serial, char **nm)
 			    "\nIn backend host specification starting at:\n");
 			vcc_ErrWhere(tl, t);
 		}
-		STRDUP_NOTNULL(*nm, vgcname);	 /* XXX */
+		*nm = strdup_notnull(vgcname);	 /* XXX */
 
 		return;
 	} else {

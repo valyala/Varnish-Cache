@@ -88,23 +88,23 @@ VSS_parse(const char *str, char **addr, char **port)
 		    p == str + 1 ||
 		    (p[1] != '\0' && p[1] != ':'))
 			return (-1);
-		STRDUP_NOTNULL(*addr, str + 1);
+		*addr = strdup_notnull(str + 1);
 		(*addr)[p - (str + 1)] = '\0';
 		if (p[1] == ':')
-			STRDUP_NOTNULL(*port, p + 2);
+			*port = strdup_notnull(p + 2);
 	} else {
 		/* IPv4 address of the form 127.0.0.1:80, or non-numeric */
 		p = strchr(str, ' ');
 		if (p == NULL)
 			p = strchr(str, ':');
 		if (p == NULL)
-			STRDUP_NOTNULL(*addr, str);
+			*addr = strdup_notnull(str);
 		else {
 			if (p > str) {
-				STRDUP_NOTNULL(*addr, str);
+				*addr = strdup_notnull(str);
 				(*addr)[p - str] = '\0';
 			}
-			STRDUP_NOTNULL(*port, p + 1);
+			*port = strdup_notnull(p + 1);
 		}
 	}
 	return (0);
@@ -308,6 +308,7 @@ VSS_open(const char *str, double tmo)
 	}
 	for (n = 0; n < nvaddr; n++)
 		FREE_OBJ_NOTNULL(vaddr[n], VSS_ADDR_MAGIC);
-	FREE_NOTNULL(vaddr);
+	if (nvaddr > 0)
+		FREE_NOTNULL(vaddr);
 	return (retval);
 }

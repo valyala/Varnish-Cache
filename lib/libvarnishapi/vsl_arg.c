@@ -185,7 +185,7 @@ vsl_m_arg(const struct VSM_data *vd, const char *opt)
 		return (-1);
 	}
 
-	STRDUP_NOTNULL(o, opt);
+	o = strdup_notnull(opt);
 	regex = strchr(o, ':');
 	*regex = '\0';
 	regex++;

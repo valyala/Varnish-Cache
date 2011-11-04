@@ -84,12 +84,12 @@ VIN_N_Arg(const char *n_arg, char **name, char **dir, char **vsl)
 	strcat(dn, "/");
 
 	if (name != NULL)
-		STRDUP_NOTNULL(*name, nm);
+		*name = strdup_notnull(nm);
 	if (dir != NULL)
-		STRDUP_NOTNULL(*dir, dn);
+		*dir = strdup_notnull(dn);
 	if (vsl != NULL) {
 		bprintf(nm, "%s%s", dn, VSM_FILENAME);
-		STRDUP_NOTNULL(*vsl, nm);
+		*vsl = strdup_notnull(nm);
 	}
 	return (0);
 }

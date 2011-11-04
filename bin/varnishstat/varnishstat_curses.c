@@ -106,7 +106,7 @@ do_curses_cb(void *priv, const struct VSC_point * const sp)
 	strcat(buf, sp->name);
 	strcat(buf, " - ");
 	strcat(buf, sp->desc);
-	STRDUP_NOTNULL(pt->name, buf);
+	pt->name = strdup_notnull(buf);
 	return (0);
 }
 

@@ -238,7 +238,7 @@ varnish_new(const char *name)
 	bprintf(buf, "${tmpdir}/%s", name);
 	vsb = macro_expand(v->vl, buf);
 	AN(vsb);
-	STRDUP_NOTNULL(v->workdir, VSB_data(vsb));
+	v->workdir = strdup_notnull(VSB_data(vsb));
 	VSB_delete(vsb);
 
 	bprintf(buf, "rm -rf %s ; mkdir -p %s ; echo ' %ld' > %s/_S",
@@ -342,7 +342,8 @@ varnish_launch(struct varnish *v)
 
 	/* Create listener socket */
 	nap = VSS_resolve("127.0.0.1", "0", &ap);
-	AN(nap);
+	XXXAN(nap);
+	AN(ap);
 	AN(ap[0]);
 	v->cli_fd = VSS_listen(ap[0], 1);
 	FREE_NOTNULL(ap);
