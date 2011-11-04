@@ -302,7 +302,7 @@ struct objhead {
 	/*
 	 * This field is for the sole private use of the hash_table.c .
 	 */
-	VSLIST_ENTRY(objhead)	hoh_list;
+	VSLIST_ENTRY(objhead)	htb_list;
 };
 
 /*--------------------------------------------------------------------*/
