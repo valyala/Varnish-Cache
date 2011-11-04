@@ -116,11 +116,6 @@ HSH_Cleanup(struct worker *w)
 		w->nobjhead = NULL;
 		w->stats.n_objecthead--;
 	}
-	if (w->nhashpriv != NULL) {
-		/* XXX: If needed, add slinger method for this */
-		free(w->nhashpriv);
-		w->nhashpriv = NULL;
-	}
 	if (w->nbusyobj != NULL) {
 		FREE_OBJ(w->nbusyobj);
 		w->nbusyobj = NULL;

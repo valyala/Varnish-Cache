@@ -314,7 +314,6 @@ struct worker {
 	struct objhead		*nobjhead;
 	struct objcore		*nobjcore;
 	struct busyobj		*nbusyobj;
-	void			*nhashpriv;
 	struct dstat		stats;
 
 	/* Pool stuff */
