@@ -244,6 +244,12 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 		CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
 		assert(oc->objhead == oh);
 
+		/*
+		 * Speculatively increment the counter of objhead misses.
+		 * It will be decremented back on the first hit.
+		 */
+		w->stats.n_objhead_misses++;
+
 		if (oc->flags & OC_F_BUSY) {
 			CHECK_OBJ_NOTNULL(oc->busyobj, BUSYOBJ_MAGIC);
 			if (sp->hash_ignore_busy)
@@ -278,6 +284,7 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 		                VSLIST_INSERT_HEAD(&oh->objcore_head, oc,
 						   hsh_list);
 		        }
+			w->stats.n_objhead_misses--;
 			break;
 		}
 

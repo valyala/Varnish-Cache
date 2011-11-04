@@ -303,11 +303,16 @@ VSC_F(n_ban_obj_test,	uint64_t, 0, 'a', "N objects tested", "")
 VSC_F(n_ban_re_test,	uint64_t, 0, 'a', "N regexps tested against", "")
 VSC_F(n_ban_dups,	uint64_t, 0, 'a', "N duplicate bans removed", "")
 
-VSC_F(n_htb_lookup_collisions,	uint64_t, 0, 'a', "Hashtable lookup collisions",
+VSC_F(n_htb_lookup_collisions,	uint64_t, 0, 'c', "Hashtable lookup collisions",
 	"The number of collisions during lookups in hashtable. Under ideal "
 	"conditions this number should be close to zero. If it grows faster "
 	"than the number of requests, then increase the number of buckets "
 	"via -p hashtable_buckets=<buckets>.")
+
+VSC_F(n_objhead_misses, uint64_t, 1, 'g', "The number of objhead misses",
+	"This number should be close to zero under ideal conditions. If it "
+	"grows faster than the number of requests, then either backends "
+	"are broken or you improperly use req.hash_always_miss in vcls.")
 
 VSC_F(esi_errors,		uint64_t, 0, 'a', "ESI parse errors (unlock)", "")
 VSC_F(esi_warnings,		uint64_t, 0, 'a', "ESI parse warnings (unlock)", "")
