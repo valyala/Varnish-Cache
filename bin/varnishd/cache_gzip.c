@@ -71,11 +71,13 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "vgz.h"
 
 struct vgz {
-	unsigned		magic;
-#define VGZ_MAGIC		0x162df0cb
+	MAGIC_HERE;
+#define VGZ_MAGIC		0x162df0cbU
+
 	enum {VGZ_GZ,VGZ_UN}	dir;
 	struct worker		*wrk;
 	const char		*id;

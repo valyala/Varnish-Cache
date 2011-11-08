@@ -556,7 +556,7 @@ smp_free(struct storage *st)
 /*--------------------------------------------------------------------*/
 
 const struct stevedore smp_stevedore = {
-	.magic	=	STEVEDORE_MAGIC,
+	MAGIC_INITIALIZER(STEVEDORE_MAGIC)
 	.name	=	"persistent",
 	.init	=	smp_mgt_init,
 	.open	=	smp_open,

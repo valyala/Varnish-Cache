@@ -44,14 +44,16 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "waiter/cache_waiter.h"
 #include "vtim.h"
 
 #define NKEV	100
 
 struct vwk {
-	unsigned		magic;
-#define VWK_MAGIC		0x1cc2acc2
+	MAGIC_HERE;
+#define VWK_MAGIC		0x1cc2acc2U
+
 	pthread_t		thread;
 	int			pipes[2];
 	int			kq;

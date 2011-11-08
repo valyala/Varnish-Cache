@@ -66,8 +66,9 @@
 VTAILQ_HEAD(smfhead, smf);
 
 struct smf {
-	unsigned		magic;
-#define SMF_MAGIC		0x0927a8a0
+	MAGIC_HERE;
+#define SMF_MAGIC		0x0927a8a0U
+
 	struct storage		s;
 	struct smf_sc		*sc;
 
@@ -83,8 +84,9 @@ struct smf {
 };
 
 struct smf_sc {
-	unsigned		magic;
-#define SMF_SC_MAGIC		0x52962ee7
+	MAGIC_HERE;
+#define SMF_SC_MAGIC		0x52962ee7U
+
 	struct lock		mtx;
 	struct VSC_C_smf	*stats;
 
@@ -540,7 +542,7 @@ smf_free(struct storage *s)
 /*--------------------------------------------------------------------*/
 
 const struct stevedore smf_stevedore = {
-	.magic	=	STEVEDORE_MAGIC,
+	MAGIC_INITIALIZER(STEVEDORE_MAGIC)
 	.name	=	"file",
 	.init	=	smf_init,
 	.open	=	smf_open,

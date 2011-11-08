@@ -49,8 +49,9 @@
  */
 
 struct vdi_simple {
-	unsigned		magic;
-#define VDI_SIMPLE_MAGIC	0x476d25b7
+	MAGIC_HERE;
+#define VDI_SIMPLE_MAGIC	0x476d25b7U
+
 	struct director		dir;
 	struct backend		*backend;
 	const struct vrt_backend *vrt;

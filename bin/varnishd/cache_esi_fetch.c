@@ -34,6 +34,7 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "cache_esi.h"
 
 /*---------------------------------------------------------------------
@@ -126,8 +127,9 @@ vfp_esi_bytes_gu(struct worker *w, struct http_conn *htc, ssize_t bytes)
  */
 
 struct vef_priv {
-	unsigned		magic;
+	MAGIC_HERE;
 #define VEF_MAGIC		0xf104b51f
+
 	struct vgz		*vgz;
 
 	char			*bufp;

@@ -28,12 +28,15 @@
  *
  */
 
+#include "miniobj.h"
+
 struct vlu;
 struct VCLS;
 
 struct cli {
-	unsigned		magic;
-#define CLI_MAGIC		0x4038d570
+	MAGIC_HERE;
+#define CLI_MAGIC		0x4038d570U
+
 	struct vsb		*sb;
 	enum VCLI_status_e	result;
 	char			*cmd;

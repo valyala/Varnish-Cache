@@ -52,16 +52,18 @@
 #include "vsb.h"
 
 struct VCLS_func {
-	unsigned			magic;
-#define VCLS_FUNC_MAGIC			0x7d280c9b
+	MAGIC_HERE;
+#define VCLS_FUNC_MAGIC			0x7d280c9bU
+
 	VTAILQ_ENTRY(VCLS_func)		list;
 	unsigned			auth;
 	struct cli_proto		*clp;
 };
 
 struct VCLS_fd {
-	unsigned			magic;
-#define VCLS_FD_MAGIC			0x010dbd1e
+	MAGIC_HERE;
+#define VCLS_FD_MAGIC			0x010dbd1eU
+
 	VTAILQ_ENTRY(VCLS_fd)		list;
 	int				fdi, fdo;
 	struct VCLS			*cls;
@@ -74,8 +76,9 @@ struct VCLS_fd {
 };
 
 struct VCLS {
-	unsigned			magic;
-#define VCLS_MAGIC			0x60f044a3
+	MAGIC_HERE;
+#define VCLS_MAGIC			0x60f044a3U
+
 	VTAILQ_HEAD(,VCLS_fd)		fds;
 	unsigned			nfd;
 	VTAILQ_HEAD(,VCLS_func)		funcs;

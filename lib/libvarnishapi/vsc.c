@@ -47,8 +47,9 @@
 #include "vsm_api.h"
 
 struct vsc_sf {
-	unsigned		magic;
-#define VSL_SF_MAGIC		0x558478dd
+	MAGIC_HERE;
+#define VSL_SF_MAGIC		0x558478ddU
+
 	VTAILQ_ENTRY(vsc_sf)	next;
 	int			flags;
 #define VSL_SF_EXCL		(1 << 0)
@@ -61,8 +62,8 @@ struct vsc_sf {
 };
 
 struct vsc {
-	unsigned		magic;
-#define VSC_MAGIC		0x3373554a
+	MAGIC_HERE;
+#define VSC_MAGIC		0x3373554aU
 
 	int			sf_init;
 	VTAILQ_HEAD(, vsc_sf)	sf_list;

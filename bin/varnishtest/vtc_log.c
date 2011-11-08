@@ -35,6 +35,7 @@
 
 #include "vtc.h"
 
+#include "miniobj.h"
 #include "vtim.h"
 
 static pthread_mutex_t	vtclog_mtx;
@@ -42,8 +43,9 @@ static char		*vtclog_buf;
 static unsigned		vtclog_left;
 
 struct vtclog {
-	unsigned	magic;
-#define VTCLOG_MAGIC	0x82731202
+	MAGIC_HERE;
+#define VTCLOG_MAGIC	0x82731202U
+
 	const char	*id;
 	struct vsb	*vsb;
 	pthread_mutex_t	mtx;

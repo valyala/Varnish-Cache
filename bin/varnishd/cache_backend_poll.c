@@ -45,6 +45,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"
+#include "miniobj.h"
 #include "vas.h"
 #include "vcli_priv.h"
 #include "vrt.h"
@@ -55,8 +56,8 @@
 #define AVG_RATE			4
 
 struct vbp_vcl {
-	unsigned			magic;
-#define VBP_VCL_MAGIC			0x70829764
+	MAGIC_HERE;
+#define VBP_VCL_MAGIC			0x70829764U
 
 	VTAILQ_ENTRY(vbp_vcl)		list;
 	const struct vrt_backend_probe	*probep;
@@ -65,8 +66,8 @@ struct vbp_vcl {
 };
 
 struct vbp_target {
-	unsigned			magic;
-#define VBP_TARGET_MAGIC		0x6b7cb656
+	MAGIC_HERE;
+#define VBP_TARGET_MAGIC		0x6b7cb656U
 
 	struct backend			*backend;
 	VTAILQ_HEAD( ,vbp_vcl)		vcls;

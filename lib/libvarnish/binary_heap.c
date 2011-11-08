@@ -66,8 +66,9 @@
  * it works quite fast for small sizes.
  */
 struct mem {
-	unsigned	magic;
+	MAGIC_HERE;
 #define MEM_MAGIC	0xf07c9610U
+
 	uintptr_t	*lru;
 	uintptr_t	page_mask;
 	uint64_t	pagefaults_count;
@@ -131,8 +132,9 @@ access_mem(const void *p)
 #define TEST_DRIVER_ACCESS_KEY(bh, u)	TEST_DRIVER_ACCESS_MEM(&A(bh, u))
 
 struct binheap {
-	unsigned		magic;
+	MAGIC_HERE;
 #define BINHEAP_MAGIC		0xf581581aU	/* from /dev/random */
+
 	binheap_cmp_t		cmp_f;
 	binheap_update_t	update_f;
 	void			**array;
@@ -501,8 +503,9 @@ vas_f *VAS_Fail = vasfail;
 #endif
 
 struct foo {
-	unsigned		magic;
+	MAGIC_HERE;
 #define FOO_MAGIC	0x23239823U
+
 	unsigned		idx;
 	double			key;
 	unsigned		n;

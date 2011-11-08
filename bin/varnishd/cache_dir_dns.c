@@ -50,8 +50,9 @@
 /* DNS Cache entry
  */
 struct vdi_dns_hostgroup {
-	unsigned			magic;
-#define VDI_DNSDIR_MAGIC		0x1bacab21
+	MAGIC_HERE;
+#define VDI_DNSDIR_MAGIC		0x1bacab21U
+
 	char				*hostname;
 	struct director			*hosts[VDI_DNS_GROUP_MAX_BACKENDS];
 	unsigned			nhosts;
@@ -61,8 +62,9 @@ struct vdi_dns_hostgroup {
 };
 
 struct vdi_dns {
-	unsigned			magic;
-#define VDI_DNS_MAGIC			0x1337a178
+	MAGIC_HERE;
+#define VDI_DNS_MAGIC			0x1337a178U
+
 	struct director			dir;
 	struct director			**hosts;
 	unsigned			nhosts;

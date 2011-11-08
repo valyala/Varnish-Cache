@@ -39,11 +39,14 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
+
 /*The constability of lck depends on platform pthreads implementation */
 
 struct ilck {
-	unsigned		magic;
-#define ILCK_MAGIC		0x7b86c8a5
+	MAGIC_HERE;
+#define ILCK_MAGIC		0x7b86c8a5U
+
 	pthread_mutex_t		mtx;
 	int			held;
 	pthread_t		owner;

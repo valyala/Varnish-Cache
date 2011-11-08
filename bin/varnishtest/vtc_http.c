@@ -47,8 +47,9 @@
 #define MAX_HDR		50
 
 struct http {
-	unsigned		magic;
-#define HTTP_MAGIC		0x2f02169c
+	MAGIC_HERE;
+#define HTTP_MAGIC		0x2f02169cU
+
 	int			fd;
 	int			*sfd;
 	int			timeout;

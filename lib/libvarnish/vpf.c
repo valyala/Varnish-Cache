@@ -46,7 +46,7 @@
 #include "vpf.h"
 
 struct vpf_fh {
-	unsigned magic;
+	MAGIC_HERE;
 #define VPF_FH_MAGIC	0xa5b7e438U
 
 	int	pf_fd;

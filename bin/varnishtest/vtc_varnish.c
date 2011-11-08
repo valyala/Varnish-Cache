@@ -51,8 +51,9 @@
 #include "vtcp.h"
 
 struct varnish {
-	unsigned		magic;
-#define VARNISH_MAGIC		0x208cd8e3
+	MAGIC_HERE;
+#define VARNISH_MAGIC		0x208cd8e3U
+
 	char			*name;
 	struct vtclog		*vl;
 	VTAILQ_ENTRY(varnish)	list;

@@ -59,7 +59,7 @@
 #endif
 
 struct top {
-	unsigned		magic;
+	MAGIC_HERE;
 #define TOP_MAGIC	0x781fff94U
 
 	uint8_t			tag;

@@ -50,7 +50,7 @@
 
 /* lightweight addrinfo */
 struct vss_addr {
-	unsigned magic;
+	MAGIC_HERE;
 #define VSS_ADDR_MAGIC	0xa96cd8e4U
 
 	int			 va_family;

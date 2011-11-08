@@ -42,14 +42,16 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "waiter/cache_waiter.h"
 #include "vtim.h"
 
 #define MAX_EVENTS 256
 
 struct vws {
-	unsigned		magic;
-#define VWS_MAGIC		0x0b771473
+	MAGIC_HERE;
+#define VWS_MAGIC		0x0b771473U
+
 	pthread_t		ports_thread;
 	int			dport;
 	VTAILQ_HEAD(,sess)	sesshead;

@@ -42,8 +42,9 @@
 #define NEEV	128
 
 struct vwp {
-	unsigned		magic;
-#define VWP_MAGIC		0x4b2cc735
+	MAGIC_HERE;
+#define VWP_MAGIC		0x4b2cc735U
+
 	int			pipes[2];
 	pthread_t		poll_thread;
 	struct pollfd		*pollfd;

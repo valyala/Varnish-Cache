@@ -65,7 +65,7 @@
 #endif
 
 struct pt {
-	unsigned		magic;
+	MAGIC_HERE;
 #define PT_MAGIC	0x345011c8U
 
 	VTAILQ_ENTRY(pt)	next;

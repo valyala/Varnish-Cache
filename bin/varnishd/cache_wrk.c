@@ -85,8 +85,9 @@ WRK_TrySumStat(struct worker *w)
  */
 
 struct bgthread {
-	unsigned	magic;
-#define BGTHREAD_MAGIC	0x23b5152b
+	MAGIC_HERE;
+#define BGTHREAD_MAGIC	0x23b5152bU
+
 	const char	*name;
 	bgthread_t	*func;
 	void		*priv;

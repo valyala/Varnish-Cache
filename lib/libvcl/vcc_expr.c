@@ -230,8 +230,9 @@ vcc_ByteVal(struct vcc *tl, double *d)
  */
 
 struct expr {
-	unsigned	magic;
-#define EXPR_MAGIC	0x38c794ab
+	MAGIC_HERE;
+#define EXPR_MAGIC	0x38c794abU
+
 	enum var_type	fmt;
 	struct vsb	*vsb;
 	uint8_t		constant;

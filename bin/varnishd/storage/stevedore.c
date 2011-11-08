@@ -204,7 +204,7 @@ stv_alloc(struct worker *w, const struct object *obj, size_t size)
  */
 
 struct stv_objsecrets {
-	unsigned	magic;
+	MAGIC_HERE;
 #define STV_OBJSECRETS_MAGIC	0x78c87247U
 
 	uint16_t	nhttp;

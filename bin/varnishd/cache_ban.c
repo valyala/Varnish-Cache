@@ -74,8 +74,9 @@
 #include "vtim.h"
 
 struct ban {
-	unsigned		magic;
-#define BAN_MAGIC		0x700b08ea
+	MAGIC_HERE;
+#define BAN_MAGIC		0x700b08eaU
+
 	VTAILQ_ENTRY(ban)	list;
 	unsigned		refcount;
 	unsigned		flags;

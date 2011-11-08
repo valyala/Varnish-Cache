@@ -86,7 +86,7 @@
 static volatile sig_atomic_t reopen;
 
 struct hdr {
-	unsigned magic;
+	MAGIC_HERE;
 #define HDR_MAGIC	0xbafe731aU
 
 	char *key;
@@ -95,7 +95,7 @@ struct hdr {
 };
 
 static struct logline {
-	unsigned magic;
+	MAGIC_HERE;
 #define LOGLINE_MAGIC	0x5fbc8044U
 
 	char *df_H;			/* %H, Protocol version */

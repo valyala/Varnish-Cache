@@ -60,7 +60,7 @@ SMS_Init(void)
 }
 
 static struct stevedore sms_stevedore = {
-	.magic	=	STEVEDORE_MAGIC,
+	MAGIC_INITIALIZER(STEVEDORE_MAGIC)
 	.name	=	"synth",
 	.free	=	sms_free,
 };

@@ -28,6 +28,8 @@
  *
  */
 
+#include "miniobj.h"
+
 /* Parameters */
 #define			SLEEP_USEC	(50*1000)
 #define			TIMEOUT_USEC	(5*1000*1000)
@@ -35,8 +37,8 @@
 struct vsc;
 
 struct VSM_data {
-	unsigned		magic;
-#define VSM_MAGIC		0x6e3bd69b
+	MAGIC_HERE;
+#define VSM_MAGIC		0x6e3bd69bU
 
 	VSM_diag_f		*diag;
 	void			*priv;

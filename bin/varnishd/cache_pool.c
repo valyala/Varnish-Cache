@@ -87,8 +87,9 @@ static void *waiter_priv;
 VTAILQ_HEAD(workerhead, worker);
 
 struct poolsock {
-	unsigned			magic;
-#define POOLSOCK_MAGIC			0x1b0a2d38
+	MAGIC_HERE;
+#define POOLSOCK_MAGIC			0x1b0a2d38U
+
 	VTAILQ_ENTRY(poolsock)		list;
 	struct listen_sock		*lsock;
 };
@@ -96,8 +97,9 @@ struct poolsock {
 /* Number of work requests queued in excess of worker threads available */
 
 struct pool {
-	unsigned		magic;
-#define POOL_MAGIC		0x606658fa
+	MAGIC_HERE;
+#define POOL_MAGIC		0x606658faU
+
 	VTAILQ_ENTRY(pool)	list;
 
 	pthread_cond_t		herder_cond;

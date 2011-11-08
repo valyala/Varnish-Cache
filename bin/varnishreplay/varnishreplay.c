@@ -91,7 +91,7 @@ isequal(const char *str, const char *reference, const char *end)
  */
 
 struct message {
-	unsigned magic;
+	MAGIC_HERE;
 #define MESSAGE_MAGIC	0xb4143b02U
 
 	enum VSL_tag_e tag;
@@ -103,7 +103,7 @@ struct message {
 #define MAX_MAILBOX_SIZE 30
 
 struct mailbox {
-	unsigned magic;
+	MAGIC_HERE;
 #define MAILBOX_MAGIC	0x604345e2U
 
 	pthread_mutex_t lock;
@@ -201,7 +201,7 @@ thread_log(int lvl, int errcode, const char *fmt, ...)
 }
 
 struct replay_thread {
-	unsigned magic;
+	MAGIC_HERE;
 #define REPLAY_THREAD_MAGIC	0x25c36112U
 
 	pthread_t thread_id;

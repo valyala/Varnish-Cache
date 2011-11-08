@@ -58,8 +58,9 @@ struct vep_match {
 enum vep_mark { VERBATIM = 0, SKIP };
 
 struct vep_state {
-	unsigned		magic;
-#define VEP_MAGIC		0x55cb9b82
+	MAGIC_HERE;
+#define VEP_MAGIC		0x55cb9b82U
+
 	struct vsb		*vsb;
 
 	struct worker		*wrk;

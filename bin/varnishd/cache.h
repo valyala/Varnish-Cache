@@ -50,6 +50,7 @@
 
 
 #include "heritage.h"
+#include "miniobj.h"
 
 enum body_status {
 #define BODYSTATUS(U,l)	BS_##U,
@@ -138,8 +139,9 @@ enum step {
  */
 
 struct ws {
-	unsigned		magic;
-#define WS_MAGIC		0x35fac554
+	MAGIC_HERE;
+#define WS_MAGIC		0x35fac554U
+
 	unsigned		overflow;	/* workspace overflowed */
 	const char		*id;		/* identity */
 	char			*s;		/* (S)tart of buffer */
@@ -160,8 +162,8 @@ enum httpwhence {
 
 /* NB: remember to update http_Copy() if you add fields */
 struct http {
-	unsigned		magic;
-#define HTTP_MAGIC		0x6428b5c9
+	MAGIC_HERE;
+#define HTTP_MAGIC		0x6428b5c9U
 
 	enum httpwhence		logtag;
 
@@ -181,8 +183,8 @@ struct http {
  */
 
 struct http_conn {
-	unsigned		magic;
-#define HTTP_CONN_MAGIC		0x3e19edd1
+	MAGIC_HERE;
+#define HTTP_CONN_MAGIC		0x3e19edd1U
 
 	int			fd;
 	unsigned		vsl_id;
@@ -259,8 +261,8 @@ struct wrw {
 /*--------------------------------------------------------------------*/
 
 struct stream_ctx {
-	unsigned		magic;
-#define STREAM_CTX_MAGIC	0x8213728b
+	MAGIC_HERE;
+#define STREAM_CTX_MAGIC	0x8213728bU
 
 	struct vgz		*vgz;
 	void			*obuf;
@@ -277,8 +279,8 @@ struct stream_ctx {
 /*--------------------------------------------------------------------*/
 
 struct wrk_accept {
-	unsigned		magic;
-#define WRK_ACCEPT_MAGIC	0x8c4b4d59
+	MAGIC_HERE;
+#define WRK_ACCEPT_MAGIC	0x8c4b4d59U
 
 	/* Accept stuff */
 	struct sockaddr_storage	acceptaddr;
@@ -290,8 +292,8 @@ struct wrk_accept {
 /*--------------------------------------------------------------------*/
 
 struct objhead {
-	unsigned		magic;
-#define OBJHEAD_MAGIC		0x1b96615d
+	MAGIC_HERE;
+#define OBJHEAD_MAGIC		0x1b96615dU
 
 	int			refcnt;
 	struct lock		mtx;
@@ -308,8 +310,9 @@ struct objhead {
 /*--------------------------------------------------------------------*/
 
 struct worker {
-	unsigned		magic;
-#define WORKER_MAGIC		0x6391adcf
+	MAGIC_HERE;
+#define WORKER_MAGIC		0x6391adcfU
+
 	struct pool		*pool;
 	struct objhead		*nobjhead;
 	struct objcore		*nobjcore;
@@ -392,8 +395,9 @@ struct worker {
 /* LRU ---------------------------------------------------------------*/
 
 struct lru {
-	unsigned		magic;
-#define LRU_MAGIC		0x3fec7bb0
+	MAGIC_HERE;
+#define LRU_MAGIC		0x3fec7bb0U
+
 	VTAILQ_HEAD(,objcore)	lru_head;
 	struct lock		mtx;
 };
@@ -401,8 +405,8 @@ struct lru {
 /* Storage -----------------------------------------------------------*/
 
 struct storage {
-	unsigned		magic;
-#define STORAGE_MAGIC		0x1a4e51c0
+	MAGIC_HERE;
+#define STORAGE_MAGIC		0x1a4e51c0U
 
 #ifdef SENDFILE_WORKS
 	int			fd;
@@ -439,8 +443,9 @@ struct objcore_methods {
 };
 
 struct objcore {
-	unsigned		magic;
-#define OBJCORE_MAGIC		0x4d301302
+	MAGIC_HERE;
+#define OBJCORE_MAGIC		0x4d301302U
+
 	unsigned		refcnt;
 	struct objcore_methods	*methods;
 	void			*priv;
@@ -509,8 +514,9 @@ oc_getlru(const struct objcore *oc)
 /* Busy Object structure ---------------------------------------------*/
 
 struct busyobj {
-	unsigned		magic;
-#define BUSYOBJ_MAGIC		0x23b95567
+	MAGIC_HERE;
+#define BUSYOBJ_MAGIC		0x23b95567U
+
 	uint8_t			*vary;
 };
 
@@ -519,8 +525,9 @@ struct busyobj {
 VTAILQ_HEAD(storagehead, storage);
 
 struct object {
-	unsigned		magic;
-#define OBJECT_MAGIC		0x32851d42
+	MAGIC_HERE;
+#define OBJECT_MAGIC		0x32851d42U
+
 	unsigned		xid;
 	struct storage		*objstore;
 	struct objcore		*objcore;
@@ -558,8 +565,9 @@ struct object {
 /* -------------------------------------------------------------------*/
 
 struct sess {
-	unsigned		magic;
-#define SESS_MAGIC		0x2c2f9c5a
+	MAGIC_HERE;
+#define SESS_MAGIC		0x2c2f9c5aU
+
 	int			fd;
 	unsigned		vsl_id;
 	unsigned		xid;

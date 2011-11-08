@@ -38,12 +38,14 @@
 
 #include "vtc.h"
 
+#include "miniobj.h"
 #include "vss.h"
 #include "vtcp.h"
 
 struct server {
-	unsigned		magic;
-#define SERVER_MAGIC		0x55286619
+	MAGIC_HERE;
+#define SERVER_MAGIC		0x55286619U
+
 	char			*name;
 	struct vtclog		*vl;
 	VTAILQ_ENTRY(server)	list;

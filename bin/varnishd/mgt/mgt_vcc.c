@@ -51,7 +51,7 @@
 #include "mgt_cli.h"
 
 struct vclprog {
-	unsigned magic;
+	MAGIC_HERE;
 #define VCLPROG_MAGIC	0x6982d56eU
 
 	VTAILQ_ENTRY(vclprog)	list;
@@ -122,8 +122,9 @@ mgt_make_cc_cmd(const char *sf, const char *of)
  */
 
 struct vcc_priv {
-	unsigned	magic;
-#define VCC_PRIV_MAGIC	0x70080cb8
+	MAGIC_HERE;
+#define VCC_PRIV_MAGIC	0x70080cb8U
+
 	char		*sf;
 	const char	*vcl;
 };

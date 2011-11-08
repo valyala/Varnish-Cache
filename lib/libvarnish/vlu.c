@@ -41,8 +41,9 @@
 #include "vlu.h"
 
 struct vlu {
-	unsigned	magic;
-#define LINEUP_MAGIC	0x8286661
+	MAGIC_HERE;
+#define LINEUP_MAGIC	0x8286661U
+
 	char		*buf;
 	unsigned	bufl;
 	unsigned	bufp;

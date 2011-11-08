@@ -46,8 +46,9 @@ struct vdi_round_robin_host {
 enum mode_e { m_round_robin, m_fallback };
 
 struct vdi_round_robin {
-	unsigned			magic;
-#define VDI_ROUND_ROBIN_MAGIC		0x2114a178
+	MAGIC_HERE;
+#define VDI_ROUND_ROBIN_MAGIC		0x2114a178U
+
 	struct director			dir;
 	enum mode_e			mode;
 	struct vdi_round_robin_host	*hosts;

@@ -74,7 +74,7 @@ enum var_type {
 };
 
 struct membit {
-	unsigned		magic;
+	MAGIC_HERE;
 #define MEMBIT_MAGIC	0xfbdfcd84U
 
 	VTAILQ_ENTRY(membit)	list;
@@ -82,7 +82,7 @@ struct membit {
 };
 
 struct source {
-	unsigned		magic;
+	MAGIC_HERE;
 #define SOURCE_MAGIC	0xd82857aeU
 
 	VTAILQ_ENTRY(source)	list;
@@ -114,8 +114,8 @@ typedef struct symbol *sym_wildcard_t(struct vcc *tl, const struct token *t,
     const struct symbol *sym);
 
 struct symbol {
-	unsigned			magic;
-#define SYMBOL_MAGIC			0x3368c9fb
+	MAGIC_HERE;
+#define SYMBOL_MAGIC			0x3368c9fbU
 
 	VTAILQ_ENTRY(symbol)		list;
 
@@ -147,8 +147,8 @@ struct symbol {
 VTAILQ_HEAD(tokenhead, token);
 
 struct vcc {
-	unsigned		magic;
-#define VCC_MAGIC		0x24ad719d
+	MAGIC_HERE;
+#define VCC_MAGIC		0x24ad719dU
 
 	/* Parameter/Template section */
 	char			*default_vcl;

@@ -42,6 +42,7 @@
 
 #include "cache.h"
 
+#include "miniobj.h"
 #include "waiter/cache_waiter.h"
 #include "vtim.h"
 
@@ -52,8 +53,8 @@
 #define NEEV	100
 
 struct vwe {
-	unsigned		magic;
-#define VWE_MAGIC		0x6bd73424
+	MAGIC_HERE;
+#define VWE_MAGIC		0x6bd73424U
 
 	pthread_t		epoll_thread;
 	pthread_t		timer_thread;

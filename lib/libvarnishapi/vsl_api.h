@@ -28,19 +28,21 @@
  *
  */
 
+#include "miniobj.h"
 #include "vqueue.h"
 
 struct vsl_re_match {
-	unsigned			magic;
-#define VSL_RE_MATCH_MAGIC		0x4013151e
+	MAGIC_HERE;
+#define VSL_RE_MATCH_MAGIC		0x4013151eU
+
 	int				tag;
 	vre_t				*re;
 	VTAILQ_ENTRY(vsl_re_match)	next;
 };
 
 struct vsl {
-	unsigned		magic;
-#define VSL_MAGIC		0x7a31db38
+	MAGIC_HERE;
+#define VSL_MAGIC		0x7a31db38U
 
 	/* Stuff relating the log records below here */
 

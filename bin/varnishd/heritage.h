@@ -30,10 +30,12 @@
  */
 
 #include "vre.h"
+#include "miniobj.h"
 
 struct listen_sock {
-	unsigned			magic;
-#define LISTEN_SOCK_MAGIC		0x999e4b57
+	MAGIC_HERE;
+#define LISTEN_SOCK_MAGIC		0x999e4b57U
+
 	VTAILQ_ENTRY(listen_sock)	list;
 	int				sock;
 	char				*name;

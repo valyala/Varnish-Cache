@@ -28,14 +28,16 @@
  *
  */
 
+#include "miniobj.h"
+
 struct vev;
 struct vev_base;
 
 typedef int vev_cb_f(const struct vev *, int what);
 
 struct vev {
-	unsigned		magic;
-#define VEV_MAGIC		0x46bbd419
+	MAGIC_HERE;
+#define VEV_MAGIC		0x46bbd419U
 
 	/* pub */
 	const char		*name;

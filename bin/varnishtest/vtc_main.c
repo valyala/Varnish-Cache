@@ -55,8 +55,9 @@
 
 
 struct vtc_tst {
-	unsigned		magic;
-#define TST_MAGIC		0x618d8b88
+	MAGIC_HERE;
+#define TST_MAGIC		0x618d8b88U
+
 	VTAILQ_ENTRY(vtc_tst)	list;
 	const char		*filename;
 	char			*script;
@@ -64,8 +65,9 @@ struct vtc_tst {
 };
 
 struct vtc_job {
-	unsigned		magic;
-#define JOB_MAGIC		0x1b5fc419
+	MAGIC_HERE;
+#define JOB_MAGIC		0x1b5fc419U
+
 	struct vtc_tst		*tst;
 	pid_t			child;
 	struct vev		*ev;

@@ -45,8 +45,9 @@
 #include "vcli_priv.h"
 
 struct vcls {
-	unsigned		magic;
-#define VVCLS_MAGIC		0x214188f2
+	MAGIC_HERE;
+#define VVCLS_MAGIC		0x214188f2U
+
 	VTAILQ_ENTRY(vcls)	list;
 	char			*name;
 	void			*dlh;

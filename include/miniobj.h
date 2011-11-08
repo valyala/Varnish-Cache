@@ -14,6 +14,10 @@
 
 #include "vas.h"
 
+#define MAGIC_HERE			unsigned magic
+
+#define MAGIC_INITIALIZER(type_magic)	.magic = (type_magic),
+
 #define CMP_MAGIC(ptr, type_magic)					\
 	((ptr)->magic == (type_magic))
 

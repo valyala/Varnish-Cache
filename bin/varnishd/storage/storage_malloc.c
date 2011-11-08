@@ -41,8 +41,9 @@
 #include "vnum.h"
 
 struct sma_sc {
-	unsigned		magic;
-#define SMA_SC_MAGIC		0x1ac8a345
+	MAGIC_HERE;
+#define SMA_SC_MAGIC		0x1ac8a345U
+
 	struct lock		sma_mtx;
 	size_t			sma_max;
 	size_t			sma_alloc;
@@ -50,7 +51,7 @@ struct sma_sc {
 };
 
 struct sma {
-	unsigned		magic;
+	MAGIC_HERE;
 #define SMA_MAGIC		0x69ae9bb9U
 
 	struct storage		s;
@@ -228,7 +229,7 @@ sma_open(const struct stevedore *st)
 }
 
 const struct stevedore sma_stevedore = {
-	.magic	=	STEVEDORE_MAGIC,
+	MAGIC_INITIALIZER(STEVEDORE_MAGIC)
 	.name	=	"malloc",
 	.init	=	sma_init,
 	.open	=	sma_open,

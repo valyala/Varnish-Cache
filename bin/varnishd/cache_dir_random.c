@@ -67,8 +67,9 @@ struct vdi_random_host {
 enum crit_e {c_random, c_hash, c_client};
 
 struct vdi_random {
-	unsigned		magic;
-#define VDI_RANDOM_MAGIC	0x3771ae23
+	MAGIC_HERE;
+#define VDI_RANDOM_MAGIC	0x3771ae23U
+
 	struct director		dir;
 
 	enum crit_e		criteria;

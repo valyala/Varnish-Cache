@@ -64,7 +64,7 @@ static struct vtclog	*vltop;
  */
 
 struct macro {
-	unsigned		magic;
+	MAGIC_HERE;
 #define MACRO_MAGIC	0x898a1d2eU
 
 	VTAILQ_ENTRY(macro)	list;
@@ -197,7 +197,7 @@ macro_expand(struct vtclog *vl, const char *text)
 */
 
 struct extmacro {
-	unsigned magic;
+	MAGIC_HERE;
 #define EXTMACRO_MAGIC	0x3349e1ceU
 
 	VTAILQ_ENTRY(extmacro)	list;

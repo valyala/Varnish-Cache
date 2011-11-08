@@ -53,8 +53,9 @@ typedef void storage_close_f(const struct stevedore *);
 /*--------------------------------------------------------------------*/
 
 struct stevedore {
-	unsigned		magic;
-#define STEVEDORE_MAGIC		0x4baf43db
+	MAGIC_HERE;
+#define STEVEDORE_MAGIC		0x4baf43dbU
+
 	const char		*name;
 	unsigned		transient;
 	storage_init_f		*init;		/* called by mgt process */

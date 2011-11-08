@@ -42,7 +42,7 @@
 #define VBITMAP_BIT(n)	(1U << (n % VBITMAP_WORD))
 
 struct vbitmap {
-	unsigned	magic;
+	MAGIC_HERE;
 #define VBITMAP_MAGIC	0x5cbe52a4U
 
 	VBITMAP_TYPE	*bits;

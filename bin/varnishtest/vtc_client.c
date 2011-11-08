@@ -42,8 +42,9 @@
 #include "vtcp.h"
 
 struct client {
-	unsigned		magic;
-#define CLIENT_MAGIC		0x6242397c
+	MAGIC_HERE;
+#define CLIENT_MAGIC		0x6242397cU
+
 	char			*name;
 	struct vtclog		*vl;
 	VTAILQ_ENTRY(client)	list;

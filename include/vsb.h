@@ -31,11 +31,13 @@
 #ifndef VSB_H_INCLUDED
 #define VSB_H_INCLUDED
 
+#include "miniobj.h"
+
 /*
  * Structure definition
  */
 struct vsb {
-	unsigned	magic;
+	MAGIC_HERE;
 #define VSB_MAGIC	0xbe739f42U
 
 	char		*s_buf;		/* storage buffer */

@@ -46,8 +46,8 @@
 /*--------------------------------------------------------------------*/
 
 struct sessmem {
-	unsigned		magic;
-#define SESSMEM_MAGIC		0x555859c5
+	MAGIC_HERE;
+#define SESSMEM_MAGIC		0x555859c5U
 
 	struct sesspool		*pool;
 
@@ -61,8 +61,9 @@ struct sessmem {
 };
 
 struct sesspool {
-	unsigned		magic;
-#define SESSPOOL_MAGIC		0xd916e202
+	MAGIC_HERE;
+#define SESSPOOL_MAGIC		0xd916e202U
+
 	struct pool		*pool;
 	VTAILQ_HEAD(,sessmem)	freelist;
 	struct lock		mtx;

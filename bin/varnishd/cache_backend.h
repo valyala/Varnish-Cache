@@ -66,6 +66,8 @@
  *
  */
 
+#include "miniobj.h"
+
 struct vbp_target;
 struct vbc;
 struct vrt_backend_probe;
@@ -80,8 +82,9 @@ typedef void vdi_fini_f(const struct director *);
 typedef unsigned vdi_healthy(const struct director *, const struct sess *sp);
 
 struct director {
-	unsigned		magic;
-#define DIRECTOR_MAGIC		0x3336351d
+	MAGIC_HERE;
+#define DIRECTOR_MAGIC		0x3336351dU
+
 	const char		*name;
 	char			*vcl_name;
 	vdi_getfd_f		*getfd;
@@ -95,8 +98,9 @@ struct director {
  */
 
 struct trouble {
-	unsigned		magic;
-#define TROUBLE_MAGIC		0x4211ab21
+	MAGIC_HERE;
+#define TROUBLE_MAGIC		0x4211ab21U
+
 	uintptr_t		target;
 	double			timeout;
 	VTAILQ_ENTRY(trouble)	list;
@@ -113,8 +117,8 @@ enum health_status {
 };
 
 struct backend {
-	unsigned		magic;
-#define BACKEND_MAGIC		0x64c4c7c6
+	MAGIC_HERE;
+#define BACKEND_MAGIC		0x64c4c7c6U
 
 	VTAILQ_ENTRY(backend)	list;
 	int			refcount;
@@ -146,8 +150,9 @@ struct backend {
 
 /* Backend connection */
 struct vbc {
-	unsigned		magic;
-#define VBC_MAGIC		0x0c5e6592
+	MAGIC_HERE;
+#define VBC_MAGIC		0x0c5e6592U
+
 	VTAILQ_ENTRY(vbc)	list;
 	struct backend		*backend;
 	struct vdi_simple	*vdis;

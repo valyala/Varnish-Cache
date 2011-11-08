@@ -33,6 +33,8 @@
  * XXX: Do we ever free the LRU-lists ?
  */
 
+#include "miniobj.h"
+
 #define ASSERT_SILO_THREAD(sc) \
     do {assert(pthread_self() == (sc)->thread);} while (0)
 
@@ -59,8 +61,8 @@ struct smp_sc;
 
 /* XXX: name confusion with on-media version ? */
 struct smp_seg {
-	unsigned		magic;
-#define SMP_SEG_MAGIC		0x45c61895
+	MAGIC_HERE;
+#define SMP_SEG_MAGIC		0x45c61895U
 
 	struct smp_sc		*sc;
 	struct lru		*lru;
@@ -85,8 +87,9 @@ struct smp_seg {
 VTAILQ_HEAD(smp_seghead, smp_seg);
 
 struct smp_sc {
-	unsigned		magic;
-#define SMP_SC_MAGIC		0x7b73af0a
+	MAGIC_HERE;
+#define SMP_SC_MAGIC		0x7b73af0aU
+
 	struct stevedore	*parent;
 
 	unsigned		flags;

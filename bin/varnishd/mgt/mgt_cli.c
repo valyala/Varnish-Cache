@@ -435,8 +435,9 @@ sock_id(const char *pfx, int fd)
 /*--------------------------------------------------------------------*/
 
 struct telnet {
-	unsigned		magic;
-#define TELNET_MAGIC		0x53ec3ac0
+	MAGIC_HERE;
+#define TELNET_MAGIC		0x53ec3ac0U
+
 	int			fd;
 	struct vev		*ev;
 };

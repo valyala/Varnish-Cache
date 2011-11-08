@@ -155,7 +155,7 @@ smu_open(const struct stevedore *st)
 }
 
 const struct stevedore smu_stevedore = {
-	.magic	=	STEVEDORE_MAGIC,
+	MAGIC_INITIALIZER(STEVEDORE_MAGIC)
 	.name	=	"umem",
 	.init	=	smu_init,
 	.open	=	smu_open,

@@ -37,8 +37,9 @@
 #include "vre.h"
 
 struct vre {
-	unsigned		magic;
-#define VRE_MAGIC		0xe83097dc
+	MAGIC_HERE;
+#define VRE_MAGIC		0xe83097dcU
+
 	pcre *re;
 };
 

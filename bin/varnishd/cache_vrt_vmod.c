@@ -45,8 +45,8 @@
  */
 
 struct vmod {
-	unsigned		magic;
-#define VMOD_MAGIC		0xb750219c
+	MAGIC_HERE;
+#define VMOD_MAGIC		0xb750219cU
 
 	VTAILQ_ENTRY(vmod)	list;
 

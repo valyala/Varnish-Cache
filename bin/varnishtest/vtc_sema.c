@@ -35,9 +35,12 @@
 
 #include "vtc.h"
 
+#include "miniobj.h"
+
 struct sema {
-	unsigned		magic;
-#define SEMA_MAGIC		0x29b64317
+	MAGIC_HERE;
+#define SEMA_MAGIC		0x29b64317U
+
 	char			*name;
 	VTAILQ_ENTRY(sema)	list;
 	pthread_mutex_t		mtx;

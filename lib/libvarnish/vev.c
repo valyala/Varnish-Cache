@@ -64,8 +64,9 @@ static struct vevsig		*vev_sigs;
 static int			vev_nsig;
 
 struct vev_base {
-	unsigned		magic;
-#define VEV_BASE_MAGIC		0x477bcf3d
+	MAGIC_HERE;
+#define VEV_BASE_MAGIC		0x477bcf3dU
+
 	VTAILQ_HEAD(,vev)	events;
 	struct pollfd		*pfd;
 	unsigned		npfd;

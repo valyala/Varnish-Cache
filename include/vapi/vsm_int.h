@@ -34,6 +34,8 @@
 #ifndef VSM_INT_H_INCLUDED
 #define VSM_INT_H_INCLUDED
 
+#include "miniobj.h"
+
 #define VSM_FILENAME		"_.vsm"
 
 /*
@@ -41,8 +43,9 @@
  */
 
 struct VSM_chunk {
-#define VSM_CHUNK_MAGIC		0x43907b6e	/* From /dev/random */
-	unsigned		magic;
+	MAGIC_HERE;
+#define VSM_CHUNK_MAGIC		0x43907b6eU	/* From /dev/random */
+
 	unsigned		len;
 	unsigned		state;
 	char			class[8];
@@ -54,8 +57,8 @@ struct VSM_chunk {
 #define VSM_PTR(sha)		((void*)((uintptr_t)((sha) + 1)))
 
 struct VSM_head {
+	MAGIC_HERE;
 #define VSM_HEAD_MAGIC		4185512502U	/* From /dev/random */
-	unsigned		magic;
 
 	unsigned		hdrsize;
 

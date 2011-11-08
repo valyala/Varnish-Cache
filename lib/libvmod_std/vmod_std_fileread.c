@@ -52,8 +52,9 @@
 #include "vcc_if.h"
 
 struct frfile {
-	unsigned			magic;
-#define CACHED_FILE_MAGIC 0xa8e9d87a
+	MAGIC_HERE;
+#define CACHED_FILE_MAGIC 0xa8e9d87aU
+
 	char				*file_name;
 	char				*contents;
 	int				refcount;
