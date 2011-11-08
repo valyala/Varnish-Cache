@@ -237,8 +237,7 @@ STV_MkObject(struct sess *sp, void *ptr, unsigned ltot,
 	assert(ltot >= sizeof *o + soc->lhttp + soc->wsl);
 
 	o = ptr;
-	ZERO_OBJ(o);
-	SET_MAGIC(o, OBJECT_MAGIC);
+	INIT_OBJ(o, OBJECT_MAGIC);
 
 	l = PRNDDN(ltot - (sizeof *o + soc->lhttp));
 	assert(l >= soc->wsl);
@@ -316,8 +315,7 @@ STV_NewObject(struct sess *sp, const char *hint, unsigned wsl, struct exp *ep,
 	lhttp = HTTP_estimate(nhttp);
 	lhttp = PRNDUP(lhttp);
 
-	ZERO_OBJ(&soc);
-	SET_MAGIC(&soc, STV_OBJSECRETS_MAGIC);
+	INIT_OBJ(&soc, STV_OBJSECRETS_MAGIC);
 	soc.nhttp = nhttp;
 	soc.lhttp = lhttp;
 	soc.wsl = wsl;

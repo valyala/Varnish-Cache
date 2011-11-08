@@ -280,8 +280,7 @@ clean_logline(struct logline *lp)
 		FREE_NOTNULL(h->value);
 		FREE_OBJ_NOTNULL(h, HDR_MAGIC);
 	}
-	ZERO_OBJ(lp);
-	SET_MAGIC(lp, LOGLINE_MAGIC);
+	INIT_OBJ(lp, LOGLINE_MAGIC);
 }
 
 static int

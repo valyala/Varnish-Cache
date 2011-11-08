@@ -148,8 +148,7 @@ pool_accept(struct pool *pp, struct worker *w, const struct poolsock *ps)
 	assert(sizeof *wa == WS_Reserve(w->ws, sizeof *wa));
 	wa = (void*)w->ws->f;
 	while (1) {
-		ZERO_OBJ(wa);
-		SET_MAGIC(wa, WRK_ACCEPT_MAGIC);
+		INIT_OBJ(wa, WRK_ACCEPT_MAGIC);
 
 		if (ps->lsock->sock < 0) {
 			/* Socket Shutdown */

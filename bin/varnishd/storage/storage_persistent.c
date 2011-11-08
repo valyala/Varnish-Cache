@@ -443,8 +443,7 @@ smp_allocx(struct stevedore *st, size_t min_size, size_t max_size,
 	assert(max_size >= min_size);
 
 	/* Fill the storage structure */
-	ZERO_OBJ(ss);
-	SET_MAGIC(ss, STORAGE_MAGIC);
+	INIT_OBJ(ss, STORAGE_MAGIC);
 	ss->ptr = PRNUP(sc, ss + 1);
 	ss->space = max_size;
 	ss->priv = sc;

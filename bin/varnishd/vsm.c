@@ -175,8 +175,7 @@ VSM__Alloc(unsigned size, const char *class, const char *type, const char *ident
 		if (size + sizeof (*sha) < sha->len) {
 			sha2 = (void*)((uintptr_t)sha + size);
 
-			ZERO_OBJ(sha2);
-			SET_MAGIC(sha2, VSM_CHUNK_MAGIC);
+			INIT_OBJ(sha2, VSM_CHUNK_MAGIC);
 			sha2->len = sha->len - size;
 			bprintf(sha2->class, "%s", VSM_CLASS_FREE);
 			sha->len = size;

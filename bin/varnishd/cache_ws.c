@@ -65,8 +65,7 @@ WS_Init(struct ws *ws, const char *id, void *space, unsigned len)
 	DSL(0x02, SLT_Debug, 0,
 	    "WS_Init(%p, \"%s\", %p, %u)", ws, id, space, len);
 	assert(space != NULL);
-	ZERO_OBJ(ws);
-	SET_MAGIC(ws, WS_MAGIC);
+	INIT_OBJ(ws, WS_MAGIC);
 	ws->s = space;
 	assert(PAOK(space));
 	ws->e = ws->s + len;

@@ -104,9 +104,8 @@ wrk_bgthread(void *arg)
 	THR_SetName(bt->name);
 	sp = SES_Alloc();
 	XXXAN(sp);
-	ZERO_OBJ(&ww);
+	INIT_OBJ(&ww, WORKER_MAGIC);
 	sp->wrk = &ww;
-	SET_MAGIC(&ww, WORKER_MAGIC);
 	ww.wlp = ww.wlb = logbuf;
 	ww.wle = logbuf + (sizeof logbuf) / 4;
 
@@ -147,8 +146,7 @@ wrk_thread_real(void *priv, unsigned shm_workspace, unsigned sess_workspace,
 
 	THR_SetName("cache-worker");
 	w = &ww;
-	ZERO_OBJ(w);
-	SET_MAGIC(w, WORKER_MAGIC);
+	INIT_OBJ(w, WORKER_MAGIC);
 	w->lastused = NAN;
 	w->wlb = w->wlp = wlog;
 	w->wle = wlog + (sizeof wlog) / 4;

@@ -161,8 +161,7 @@ static void
 VSB_newbuf(struct vsb *s, char *buf, int length, int flags)
 {
 
-	ZERO_OBJ(s);
-	SET_MAGIC(s, VSB_MAGIC);
+	INIT_OBJ(s, VSB_MAGIC);
 	s->s_flags = flags;
 	s->s_size = length;
 	s->s_buf = buf;

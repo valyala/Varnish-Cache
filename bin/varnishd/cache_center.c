@@ -894,8 +894,7 @@ cnt_streambody(struct sess *sp)
 	uint8_t obuf[sp->wrk->res_mode & RES_GUNZIP ?
 	    params->gzip_stack_buffer : 1];
 
-	ZERO_OBJ(&sctx);
-	SET_MAGIC(&sctx, STREAM_CTX_MAGIC);
+	INIT_OBJ(&sctx, STREAM_CTX_MAGIC);
 	AZ(sp->wrk->sctx);
 	sp->wrk->sctx = &sctx;
 

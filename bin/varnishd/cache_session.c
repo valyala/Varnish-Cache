@@ -152,8 +152,7 @@ ses_setup(struct sessmem *sm)
 
 	CHECK_OBJ_NOTNULL(sm, SESSMEM_MAGIC);
 	sp = &sm->sess;
-	ZERO_OBJ(sp);
-	SET_MAGIC(sp, SESS_MAGIC);
+	INIT_OBJ(sp, SESS_MAGIC);
 	sp->mem = sm;
 	sp->sockaddrlen = sizeof(sp->sockaddr);
 	sp->mysockaddrlen = sizeof(sp->mysockaddr);

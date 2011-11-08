@@ -191,8 +191,7 @@ vsl_buildnew(const char *fn, unsigned size, int fill)
 	flags &= ~O_NONBLOCK;
 	AZ(fcntl(vsl_fd, F_SETFL, flags));
 
-	ZERO_OBJ(&slh);
-	SET_MAGIC(&slh, VSM_HEAD_MAGIC);
+	INIT_OBJ(&slh, VSM_HEAD_MAGIC);
 	slh.hdrsize = sizeof slh;
 	slh.shm_size = size;
 	i = write(vsl_fd, &slh, sizeof slh);
@@ -309,8 +308,7 @@ mgt_SHM_Init(const char *l_arg)
 	xxxassert(VSM_head != MAP_FAILED);
 	(void)mlock((void*)VSM_head, size);
 
-	ZERO_OBJ(&VSM_head->head);
-	SET_MAGIC(&VSM_head->head, VSM_CHUNK_MAGIC);
+	INIT_OBJ(&VSM_head->head, VSM_CHUNK_MAGIC);
 	VSM_head->head.len =
 	    (uint8_t*)(VSM_head) + size - (uint8_t*)&VSM_head->head;
 	bprintf(VSM_head->head.class, "%s", VSM_CLASS_FREE);

@@ -138,4 +138,10 @@ zero_array(void *a, size_t items_count, size_t item_size)
 		zero_array((a), (items_count), sizeof(*(a)));		\
 	} while (0)
 
+#define INIT_OBJ(ptr, type_magic)					\
+	do {								\
+		ZERO_OBJ((ptr));					\
+		SET_MAGIC((ptr), (type_magic));				\
+	} while (0)
+
 #endif

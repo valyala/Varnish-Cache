@@ -140,10 +140,9 @@ http_Setup(struct http *hp, struct ws *ws)
 	shd = hp->shd;
 	hd = hp->hd;
 	hdf = hp->hdf;
-	ZERO_OBJ(hp);
+	INIT_OBJ(hp, HTTP_MAGIC);
 	ZERO_ARRAY(hd, shd);
 	ZERO_ARRAY(hdf, shd);
-	SET_MAGIC(hp, HTTP_MAGIC);
 	hp->ws = ws;
 	hp->nhd = HTTP_HDR_FIRST;
 	hp->shd = shd;
