@@ -455,7 +455,7 @@ VSB_error(const struct vsb *s)
 /*
  * Finish off an vsb.
  */
-int
+void
 VSB_finish(struct vsb *s)
 {
 
@@ -465,9 +465,7 @@ VSB_finish(struct vsb *s)
 	s->s_buf[s->s_len] = '\0';
 	VSB_SETFLAG(s, VSB_FINISHED);
 	errno = s->s_error;
-	if (s->s_error)
-		return (-1);
-	return (0);
+	XXXAZ(s->s_error);
 }
 
 /*

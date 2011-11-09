@@ -74,12 +74,12 @@ VTIM_mono(void)
 #elif  HAVE_CLOCK_GETTIME
 	struct timespec ts;
 
-	assert(clock_gettime(CLOCK_MONOTONIC, &ts) == 0);
+	xxxassert(clock_gettime(CLOCK_MONOTONIC, &ts) == 0);
 	return (ts.tv_sec + 1e-9 * ts.tv_nsec);
 #else
 	struct timeval tv;
 
-	assert(gettimeofday(&tv, NULL) == 0);
+	xxxassert(gettimeofday(&tv, NULL) == 0);
 	return (tv.tv_sec + 1e-6 * tv.tv_usec);
 #endif
 }
@@ -90,12 +90,12 @@ VTIM_real(void)
 #ifdef HAVE_CLOCK_GETTIME
 	struct timespec ts;
 
-	assert(clock_gettime(CLOCK_REALTIME, &ts) == 0);
+	xxxassert(clock_gettime(CLOCK_REALTIME, &ts) == 0);
 	return (ts.tv_sec + 1e-9 * ts.tv_nsec);
 #else
 	struct timeval tv;
 
-	assert(gettimeofday(&tv, NULL) == 0);
+	xxxassert(gettimeofday(&tv, NULL) == 0);
 	return (tv.tv_sec + 1e-6 * tv.tv_usec);
 #endif
 }
@@ -108,7 +108,7 @@ VTIM_format(double t, char *p)
 
 	tt = (time_t) t;
 	(void)gmtime_r(&tt, &tm);
-	AN(strftime(p, VTIM_FORMAT_SIZE, "%a, %d %b %Y %T GMT", &tm));
+	XXXAN(strftime(p, VTIM_FORMAT_SIZE, "%a, %d %b %Y %T GMT", &tm));
 }
 
 /* XXX: add statistics ? */

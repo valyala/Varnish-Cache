@@ -147,7 +147,7 @@ pool_accept(struct pool *pp, struct worker *w, const struct poolsock *ps)
 	CHECK_OBJ_NOTNULL(ps->lsock, LISTEN_SOCK_MAGIC);
 	Lck_AssertHeld(&pp->mtx);
 	Lck_Unlock(&pp->mtx);
-	assert(sizeof *wa == WS_Reserve(w->ws, sizeof *wa));
+	xxxassert(sizeof *wa == WS_Reserve(w->ws, sizeof *wa));
 	wa = (void*)w->ws->f;
 	while (1) {
 		INIT_OBJ(wa, WRK_ACCEPT_MAGIC);
@@ -170,10 +170,10 @@ pool_accept(struct pool *pp, struct worker *w, const struct poolsock *ps)
 		w2 = VTAILQ_FIRST(&pp->idle);
 		VTAILQ_REMOVE(&pp->idle, w2, list);
 		Lck_Unlock(&pp->mtx);
-		assert(sizeof *wa2 == WS_Reserve(w2->ws, sizeof *wa2));
+		xxxassert(sizeof *wa2 == WS_Reserve(w2->ws, sizeof *wa2));
 		wa2 = (void*)w2->ws->f;
 		memcpy(wa2, wa, sizeof *wa);
-		AZ(pthread_cond_signal(&w2->cond));
+		XXXAZ(pthread_cond_signal(&w2->cond));
 	}
 }
 
@@ -306,7 +306,7 @@ pool_queue(struct pool *pp, struct sess *sp)
 		VTAILQ_REMOVE(&pp->idle, w, list);
 		Lck_Unlock(&pp->mtx);
 		w->sp = sp;
-		AZ(pthread_cond_signal(&w->cond));
+		XXXAZ(pthread_cond_signal(&w->cond));
 		return (0);
 	}
 
@@ -321,7 +321,7 @@ pool_queue(struct pool *pp, struct sess *sp)
 	pp->nqueued++;
 	pp->lqueue++;
 	Lck_Unlock(&pp->mtx);
-	AZ(pthread_cond_signal(&pp->herder_cond));
+	XXXAZ(pthread_cond_signal(&pp->herder_cond));
 	return (0);
 }
 
@@ -403,7 +403,7 @@ pool_breed(struct pool *qp, const pthread_attr_t *tp_attr)
 			Lck_Unlock(&pool_mtx);
 			VTIM_sleep(params->wthread_fail_delay * 1e-3);
 		} else {
-			AZ(pthread_detach(tp));
+			XXXAZ(pthread_detach(tp));
 			VTIM_sleep(params->wthread_add_delay * 1e-3);
 			qp->nthr++;
 			Lck_Lock(&pool_mtx);
@@ -441,16 +441,16 @@ pool_herder(void *priv)
 	int i;
 
 	CAST_OBJ_NOTNULL(pp, priv, POOL_MAGIC);
-	AZ(pthread_attr_init(&tp_attr));
+	XXXAZ(pthread_attr_init(&tp_attr));
 
 	while (1) {
 		/* Set the stacksize for worker threads we create */
 		if (params->wthread_stacksize != UINT_MAX)
-			AZ(pthread_attr_setstacksize(&tp_attr,
+			XXXAZ(pthread_attr_setstacksize(&tp_attr,
 			    params->wthread_stacksize));
 		else {
-			AZ(pthread_attr_destroy(&tp_attr));
-			AZ(pthread_attr_init(&tp_attr));
+			XXXAZ(pthread_attr_destroy(&tp_attr));
+			XXXAZ(pthread_attr_init(&tp_attr));
 		}
 
 		pool_breed(pp, &tp_attr);
@@ -458,7 +458,7 @@ pool_herder(void *priv)
 		if (pp->nthr < params->wthread_min)
 			continue;
 
-		AZ(clock_gettime(CLOCK_MONOTONIC, &ts));
+		XXXAZ(clock_gettime(CLOCK_MONOTONIC, &ts));
 		ts.tv_sec += params->wthread_purge_delay / 1000;
 		ts.tv_nsec += 
 		    (params->wthread_purge_delay % 1000) * 1000000;
@@ -498,7 +498,7 @@ pool_herder(void *priv)
 			VSC_C_main->threads_destroyed++;
 			Lck_Unlock(&pool_mtx);
 			AZ(w->sp);
-			AZ(pthread_cond_signal(&w->cond));
+			XXXAZ(pthread_cond_signal(&w->cond));
 		}
 	}
 	NEEDLESS_RETURN(NULL);
@@ -533,12 +533,12 @@ pool_mkpool(void)
 		VTAILQ_INSERT_TAIL(&pp->socks, ps, list);
 	}
 
-	AZ(pthread_condattr_init(&cv_attr));
-	AZ(pthread_condattr_setclock(&cv_attr, CLOCK_MONOTONIC));
-	AZ(pthread_cond_init(&pp->herder_cond, &cv_attr));
-	AZ(pthread_condattr_destroy(&cv_attr));
+	XXXAZ(pthread_condattr_init(&cv_attr));
+	XXXAZ(pthread_condattr_setclock(&cv_attr, CLOCK_MONOTONIC));
+	XXXAZ(pthread_cond_init(&pp->herder_cond, &cv_attr));
+	XXXAZ(pthread_condattr_destroy(&cv_attr));
 	Lck_New(&pp->herder_mtx, lck_herder);
-	AZ(pthread_create(&pp->herder_thr, NULL, pool_herder, pp));
+	XXXAZ(pthread_create(&pp->herder_thr, NULL, pool_herder, pp));
 
 	return (pp);
 }
@@ -588,5 +588,5 @@ Pool_Init(void)
 
 	waiter_priv = waiter->init();
 	Lck_New(&pool_mtx, lck_wq);
-	AZ(pthread_create(&thr_pool_herder, NULL, pool_poolherder, NULL));
+	XXXAZ(pthread_create(&thr_pool_herder, NULL, pool_poolherder, NULL));
 }

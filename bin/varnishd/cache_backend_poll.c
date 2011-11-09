@@ -307,8 +307,8 @@ static void
 vbp_build_req(struct vsb *vsb, const struct vbp_vcl *vcl)
 {
 
-	XXXAN(vsb);
-	XXXAN(vcl);
+	CHECK_OBJ_NOTNULL(vsb, VSB_MAGIC);
+	CHECK_OBJ_NOTNULL(vcl, VBP_VCL_MAGIC);
 	VSB_clear(vsb);
 	if(vcl->probe.request != NULL) {
 		VSB_cat(vsb, vcl->probe.request);
@@ -320,7 +320,7 @@ vbp_build_req(struct vsb *vsb, const struct vbp_vcl *vcl)
 		VSB_printf(vsb, "Connection: close\r\n");
 		VSB_printf(vsb, "\r\n");
 	}
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 }
 
 /*--------------------------------------------------------------------
@@ -341,6 +341,7 @@ vbp_wrk_poll_backend(void *priv)
 		Lck_Lock(&vbp_mtx);
 		if (VTAILQ_FIRST(&vt->vcls) != vcl) {
 			vcl = VTAILQ_FIRST(&vt->vcls);
+			CHECK_OBJ_NOTNULL(vcl, VBP_VCL_MAGIC);
 			vbp_build_req(vt->vsb, vcl);
 			vt->probe = vcl->probe;
 		}
@@ -504,7 +505,7 @@ VBP_Insert(struct backend *b, const struct vrt_backend_probe *p, const char *hos
 			vt->happy |= 1;
 			vbp_has_poked(vt);
 		}
-		AZ(pthread_create(&vt->thread, NULL, vbp_wrk_poll_backend, vt));
+		XXXAZ(pthread_create(&vt->thread, NULL, vbp_wrk_poll_backend, vt));
 	}
 }
 
@@ -566,8 +567,8 @@ VBP_Remove(struct backend *b, struct vrt_backend_probe const *p)
 	b->healthy = 1;
 
 	vt->stop = 1;
-	AZ(pthread_cancel(vt->thread));
-	AZ(pthread_join(vt->thread, &ret));
+	XXXAZ(pthread_cancel(vt->thread));
+	XXXAZ(pthread_join(vt->thread, &ret));
 
 	b->healthy = 1;
 

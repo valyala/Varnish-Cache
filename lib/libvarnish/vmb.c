@@ -44,7 +44,7 @@ static void
 vmb_init(void)
 {
 
-	AZ(pthread_mutex_init(&mb_mtx, NULL));
+	XXXAZ(pthread_mutex_init(&mb_mtx, NULL));
 }
 
 
@@ -52,10 +52,10 @@ void
 vmb_pthread(void)
 {
 
-	AZ(pthread_once(&mb_mtx_once, vmb_init));
+	XXXAZ(pthread_once(&mb_mtx_once, vmb_init));
 
-	AZ(pthread_mutex_lock(&mb_mtx));
-	AZ(pthread_mutex_unlock(&mb_mtx));
+	XXXAZ(pthread_mutex_lock(&mb_mtx));
+	XXXAZ(pthread_mutex_unlock(&mb_mtx));
 }
 
 #endif

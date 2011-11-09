@@ -188,7 +188,8 @@ VSM__Alloc(unsigned size, const char *class, const char *type, const char *ident
 		vsm_release(seq);
 		return (VSM_PTR(sha));
 	}
-	return (NULL);
+	WRONG("Cannot allocate memory");
+	NEEDLESS_RETURN(NULL);
 }
 
 /*--------------------------------------------------------------------*/

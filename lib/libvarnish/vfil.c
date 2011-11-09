@@ -88,12 +88,12 @@ VFIL_readfd(int fd, ssize_t *sz)
 	char *f;
 	int i;
 
-	assert(0 == fstat(fd, &st));
+	xxxassert(0 == fstat(fd, &st));
 	if (!S_ISREG(st.st_mode))
 		return (NULL);
 	MALLOC_NOTNULL(f, st.st_size + 1);
 	i = read(fd, f, st.st_size);
-	assert(i == st.st_size);
+	xxxassert(i == st.st_size);
 	f[i] = '\0';
 	if (sz != NULL)
 		*sz = st.st_size;
@@ -118,7 +118,7 @@ VFIL_readfile(const char *pfx, const char *fn, ssize_t *sz)
 		return (NULL);
 	r = VFIL_readfd(fd, sz);
 	err = errno;
-	AZ(close(fd));
+	XXXAZ(close(fd));
 	errno = err;
 	return (r);
 }

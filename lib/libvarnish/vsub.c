@@ -88,26 +88,26 @@ VSUB_run(struct vsb *sb, vsub_func_f *func, void *priv, const char *name,
 	if ((pid = fork()) < 0) {
 		VSB_printf(sb, "Starting %s: fork() failed: %s",
 		    name, strerror(errno));
-		AZ(close(p[0]));
-		AZ(close(p[1]));
+		XXXAZ(close(p[0]));
+		XXXAZ(close(p[1]));
 		return (-1);
 	}
 	if (pid == 0) {
-		AZ(close(STDIN_FILENO));
-		assert(open("/dev/null", O_RDONLY) == STDIN_FILENO);
-		assert(dup2(p[1], STDOUT_FILENO) == STDOUT_FILENO);
-		assert(dup2(p[1], STDERR_FILENO) == STDERR_FILENO);
+		XXXAZ(close(STDIN_FILENO));
+		xxxassert(open("/dev/null", O_RDONLY) == STDIN_FILENO);
+		xxxassert(dup2(p[1], STDOUT_FILENO) == STDOUT_FILENO);
+		xxxassert(dup2(p[1], STDERR_FILENO) == STDERR_FILENO);
 		/* Close all other fds */
 		for (sfd = STDERR_FILENO + 1; sfd < 100; sfd++)
 			(void)close(sfd);
 		func(priv);
 		_exit(1);
 	}
-	AZ(close(p[1]));
+	XXXAZ(close(p[1]));
 	vlu = VLU_New(&sp, vsub_vlu, 0);
 	while (!VLU_Fd(p[0], vlu))
 		continue;
-	AZ(close(p[0]));
+	XXXAZ(close(p[0]));
 	VLU_Destroy(vlu);
 	if (sp.maxlines >= 0 && sp.lines > sp.maxlines)
 		VSB_printf(sb, "[%d lines truncated]\n",

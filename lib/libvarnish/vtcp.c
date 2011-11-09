@@ -109,7 +109,7 @@ VTCP_myname(int sock, char *abuf, unsigned alen, char *pbuf, unsigned plen)
 	socklen_t l;
 
 	l = sizeof addr_s;
-	AZ(getsockname(sock, (void *)&addr_s, &l));
+	XXXAZ(getsockname(sock, (void *)&addr_s, &l));
 	VTCP_name(&addr_s, l, abuf, alen, pbuf, plen);
 }
 /*--------------------------------------------------------------------*/
@@ -232,7 +232,7 @@ VTCP_connect(int s, const struct sockaddr_storage *name, socklen_t namelen, int 
 
 	/* Find out if we got a connection */
 	l = sizeof k;
-	AZ(getsockopt(s, SOL_SOCKET, SO_ERROR, &k, &l));
+	XXXAZ(getsockopt(s, SOL_SOCKET, SO_ERROR, &k, &l));
 
 	/* An error means no connection established */
 	errno = k;

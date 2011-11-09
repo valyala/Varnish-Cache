@@ -314,18 +314,18 @@ vdi_dns_walk_cache(const struct sess *sp,
 	struct director *backend = NULL;
 	int ret;
 
-	AZ(pthread_rwlock_rdlock(&vs->rwlock));
+	XXXAZ(pthread_rwlock_rdlock(&vs->rwlock));
 	ret = vdi_dns_cache_has(sp, vs, hostname, &backend, 0);
-	AZ(pthread_rwlock_unlock(&vs->rwlock));
+	XXXAZ(pthread_rwlock_unlock(&vs->rwlock));
 	if (!ret) {
 		/*
 		 * XXX: Isn't there a race here where another thread
 		 * XXX: could grab the lock and add it before we do ?
 		 * XXX: Should 'ret' be checked for that ?
 		 */
-		AZ(pthread_rwlock_wrlock(&vs->rwlock));
+		XXXAZ(pthread_rwlock_wrlock(&vs->rwlock));
 		ret = vdi_dns_cache_add(sp, vs, hostname, &backend);
-		AZ(pthread_rwlock_unlock(&vs->rwlock));
+		XXXAZ(pthread_rwlock_unlock(&vs->rwlock));
 	} else
 		VSC_C_main->dir_dns_hit++;
 
@@ -428,7 +428,7 @@ vdi_dns_fini(const struct director *d)
 	FREE_ORNULL(vs->dir.vcl_name);
 	SET_MAGIC(&vs->dir, 0);
 	/* FIXME: Free the cache */
-	AZ(pthread_rwlock_destroy(&vs->rwlock));
+	XXXAZ(pthread_rwlock_destroy(&vs->rwlock));
 	FREE_OBJ_NOTNULL(vs, VDI_DNS_MAGIC);
 }
 
@@ -464,6 +464,6 @@ VRT_init_dir_dns(struct cli *cli, struct director **bp, int idx,
 	vs->nhosts = t->nmember;
 	vs->ttl = t->ttl;
 	VTAILQ_INIT(&vs->cachelist);
-	AZ(pthread_rwlock_init(&vs->rwlock, NULL));
+	XXXAZ(pthread_rwlock_init(&vs->rwlock, NULL));
 	bp[idx] = &vs->dir;
 }

@@ -108,7 +108,7 @@ STV_GetFile(const char *fn, int *fdp, const char **fnp, const char *ctx)
 		if (fd < 0)
 			ARGV_ERR("(%s) \"%s\" mkstemp(%s) failed (%s)\n",
 			    ctx, fn, buf, strerror(errno));
-		AZ(unlink(buf));
+		XXXAZ(unlink(buf));
 		*fnp = strdup_notnull(buf);
 		retval = 2;
 	} else if (S_ISREG(st.st_mode)) {
@@ -122,7 +122,7 @@ STV_GetFile(const char *fn, int *fdp, const char **fnp, const char *ctx)
 		ARGV_ERR(
 		    "(%s) \"%s\" is neither file nor directory\n", ctx, fn);
 
-	AZ(fstat(fd, &st));
+	XXXAZ(fstat(fd, &st));
 	if (!S_ISREG(st.st_mode))
 		ARGV_ERR("(%s) \"%s\" was not a file after opening\n",
 		    ctx, fn);
@@ -142,13 +142,13 @@ stv_fsspace(int fd, unsigned *bs)
 #if defined(HAVE_SYS_STATVFS_H)
 	struct statvfs fsst;
 
-	AZ(fstatvfs(fd, &fsst));
+	XXXAZ(fstatvfs(fd, &fsst));
 	bsize = fsst.f_frsize;
 	bavail = fsst.f_bavail;
 #elif defined(HAVE_SYS_MOUNT_H) || defined(HAVE_SYS_VFS_H)
 	struct statfs fsst;
 
-	AZ(fstatfs(sc->fd, &fsst));
+	XXXAZ(fstatfs(sc->fd, &fsst));
 	bsize = fsst.f_bsize;
 	bavail = fsst.f_bavail;
 #else
@@ -182,7 +182,7 @@ STV_FileSize(int fd, const char *size, unsigned *granularity, const char *ctx)
 	off_t o;
 	struct stat st;
 
-	AZ(fstat(fd, &st));
+	XXXAZ(fstat(fd, &st));
 	xxxassert(S_ISREG(st.st_mode));
 
 	bs = *granularity;

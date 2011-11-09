@@ -530,7 +530,7 @@ DOT errfetch [label="ERROR",shape=plaintext]
 static int
 cnt_fetch(struct sess *sp)
 {
-	int i;
+	int i, rv;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(sp->vcl, VCL_CONF_MAGIC);
@@ -613,7 +613,8 @@ cnt_fetch(struct sess *sp)
 
 	if (sp->objcore != NULL) {
 		CHECK_OBJ_NOTNULL(sp->objcore, OBJCORE_MAGIC);
-		AZ(HSH_Deref(sp->wrk, sp->objcore, NULL));
+		rv = HSH_Deref(sp->wrk, sp->objcore, NULL);
+		AZ(rv);
 		sp->objcore = NULL;
 	}
 	http_Setup(sp->wrk->bereq, NULL);
@@ -800,7 +801,7 @@ cnt_fetchbody(struct sess *sp)
 	if (vary != NULL) {
 		sp->obj->vary =
 		    (void *)WS_Alloc(sp->obj->http->ws, varyl);
-		AN(sp->obj->vary);
+		XXXAN(sp->obj->vary);
 		memcpy(sp->obj->vary, VSB_data(vary), varyl);
 		VRY_Validate(sp->obj->vary);
 		VSB_delete(vary);
@@ -1174,6 +1175,7 @@ DOT
 static int
 cnt_miss(struct sess *sp)
 {
+	int rv;
 
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	CHECK_OBJ_NOTNULL(sp->vcl, VCL_CONF_MAGIC);
@@ -1200,13 +1202,15 @@ cnt_miss(struct sess *sp)
 	VCL_miss_method(sp);
 	switch(sp->handling) {
 	case VCL_RET_ERROR:
-		AZ(HSH_Deref(sp->wrk, sp->objcore, NULL));
+		rv = HSH_Deref(sp->wrk, sp->objcore, NULL);
+		AZ(rv);
 		sp->objcore = NULL;
 		http_Setup(sp->wrk->bereq, NULL);
 		sp->step = STP_ERROR;
 		return (0);
 	case VCL_RET_PASS:
-		AZ(HSH_Deref(sp->wrk, sp->objcore, NULL));
+		rv = HSH_Deref(sp->wrk, sp->objcore, NULL);
+		AZ(rv);
 		sp->objcore = NULL;
 		sp->step = STP_PASS;
 		return (0);
@@ -1214,7 +1218,8 @@ cnt_miss(struct sess *sp)
 		sp->step = STP_FETCH;
 		return (0);
 	case VCL_RET_RESTART:
-		AZ(HSH_Deref(sp->wrk, sp->objcore, NULL));
+		rv = HSH_Deref(sp->wrk, sp->objcore, NULL);
+		AZ(rv);
 		sp->objcore = NULL;
 		INCOMPL();
 	default:

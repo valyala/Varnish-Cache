@@ -122,7 +122,7 @@ VCA_Prep(struct sess *sp)
 	sp->addr = WS_Dup(sp->ws, addr);
 	sp->port = WS_Dup(sp->ws, port);
 	if (params->log_local_addr) {
-		AZ(getsockname(sp->fd, (void*)&sp->mysockaddr, &sp->mysockaddrlen));
+		XXXAZ(getsockname(sp->fd, (void*)&sp->mysockaddr, &sp->mysockaddrlen));
 		VTCP_name(&sp->mysockaddr, sp->mysockaddrlen,
 		    addr, sizeof addr, port, sizeof port);
 		WSP(sp, SLT_SessionOpen, "%s %s %s %s",
@@ -254,7 +254,7 @@ VCA_FailSess(struct worker *w)
 	CHECK_OBJ_NOTNULL(w, WORKER_MAGIC);
 	CAST_OBJ_NOTNULL(wa, (void*)w->ws->f, WRK_ACCEPT_MAGIC);
 	AZ(w->sp);
-	AZ(close(wa->acceptsock));
+	XXXAZ(close(wa->acceptsock));
 	w->stats.sess_drop++;
 	vca_pace_bad();
 }
@@ -306,8 +306,8 @@ vca_acct(void *arg)
 	VTAILQ_FOREACH(ls, &heritage.socks, list) {
 		if (ls->sock < 0)
 			continue;
-		AZ(listen(ls->sock, params->listen_depth));
-		AZ(setsockopt(ls->sock, SOL_SOCKET, SO_LINGER,
+		XXXAZ(listen(ls->sock, params->listen_depth));
+		XXXAZ(setsockopt(ls->sock, SOL_SOCKET, SO_LINGER,
 		    &linger, sizeof linger));
 	}
 
@@ -325,7 +325,7 @@ vca_acct(void *arg)
 			VTAILQ_FOREACH(ls, &heritage.socks, list) {
 				if (ls->sock < 0)
 					continue;
-				AZ(setsockopt(ls->sock, SOL_SOCKET,
+				XXXAZ(setsockopt(ls->sock, SOL_SOCKET,
 				    SO_SNDTIMEO,
 				    &tv_sndtimeo, sizeof tv_sndtimeo));
 			}
@@ -339,7 +339,7 @@ vca_acct(void *arg)
 			VTAILQ_FOREACH(ls, &heritage.socks, list) {
 				if (ls->sock < 0)
 					continue;
-				AZ(setsockopt(ls->sock, SOL_SOCKET,
+				XXXAZ(setsockopt(ls->sock, SOL_SOCKET,
 				    SO_RCVTIMEO,
 				    &tv_rcvtimeo, sizeof tv_rcvtimeo));
 			}
@@ -362,7 +362,7 @@ ccf_start(struct cli *cli, const char * const *av, void *priv)
 	(void)av;
 	(void)priv;
 
-	AZ(pthread_create(&VCA_thread, NULL, vca_acct, NULL));
+	XXXAZ(pthread_create(&VCA_thread, NULL, vca_acct, NULL));
 }
 
 /*--------------------------------------------------------------------*/

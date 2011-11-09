@@ -312,9 +312,10 @@ LocTable(const struct vcc *tl)
 static void
 EmitInitFunc(const struct vcc *tl)
 {
+
 	CHECK_OBJ_NOTNULL(tl, VCC_MAGIC);
 	Fc(tl, 0, "\nstatic int\nVGC_Init(struct cli *cli)\n{\n\n");
-	AZ(VSB_finish(tl->fi));
+	VSB_finish(tl->fi);
 	VSB_cat(tl->fc, VSB_data(tl->fi));
 	Fc(tl, 0, "\treturn(0);\n");
 	Fc(tl, 0, "}\n");
@@ -335,7 +336,7 @@ EmitFiniFunc(const struct vcc *tl)
 	for (u = 0; u < tl->nvmodpriv; u++)
 		Fc(tl, 0, "\tvmod_priv_fini(&vmod_priv_%u);\n", u);
 
-	AZ(VSB_finish(tl->ff));
+	VSB_finish(tl->ff);
 	VSB_cat(tl->fc, VSB_data(tl->ff));
 	Fc(tl, 0, "}\n");
 }
@@ -692,7 +693,7 @@ vcc_CompileSource(const struct vcc *tl0, struct vsb *sb, struct source *sp)
 		Fc(tl, 1, "\nstatic int\n");
 		Fc(tl, 1, "VGC_function_%s (struct sess *sp)\n",
 		    method_tab[i].name);
-		AZ(VSB_finish(tl->fm[i]));
+		VSB_finish(tl->fm[i]);
 		Fc(tl, 1, "{\n");
 		Fc(tl, 1, "%s", VSB_data(tl->fm[i]));
 		Fc(tl, 1, "}\n");
@@ -707,9 +708,9 @@ vcc_CompileSource(const struct vcc *tl0, struct vsb *sb, struct source *sp)
 	EmitStruct(tl);
 
 	/* Combine it all in the fh vsb */
-	AZ(VSB_finish(tl->fc));
+	VSB_finish(tl->fc);
 	VSB_cat(tl->fh, VSB_data(tl->fc));
-	AZ(VSB_finish(tl->fh));
+	VSB_finish(tl->fh);
 
 	of = strdup_notnull(VSB_data(tl->fh));
 

@@ -390,7 +390,7 @@ BAN_Insert(struct ban *b)
 
 	CHECK_OBJ_NOTNULL(b, BAN_MAGIC);
 
-	AZ(VSB_finish(b->vsb));
+	VSB_finish(b->vsb);
 	ln = VSB_len(b->vsb);
 	assert(ln >= 0);
 

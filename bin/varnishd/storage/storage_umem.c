@@ -151,7 +151,7 @@ static void
 smu_open(const struct stevedore *st)
 {
 	(void)st;
-	AZ(pthread_mutex_init(&smu_mtx, NULL));
+	XXXAZ(pthread_mutex_init(&smu_mtx, NULL));
 }
 
 const struct stevedore smu_stevedore = {

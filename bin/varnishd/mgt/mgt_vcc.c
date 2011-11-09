@@ -113,7 +113,7 @@ mgt_make_cc_cmd(const char *sf, const char *of)
 	}
 	if (pct)
 		VSB_putc(sb, '%');
-	AZ(VSB_finish(sb));
+	VSB_finish(sb);
 	return (sb);
 }
 
@@ -144,7 +144,7 @@ run_vcc(void *priv)
 	VCC_VMOD_dir(vcc, mgt_vmod_dir);
 	VCC_Err_Unref(vcc, mgt_vcc_err_unref);
 	csrc = VCC_Compile(vcc, sb, vp->vcl);
-	AZ(VSB_finish(sb));
+	VSB_finish(sb);
 	if (VSB_len(sb))
 		printf("%s", VSB_data(sb));
 	VSB_delete(sb);
@@ -162,7 +162,7 @@ run_vcc(void *priv)
 		fprintf(stderr, "Cannot write %s", vp->sf);
 		exit (1);
 	}
-	AZ(close(fd));
+	XXXAZ(close(fd));
 	FREE_NOTNULL(csrc);
 	exit (0);
 }
@@ -239,7 +239,7 @@ mgt_run_cc(const char *vcl, struct vsb *sb, int C_flag)
 		VSB_printf(sb, "Failed to create %s: %s", sf, strerror(errno));
 		return (NULL);
 	}
-	AZ(close(sfd));
+	XXXAZ(close(sfd));
 
 	/* Run the VCC compiler in a sub-process */
 	INIT_OBJ(&vp, VCC_PRIV_MAGIC);
@@ -295,7 +295,7 @@ mgt_VccCompile(struct vsb **sb, const char *b, int C_flag)
 	*sb = VSB_new_auto();
 	AN(*sb);
 	vf = mgt_run_cc(b, *sb, C_flag);
-	AZ(VSB_finish(*sb));
+	VSB_finish(*sb);
 	return (vf);
 }
 
@@ -391,7 +391,7 @@ mgt_vcc_default(const char *b_arg, const char *f_arg, char *vcl, int C_flag)
 	VSB_delete(sb);
 	if (C_flag) {
 		if (vf != NULL)
-			AZ(unlink(vf));
+			XXXAZ(unlink(vf));
 		return (0);
 	}
 	if (vf == NULL) {
@@ -467,7 +467,7 @@ mgt_vcc_init(void)
 	vcc = VCC_New();
 	AN(vcc);
 	VCC_Default_VCL(vcc, default_vcl);
-	AZ(atexit(mgt_vcc_atexit));
+	XXXAZ(atexit(mgt_vcc_atexit));
 }
 
 /*--------------------------------------------------------------------*/
@@ -624,7 +624,7 @@ mcf_config_discard(struct cli *cli, const char * const *av, void *priv)
 			VCLI_SetResult(cli, status);
 			VCLI_Out(cli, "%s", p);
 		} else {
-			AZ(mgt_vcc_delbyname(av[2]));
+			XXXAZ(mgt_vcc_delbyname(av[2]));
 		}
 	}
 	FREE_ORNULL(p);
@@ -682,12 +682,12 @@ mcf_config_show(struct cli *cli, const char * const *av, void *priv)
 			VCLI_Out(cli, "failed to locate source for %s: %s\n",
 			    vp->name, dlerror());
 			VCLI_SetResult(cli, CLIS_CANT);
-			AZ(dlclose(dlh));
+			XXXAZ(dlclose(dlh));
 		} else {
 			src = sym;
 			VCLI_Out(cli, "%s", src[0]);
 			/* VCLI_Out(cli, src[1]); */
-			AZ(dlclose(dlh));
+			XXXAZ(dlclose(dlh));
 		}
 	}
 }

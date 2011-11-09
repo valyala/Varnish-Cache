@@ -104,7 +104,7 @@ wrk_bgthread(void *arg)
 	CAST_OBJ_NOTNULL(bt, arg, BGTHREAD_MAGIC);
 	THR_SetName(bt->name);
 	sp = SES_Alloc();
-	XXXAN(sp);
+	AN(sp);
 	INIT_OBJ(&ww, WORKER_MAGIC);
 	sp->wrk = &ww;
 	ww.wlp = ww.wlb = logbuf;
@@ -126,7 +126,7 @@ WRK_BgThread(pthread_t *thr, const char *name, bgthread_t *func, void *priv)
 	bt->name = name;
 	bt->func = func;
 	bt->priv = priv;
-	AZ(pthread_create(thr, NULL, wrk_bgthread, bt));
+	XXXAZ(pthread_create(thr, NULL, wrk_bgthread, bt));
 }
 
 /*--------------------------------------------------------------------*/
@@ -158,7 +158,7 @@ wrk_thread_real(void *priv, unsigned shm_workspace, unsigned sess_workspace,
 	w->wrw.iov = iov;
 	w->wrw.siov = siov;
 	w->wrw.ciov = siov;
-	AZ(pthread_cond_init(&w->cond, NULL));
+	XXXAZ(pthread_cond_init(&w->cond, NULL));
 
 	WS_Init(w->ws, "wrk", ws, sess_workspace);
 
@@ -170,7 +170,7 @@ wrk_thread_real(void *priv, unsigned shm_workspace, unsigned sess_workspace,
 	VSL(SLT_WorkThread, 0, "%p end", w);
 	if (w->vcl != NULL)
 		VCL_Rel(&w->vcl);
-	AZ(pthread_cond_destroy(&w->cond));
+	XXXAZ(pthread_cond_destroy(&w->cond));
 	HSH_Cleanup(w);
 	WRK_SumStat(w);
 	return (NULL);

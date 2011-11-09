@@ -110,7 +110,7 @@ print_backend(struct vcc *tl,
 
 	Fb(tl, 0, "};\n");
 	tl->fb = NULL;
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 	Fh(tl, 0, "%s", VSB_data(vsb));
 	VSB_delete(vsb);
 	Fi(tl, 0, "\tVRT_init_dir(cli, VCL_conf.director, \"simple\",\n"

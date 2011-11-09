@@ -63,7 +63,7 @@ static void
 h_order_finish(int fd, const struct VSM_data *vd)
 {
 
-	AZ(VSB_finish(ob[fd]));
+	VSB_finish(ob[fd]);
 	if (VSB_len(ob[fd]) > 1 && VSL_Matched(vd, bitmap[fd])) {
 		printf("%s", VSB_data(ob[fd]));
 	}
@@ -79,7 +79,7 @@ clean_order(const struct VSM_data *vd)
 	for (u = 0; u < 65536; u++) {
 		if (ob[u] == NULL)
 			continue;
-		AZ(VSB_finish(ob[u]));
+		VSB_finish(ob[u]);
 		if (VSB_len(ob[u]) > 1 && VSL_Matched(vd, bitmap[u])) {
 			printf("%s\n", VSB_data(ob[u]));
 		}
@@ -193,7 +193,7 @@ do_order(struct VSM_data *vd)
 		i = VSL_Dispatch(vd, h_order, vd);
 		if (i == 0) {
 			clean_order(vd);
-			AZ(fflush(stdout));
+			XXXAZ(fflush(stdout));
 		}
 		else if (i < 0)
 			break;
@@ -240,7 +240,7 @@ do_write(const struct VSM_data *vd, const char *w_arg, int a_flag)
 	uint32_t *p;
 
 	fd = open_log(w_arg, a_flag);
-	XXXAN(fd >= 0);
+	xxxassert(fd >= 0);
 	(void)signal(SIGHUP, sighup);
 	while (1) {
 		i = VSL_NextLog(vd, &p, NULL);
@@ -255,9 +255,9 @@ do_write(const struct VSM_data *vd, const char *w_arg, int a_flag)
 			}
 		}
 		if (reopen) {
-			AZ(close(fd));
+			XXXAZ(close(fd));
 			fd = open_log(w_arg, a_flag);
-			XXXAN(fd >= 0);
+			xxxassert(fd >= 0);
 			reopen = 0;
 		}
 	}
@@ -294,11 +294,11 @@ main(int argc, char * const *argv)
 			break;
 		case 'b':
 			b_flag = 1;
-			AN(VSL_Arg(vd, c, optarg));
+			XXXAN(VSL_Arg(vd, c, optarg));
 			break;
 		case 'c':
 			c_flag = 1;
-			AN(VSL_Arg(vd, c, optarg));
+			XXXAN(VSL_Arg(vd, c, optarg));
 			break;
 		case 'D':
 			D_flag = 1;

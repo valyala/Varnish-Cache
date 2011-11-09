@@ -126,7 +126,7 @@ server_new(const char *name)
 		vtc_log(s->vl, 0, "Server name must start with 's'");
 
 	bprintf(s->listen, "127.0.0.1:%d", 0);
-	AZ(VSS_parse(s->listen, &s->addr, &s->port));
+	XXXAZ(VSS_parse(s->listen, &s->addr, &s->port));
 	s->repeat = 1;
 	s->depth = 10;
 	s->sock = -1;
@@ -187,7 +187,7 @@ server_start(struct server *s)
 	}
 	vtc_log(s->vl, 1, "Listen on %s %s", s->addr, s->port);
 	s->run = 1;
-	AZ(pthread_create(&s->tp, NULL, server_thread, s));
+	XXXAZ(pthread_create(&s->tp, NULL, server_thread, s));
 }
 
 /**********************************************************************
@@ -201,7 +201,7 @@ server_wait(struct server *s)
 
 	CHECK_OBJ_NOTNULL(s, SERVER_MAGIC);
 	vtc_log(s->vl, 2, "Waiting for server");
-	AZ(pthread_join(s->tp, &res));
+	XXXAZ(pthread_join(s->tp, &res));
 	if (res != NULL && !vtc_stop)
 		vtc_log(s->vl, 0, "Server returned \"%p\"",
 		    (char *)res);
@@ -290,7 +290,7 @@ cmd_server(CMD_ARGS)
 		}
 		if (!strcmp(*av, "-listen")) {
 			bprintf(s->listen, "%s", av[1]);
-			AZ(VSS_parse(s->listen, &s->addr, &s->port));
+			XXXAZ(VSS_parse(s->listen, &s->addr, &s->port));
 			av++;
 			continue;
 		}

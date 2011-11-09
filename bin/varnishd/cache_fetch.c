@@ -554,7 +554,7 @@ FetchBody(struct worker *w, struct object *obj)
 	 * sitting on w->storage, we will always call vfp_nop_end()
 	 * to get it trimmed or thrown out if empty.
 	 */
-	AZ(vfp_nop_end(w));
+	(void)vfp_nop_end(w);
 
 	w->fetch_obj = NULL;
 

@@ -273,7 +273,7 @@ vev_add(struct vev_base *evb, struct vev *e)
 
 	if (e->sig > 0) {
 		assert(es != NULL);
-		assert(sigaction(e->sig, &es->sigact, NULL) == 0);
+		xxxassert(sigaction(e->sig, &es->sigact, NULL) == 0);
 	}
 }
 
@@ -314,7 +314,7 @@ vev_del(struct vev_base *evb, struct vev *e)
 		es->vevb = NULL;
 		es->sigact.sa_flags = e->sig_flags;
 		es->sigact.sa_handler = SIG_DFL;
-		assert(sigaction(e->sig, &es->sigact, NULL) == 0);
+		xxxassert(sigaction(e->sig, &es->sigact, NULL) == 0);
 		es->happened = 0;
 	}
 

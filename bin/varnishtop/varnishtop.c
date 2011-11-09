@@ -205,13 +205,13 @@ accumulate_thread(void *arg)
 		if (i < 0)
 			break;
 		if (i == 0) {
-			AZ(usleep(50000));
+			XXXAZ(usleep(50000));
 			continue;
 		}
 
-		AZ(pthread_mutex_lock(&mtx));
+		XXXAZ(pthread_mutex_lock(&mtx));
 		accumulate(p);
-		AZ(pthread_mutex_unlock(&mtx));
+		XXXAZ(pthread_mutex_unlock(&mtx));
 	}
 	return (arg);
 }
@@ -242,9 +242,9 @@ do_curses(struct VSM_data *vd, int period)
 	(void)curs_set(0);
 	AC(erase());
 	for (;;) {
-		AZ(pthread_mutex_lock(&mtx));
+		XXXAZ(pthread_mutex_lock(&mtx));
 		update(vd, period);
-		AZ(pthread_mutex_unlock(&mtx));
+		XXXAZ(pthread_mutex_unlock(&mtx));
 
 		timeout(1000);
 		switch (getch()) {
@@ -261,11 +261,11 @@ do_curses(struct VSM_data *vd, int period)
 			AC(refresh());
 			break;
 		case '\003': /* Ctrl-C */
-			AZ(raise(SIGINT));
+			XXXAZ(raise(SIGINT));
 			break;
 		case '\032': /* Ctrl-Z */
 			AC(endwin());
-			AZ(raise(SIGTSTP));
+			XXXAZ(raise(SIGTSTP));
 			break;
 		case '\021': /* Ctrl-Q */
 		case 'Q':
@@ -325,7 +325,7 @@ main(int argc, char **argv)
 	while ((o = getopt(argc, argv, VSL_ARGS "1fVp:")) != -1) {
 		switch (o) {
 		case '1':
-			AN(VSL_Arg(vd, 'd', NULL));
+			XXXAN(VSL_Arg(vd, 'd', NULL));
 			once = 1;
 			break;
 		case 'f':

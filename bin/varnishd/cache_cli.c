@@ -69,7 +69,7 @@ CLI_AddFuncs(struct cli_proto *p)
 
 	AZ(add_check);
 	Lck_Lock(&cli_mtx);
-	AZ(VCLS_AddFunc(cls, 0, p));
+	VCLS_AddFunc(cls, 0, p);
 	Lck_Unlock(&cli_mtx);
 }
 
@@ -101,7 +101,7 @@ CLI_Run(void)
 
 	add_check = 1;
 
-	AN(VCLS_AddFd(cls, heritage.cli_in, heritage.VCLI_Out, NULL, NULL));
+	(void)VCLS_AddFd(cls, heritage.cli_in, heritage.VCLI_Out, NULL, NULL);
 
 	do {
 		i = VCLS_Poll(cls, -1);

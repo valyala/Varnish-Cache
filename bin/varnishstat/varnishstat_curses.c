@@ -184,7 +184,7 @@ do_curses(struct VSM_data *vd, const struct VSC_C_main *VSC_C_main,
 				break;
 			lact = act;
 
-			AZ(gettimeofday(&tv, NULL));
+			XXXAZ(gettimeofday(&tv, NULL));
 			tt = tv.tv_usec * 1e-6 + tv.tv_sec;
 			lt = tt - lt;
 
@@ -261,10 +261,10 @@ do_curses(struct VSM_data *vd, const struct VSC_C_main *VSC_C_main,
 				AC(refresh());
 				break;
 			case '\003': /* Ctrl-C */
-				AZ(raise(SIGINT));
+				XXXAZ(raise(SIGINT));
 				break;
 			case '\032': /* Ctrl-Z */
-				AZ(raise(SIGTSTP));
+				XXXAZ(raise(SIGTSTP));
 				break;
 			case '\021': /* Ctrl-Q */
 			case 'Q':

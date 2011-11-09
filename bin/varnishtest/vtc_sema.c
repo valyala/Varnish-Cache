@@ -67,8 +67,8 @@ sema_new(char *name, struct vtclog *vl)
 	if (*name != 'r')
 		vtc_log(vl, 0, "Sema name must start with 'r' (%s)", *name);
 
-	AZ(pthread_mutex_init(&r->mtx, NULL));
-	AZ(pthread_cond_init(&r->cond, NULL));
+	XXXAZ(pthread_mutex_init(&r->mtx, NULL));
+	XXXAZ(pthread_cond_init(&r->cond, NULL));
 	r->waiters = 0;
 	r->expected = 0;
 	VTAILQ_INSERT_TAIL(&semas, r, list);
@@ -96,13 +96,13 @@ sema_sync(struct sema *r, const char *av, struct vtclog *vl)
 
 	if (++r->waiters == r->expected) {
 		vtc_log(vl, 4, "Sema(%s) wake %u", r->name, r->expected);
-		AZ(pthread_cond_broadcast(&r->cond));
+		XXXAZ(pthread_cond_broadcast(&r->cond));
 		r->waiters = 0;
 		r->expected = 0;
 	} else {
 		vtc_log(vl, 4, "Sema(%s) wait %u of %u",
 		    r->name, r->waiters, r->expected);
-		AZ(pthread_cond_wait(&r->cond, &r->mtx));
+		XXXAZ(pthread_cond_wait(&r->cond, &r->mtx));
 	}
 }
 
@@ -119,30 +119,30 @@ cmd_sema(CMD_ARGS)
 	(void)cmd;
 
 	if (av == NULL) {
-		AZ(pthread_mutex_lock(&sema_mtx));
+		XXXAZ(pthread_mutex_lock(&sema_mtx));
 		/* Reset and free */
 		VTAILQ_FOREACH_SAFE(r, &semas, list, r2) {
-			AZ(pthread_mutex_lock(&r->mtx));
+			XXXAZ(pthread_mutex_lock(&r->mtx));
 			AZ(r->waiters);
 			AZ(r->expected);
-			AZ(pthread_mutex_unlock(&r->mtx));
+			XXXAZ(pthread_mutex_unlock(&r->mtx));
 		}
-		AZ(pthread_mutex_unlock(&sema_mtx));
+		XXXAZ(pthread_mutex_unlock(&sema_mtx));
 		return;
 	}
 
 	assert(!strcmp(av[0], "sema"));
 	av++;
 
-	AZ(pthread_mutex_lock(&sema_mtx));
+	XXXAZ(pthread_mutex_lock(&sema_mtx));
 	VTAILQ_FOREACH(r, &semas, list)
 		if (!strcmp(r->name, av[0]))
 			break;
 	if (r == NULL)
 		r = sema_new(av[0], vl);
 	av++;
-	AZ(pthread_mutex_lock(&r->mtx));
-	AZ(pthread_mutex_unlock(&sema_mtx));
+	XXXAZ(pthread_mutex_lock(&r->mtx));
+	XXXAZ(pthread_mutex_unlock(&sema_mtx));
 
 	for (; *av != NULL; av++) {
 		if (!strcmp(*av, "sync")) {
@@ -153,11 +153,11 @@ cmd_sema(CMD_ARGS)
 		}
 		vtc_log(vl, 0, "Unknown sema argument: %s", *av);
 	}
-	AZ(pthread_mutex_unlock(&r->mtx));
+	XXXAZ(pthread_mutex_unlock(&r->mtx));
 }
 
 void
 init_sema(void)
 {
-	AZ(pthread_mutex_init(&sema_mtx, NULL));
+	XXXAZ(pthread_mutex_init(&sema_mtx, NULL));
 }

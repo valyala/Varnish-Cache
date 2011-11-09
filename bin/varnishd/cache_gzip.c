@@ -96,10 +96,13 @@ static voidpf
 vgz_alloc(voidpf opaque, uInt items, uInt size)
 {
 	struct vgz *vg;
+	void *p;
 
 	CAST_OBJ_NOTNULL(vg, opaque, VGZ_MAGIC);
 
-	return (WS_Alloc(vg->tmp, items * size));
+	p = WS_Alloc(vg->tmp, items * size);
+	XXXAN(p);
+	return (p);
 }
 
 static void
@@ -164,7 +167,7 @@ VGZ_NewUngzip(struct worker *wrk, const char *id)
 	 * Since we don't control windowBits, we have to assume
 	 * it is 15, so 34-35KB or so.
 	 */
-	assert(Z_OK == inflateInit2(&vg->vz, 31));
+	xxxassert(Z_OK == inflateInit2(&vg->vz, 31));
 	return (vg);
 }
 

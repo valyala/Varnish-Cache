@@ -47,7 +47,7 @@ void
 THR_SetSession(const struct sess *sp)
 {
 
-	AZ(pthread_setspecific(sp_key, sp));
+	XXXAZ(pthread_setspecific(sp_key, sp));
 }
 
 const struct sess *
@@ -67,7 +67,7 @@ void
 THR_SetName(const char *name)
 {
 
-	AZ(pthread_setspecific(name_key, name));
+	XXXAZ(pthread_setspecific(name_key, name));
 #ifdef HAVE_PTHREAD_SET_NAME_NP
 	pthread_set_name_np(pthread_self(), name);
 #endif
@@ -92,8 +92,8 @@ child_main(void)
 	setbuf(stderr, NULL);
 	printf("Child starts\n");
 
-	AZ(pthread_key_create(&sp_key, NULL));
-	AZ(pthread_key_create(&name_key, NULL));
+	XXXAZ(pthread_key_create(&sp_key, NULL));
+	XXXAZ(pthread_key_create(&name_key, NULL));
 
 	THR_SetName("cache-main");
 

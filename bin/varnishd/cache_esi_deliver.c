@@ -493,7 +493,7 @@ ESI_DeliverChild(const struct sess *sp)
 	 */
 
 	dbits = (void*)WS_Alloc(sp->wrk->ws, 8);
-	AN(dbits);
+	XXXAN(dbits);
 	obj = sp->obj;
 	CHECK_OBJ_NOTNULL(obj, OBJECT_MAGIC);
 	start = obj->gzip_start;

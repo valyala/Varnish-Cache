@@ -94,7 +94,7 @@ VRY_Create(const struct sess *sp, const struct http *hp)
 		VSB_clear(sbh);
 		VSB_printf(sbh, "%c%.*s:%c",
 		    (char)(1 + (q - p)), (int)(q - p), p, 0);
-		AZ(VSB_finish(sbh));
+		VSB_finish(sbh);
 
 		if (http_GetHdr(sp->http, VSB_data(sbh), &h)) {
 			AZ(vct_issp(*h));
@@ -126,7 +126,7 @@ VRY_Create(const struct sess *sp, const struct http *hp)
 	VSB_printf(sb, "%c%c%c", 0xff, 0xff, 0);
 
 	VSB_delete(sbh);
-	AZ(VSB_finish(sb));
+	VSB_finish(sb);
 	return(sb);
 }
 

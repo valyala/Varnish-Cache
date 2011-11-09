@@ -152,12 +152,12 @@ vsm_open(struct VSM_data *vd, int diag)
 		return (1);
 	}
 
-	assert(fstat(vd->vsm_fd, &vd->fstat) == 0);
+	xxxassert(fstat(vd->vsm_fd, &vd->fstat) == 0);
 	if (!S_ISREG(vd->fstat.st_mode)) {
 		if (diag)
 			vd->diag(vd->priv, "%s is not a regular file\n",
 			    vd->fname);
-		AZ(close(vd->vsm_fd));
+		XXXAZ(close(vd->vsm_fd));
 		vd->vsm_fd = -1;
 		return (1);
 	}
@@ -167,7 +167,7 @@ vsm_open(struct VSM_data *vd, int diag)
 		if (diag)
 			vd->diag(vd->priv, "Cannot read %s: %s\n",
 			    vd->fname, strerror(errno));
-		AZ(close(vd->vsm_fd));
+		XXXAZ(close(vd->vsm_fd));
 		vd->vsm_fd = -1;
 		return (1);
 	}
@@ -175,7 +175,7 @@ vsm_open(struct VSM_data *vd, int diag)
 		if (diag)
 			vd->diag(vd->priv, "Wrong magic number in file %s\n",
 			    vd->fname);
-		AZ(close(vd->vsm_fd));
+		XXXAZ(close(vd->vsm_fd));
 		vd->vsm_fd = -1;
 		return (1);
 	}
@@ -186,7 +186,7 @@ vsm_open(struct VSM_data *vd, int diag)
 		if (diag)
 			vd->diag(vd->priv, "Cannot mmap %s: %s\n",
 			    vd->fname, strerror(errno));
-		AZ(close(vd->vsm_fd));
+		XXXAZ(close(vd->vsm_fd));
 		vd->vsm_fd = -1;
 		vd->VSM_head = NULL;
 		return (1);
@@ -199,8 +199,8 @@ vsm_open(struct VSM_data *vd, int diag)
 		if (diag)
 			vd->diag(vd->priv, "File not initialized %s\n",
 			    vd->fname);
-		assert(0 == munmap((void*)vd->VSM_head, slh.shm_size));
-		AZ(close(vd->vsm_fd));
+		xxxassert(0 == munmap((void*)vd->VSM_head, slh.shm_size));
+		XXXAZ(close(vd->vsm_fd));
 		vd->vsm_fd = -1;
 		vd->VSM_head = NULL;
 		return (1);
@@ -235,10 +235,10 @@ VSM_Close(struct VSM_data *vd)
 	CHECK_OBJ_NOTNULL(vd, VSM_MAGIC);
 	if (vd->VSM_head == NULL)
 		return;
-	assert(0 == munmap((void*)vd->VSM_head, vd->VSM_head->shm_size));
+	xxxassert(0 == munmap((void*)vd->VSM_head, vd->VSM_head->shm_size));
 	vd->VSM_head = NULL;
 	assert(vd->vsm_fd >= 0);
-	assert(0 == close(vd->vsm_fd));
+	xxxassert(0 == close(vd->vsm_fd));
 	vd->vsm_fd = -1;
 }
 

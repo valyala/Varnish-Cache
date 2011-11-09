@@ -167,7 +167,7 @@ smp_mgt_init(struct stevedore *parent, int ac, char * const *av)
 	sc->mediasize = STV_FileSize(sc->fd, av[1], &sc->granularity,
 	    "-spersistent");
 
-	AZ(ftruncate(sc->fd, sc->mediasize));
+	XXXAZ(ftruncate(sc->fd, sc->mediasize));
 
 	/* Try to determine correct mmap address */
 	i = read(sc->fd, &sgn, sizeof sgn);

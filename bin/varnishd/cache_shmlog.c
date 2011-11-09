@@ -99,7 +99,7 @@ vsl_get(unsigned len, unsigned records, unsigned flushes)
 	uint32_t *p;
 
 	if (pthread_mutex_trylock(&vsl_mtx)) {
-		AZ(pthread_mutex_lock(&vsl_mtx));
+		XXXAZ(pthread_mutex_lock(&vsl_mtx));
 		VSC_C_main->shm_cont++;
 	}
 	assert(vsl_ptr < vsl_end);
@@ -120,7 +120,7 @@ vsl_get(unsigned len, unsigned records, unsigned flushes)
 
 	assert(vsl_ptr < vsl_end);
 	assert(((uintptr_t)vsl_ptr & 0x3) == 0);
-	AZ(pthread_mutex_unlock(&vsl_mtx));
+	XXXAZ(pthread_mutex_unlock(&vsl_mtx));
 
 	return (p);
 }
@@ -303,8 +303,8 @@ VSL_Init(void)
 {
 	struct VSM_chunk *vsc;
 
-	AZ(pthread_mutex_init(&vsl_mtx, NULL));
-	AZ(pthread_mutex_init(&vsm_mtx, NULL));
+	XXXAZ(pthread_mutex_init(&vsl_mtx, NULL));
+	XXXAZ(pthread_mutex_init(&vsm_mtx, NULL));
 
 	VSM__Clean();
 
@@ -331,9 +331,10 @@ VSM_Alloc(unsigned size, const char *class, const char *type,
 {
 	void *p;
 
-	AZ(pthread_mutex_lock(&vsm_mtx));
+	XXXAZ(pthread_mutex_lock(&vsm_mtx));
 	p = VSM__Alloc(size, class, type, ident);
-	AZ(pthread_mutex_unlock(&vsm_mtx));
+	AN(p);
+	XXXAZ(pthread_mutex_unlock(&vsm_mtx));
 	return (p);
 }
 
@@ -341,7 +342,7 @@ void
 VSM_Free(const void *ptr)
 {
 
-	AZ(pthread_mutex_lock(&vsm_mtx));
+	XXXAZ(pthread_mutex_lock(&vsm_mtx));
 	VSM__Free(ptr);
-	AZ(pthread_mutex_unlock(&vsm_mtx));
+	XXXAZ(pthread_mutex_unlock(&vsm_mtx));
 }

@@ -110,7 +110,7 @@ VBE_DropRefLocked(struct backend *b)
 	VTAILQ_FOREACH_SAFE(vbe, &b->connlist, list, vbe2) {
 		VTAILQ_REMOVE(&b->connlist, vbe, list);
 		if (vbe->fd >= 0) {
-			AZ(close(vbe->fd));
+			XXXAZ(close(vbe->fd));
 			vbe->fd = -1;
 		}
 		vbe->backend = NULL;
@@ -203,6 +203,7 @@ VBE_AddBackend(struct cli *cli, const struct vrt_backend *vb)
 	    vb->ipv6_addr == NULL ? "" : vb->ipv6_addr, vb->port);
 
 	b->vsc = VSM_Alloc(sizeof *b->vsc, VSC_CLASS, VSC_TYPE_VBE, buf);
+	AN(b->vsc);
 	b->vsc->vcls++;
 
 	VTAILQ_INIT(&b->connlist);

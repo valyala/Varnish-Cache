@@ -879,7 +879,7 @@ VEP_Parse(const struct worker *w, const char *p, size_t l)
 				vep->state = VEP_TAGERROR;
 				vep->attr_delim = 0;
 				if (vep->attr_vsb != NULL) {
-					AZ(VSB_finish(vep->attr_vsb));
+					VSB_finish(vep->attr_vsb);
 					VSB_delete(vep->attr_vsb);
 					vep->attr_vsb = NULL;
 				}
@@ -888,7 +888,7 @@ VEP_Parse(const struct worker *w, const char *p, size_t l)
 				p++;
 				vep->state = VEP_INTAG;
 				if (vep->attr_vsb != NULL) {
-					AZ(VSB_finish(vep->attr_vsb));
+					VSB_finish(vep->attr_vsb);
 					AN(vep->dostuff);
 					vep->dostuff(vep, DO_ATTR);
 					vep->attr_vsb = NULL;
@@ -1004,7 +1004,7 @@ VEP_Init(struct worker *w, vep_callback_t *cb)
 	CHECK_OBJ_NOTNULL(w, WORKER_MAGIC);
 	AZ(w->vep);
 	w->vep = (void*)WS_Alloc(w->ws, sizeof *vep);
-	AN(w->vep);
+	XXXAN(w->vep);
 
 	vep = w->vep;
 	INIT_OBJ(vep, VEP_MAGIC);
@@ -1060,7 +1060,7 @@ VEP_Finish(struct worker *w)
 
 	w->vep = NULL;
 
-	AZ(VSB_finish(vep->vsb));
+	VSB_finish(vep->vsb);
 	l = VSB_len(vep->vsb);
 	if (vep->esi_found && l > 0)
 		return (vep->vsb);

@@ -81,7 +81,7 @@ int		 VSB_vprintf(struct vsb *, const char *, va_list)
 int		 VSB_putc(struct vsb *, int);
 int		 VSB_trim(struct vsb *);
 int		 VSB_error(const struct vsb *);
-int		 VSB_finish(struct vsb *);
+void		 VSB_finish(struct vsb *);
 char		*VSB_data(struct vsb *);
 ssize_t		 VSB_len(struct vsb *);
 int		 VSB_done(const struct vsb *);

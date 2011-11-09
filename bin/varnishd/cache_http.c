@@ -1075,7 +1075,7 @@ http_Write(struct worker *w, unsigned vsl_id, const struct http *hp, int resp)
 		WSLH(w, vsl_id, hp, HTTP_HDR_PROTO);
 
 		hp->hd[HTTP_HDR_STATUS].b = WS_Alloc(w->ws, 4);
-		AN(hp->hd[HTTP_HDR_STATUS].b);
+		XXXAN(hp->hd[HTTP_HDR_STATUS].b);
 
 		sprintf(hp->hd[HTTP_HDR_STATUS].b, "%3d", hp->status);
 		hp->hd[HTTP_HDR_STATUS].e = hp->hd[HTTP_HDR_STATUS].b + 3;

@@ -154,7 +154,7 @@ VSS_resolve(const char *addr, const char *port, struct vss_addr ***vap)
 	if (ret != 0)
 		return (0);
 
-	XXXAN(res0);
+	AN(res0);
 	for (res = res0, i = 0; res != NULL; res = res->ai_next, ++i)
 		/* nothing */ ;
 	if (i == 0) {

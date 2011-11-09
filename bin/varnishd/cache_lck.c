@@ -68,7 +68,7 @@ Lck__Lock(struct lock *lck, const char *p, const char *f, int l)
 
 	CAST_OBJ_NOTNULL(ilck, lck->priv, ILCK_MAGIC);
 	if (!(params->diag_bitmap & 0x18)) {
-		AZ(pthread_mutex_lock(&ilck->mtx));
+		XXXAZ(pthread_mutex_lock(&ilck->mtx));
 		AZ(ilck->held);
 		ilck->stat->locks++;
 		ilck->owner = pthread_self();
@@ -82,7 +82,7 @@ Lck__Lock(struct lock *lck, const char *p, const char *f, int l)
 		if (params->diag_bitmap & 0x8)
 			VSL(SLT_Debug, 0, "MTX_CONTEST(%s,%s,%d,%s)",
 			    p, f, l, ilck->w);
-		AZ(pthread_mutex_lock(&ilck->mtx));
+		XXXAZ(pthread_mutex_lock(&ilck->mtx));
 	} else if (params->diag_bitmap & 0x8) {
 		VSL(SLT_Debug, 0, "MTX_LOCK(%s,%s,%d,%s)", p, f, l, ilck->w);
 	}
@@ -101,7 +101,7 @@ Lck__Unlock(struct lock *lck, const char *p, const char *f, int l)
 	assert(pthread_equal(ilck->owner, pthread_self()));
 	AN(ilck->held);
 	ilck->held = 0;
-	AZ(pthread_mutex_unlock(&ilck->mtx));
+	XXXAZ(pthread_mutex_unlock(&ilck->mtx));
 	if (params->diag_bitmap & 0x8)
 		VSL(SLT_Debug, 0, "MTX_UNLOCK(%s,%s,%d,%s)", p, f, l, ilck->w);
 }
@@ -151,7 +151,7 @@ Lck_CondWait(pthread_cond_t *cond, struct lock *lck, struct timespec *ts)
 	assert(pthread_equal(ilck->owner, pthread_self()));
 	ilck->held = 0;
 	if (ts == NULL) {
-		AZ(pthread_cond_wait(cond, &ilck->mtx));
+		XXXAZ(pthread_cond_wait(cond, &ilck->mtx));
 	} else {
 		retval = pthread_cond_timedwait(cond, &ilck->mtx, ts);
 		assert(retval == 0 || retval == ETIMEDOUT);
@@ -173,10 +173,10 @@ Lck__New(struct lock *lck, struct VSC_C_lck *st, const char *w)
 	ilck->w = w;
 	ilck->stat = st;
 	ilck->stat->creat++;
-	AZ(pthread_mutex_init(&ilck->mtx, NULL));
-	AZ(pthread_mutex_lock(&lck_mtx));
+	XXXAZ(pthread_mutex_init(&ilck->mtx, NULL));
+	XXXAZ(pthread_mutex_lock(&lck_mtx));
 	VTAILQ_INSERT_TAIL(&ilck_head, ilck, list);
-	AZ(pthread_mutex_unlock(&lck_mtx));
+	XXXAZ(pthread_mutex_unlock(&lck_mtx));
 	lck->priv = ilck;
 }
 
@@ -188,10 +188,10 @@ Lck_Delete(struct lock *lck)
 	CAST_OBJ_NOTNULL(ilck, lck->priv, ILCK_MAGIC);
 	ilck->stat->destroy++;
 	lck->priv = NULL;
-	AZ(pthread_mutex_lock(&lck_mtx));
+	XXXAZ(pthread_mutex_lock(&lck_mtx));
 	VTAILQ_REMOVE(&ilck_head, ilck, list);
-	AZ(pthread_mutex_unlock(&lck_mtx));
-	AZ(pthread_mutex_destroy(&ilck->mtx));
+	XXXAZ(pthread_mutex_unlock(&lck_mtx));
+	XXXAZ(pthread_mutex_destroy(&ilck->mtx));
 	FREE_OBJ_NOTNULL(ilck, ILCK_MAGIC);
 }
 
@@ -203,10 +203,11 @@ void
 LCK_Init(void)
 {
 
-	AZ(pthread_mutex_init(&lck_mtx, NULL));
+	XXXAZ(pthread_mutex_init(&lck_mtx, NULL));
 #define LOCK(nam)						\
 	lck_##nam = VSM_Alloc(sizeof(struct VSC_C_lck),		\
-	   VSC_CLASS, VSC_TYPE_LCK, #nam);
+	   VSC_CLASS, VSC_TYPE_LCK, #nam);			\
+	AN(lck_##nam);
 #include "tbl/locks.h"
 #undef LOCK
 }

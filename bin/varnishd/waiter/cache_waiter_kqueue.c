@@ -72,7 +72,7 @@ vwk_kq_flush(struct vwk *vwk)
 	if (vwk->nki == 0)
 		return;
 	i = kevent(vwk->kq, vwk->ki, vwk->nki, NULL, 0, NULL);
-	assert(i == 0);
+	xxxassert(i == 0);
 	vwk->nki = 0;
 }
 
@@ -155,20 +155,20 @@ vwk_thread(void *priv)
 	THR_SetName("cache-kqueue");
 
 	vwk->kq = kqueue();
-	assert(vwk->kq >= 0);
+	xxxassert(vwk->kq >= 0);
 
 	j = 0;
 	EV_SET(&ke[j], 0, EVFILT_TIMER, EV_ADD, 0, 100, NULL);
 	j++;
 	EV_SET(&ke[j], vwk->pipes[0], EVFILT_READ, EV_ADD, 0, 0, vwk->pipes);
 	j++;
-	AZ(kevent(vwk->kq, ke, j, NULL, 0, NULL));
+	XXXAZ(kevent(vwk->kq, ke, j, NULL, 0, NULL));
 
 	vwk->nki = 0;
 	while (1) {
 		dotimer = 0;
 		n = kevent(vwk->kq, vwk->ki, vwk->nki, ke, NKEV, NULL);
-		assert(n >= 1 && n <= NKEV);
+		xxxassert(n >= 1 && n <= NKEV);
 		vwk->nki = 0;
 		for (kp = ke, j = 0; j < n; j++, kp++) {
 			if (kp->filter == EVFILT_TIMER) {
@@ -210,7 +210,7 @@ vwk_pass(void *priv, const struct sess *sp)
 	struct vwk *vwk;
 
 	CAST_OBJ_NOTNULL(vwk, priv, VWK_MAGIC);
-	assert(sizeof sp == write(vwk->pipes[1], &sp, sizeof sp));
+	xxxassert(sizeof sp == write(vwk->pipes[1], &sp, sizeof sp));
 }
 
 /*--------------------------------------------------------------------*/
@@ -223,15 +223,15 @@ vwk_init(void)
 
 	ALLOC_OBJ_NOTNULL(vwk, VWK_MAGIC);
 	VTAILQ_INIT(&vwk->sesshead);
-	AZ(pipe(vwk->pipes));
+	XXXAZ(pipe(vwk->pipes));
 
 	i = fcntl(vwk->pipes[0], F_GETFL);
-	assert(i != -1);
+	xxxassert(i != -1);
 	i |= O_NONBLOCK;
 	i = fcntl(vwk->pipes[0], F_SETFL, i);
-	assert(i != -1);
+	xxxassert(i != -1);
 
-	AZ(pthread_create(&vwk->thread, NULL, vwk_thread, vwk));
+	XXXAZ(pthread_create(&vwk->thread, NULL, vwk_thread, vwk));
 	return (vwk);
 }
 

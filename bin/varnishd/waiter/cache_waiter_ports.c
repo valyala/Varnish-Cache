@@ -60,11 +60,12 @@ struct vws {
 static inline void
 vws_add(struct vws *vws, int fd, void *data)
 {
+
 	/*
 	 * POLLIN should be all we need here
 	 *
 	 */
-	AZ(port_associate(vws->dport, PORT_SOURCE_FD, fd, POLLIN, data));
+	XXXAZ(port_associate(vws->dport, PORT_SOURCE_FD, fd, POLLIN, data));
 }
 
 static inline void
@@ -257,7 +258,7 @@ vws_pass(void *priv, const struct sess *sp)
 	CAST_OBJ_NOTNULL(vws, priv, VWS_MAGIC);
 	while((r = port_send(vws->dport, 0, TRUST_ME(sp))) == -1 &&
 		errno == EAGAIN);
-	AZ(r);
+	XXXAZ(r);
 }
 
 /*--------------------------------------------------------------------*/
@@ -269,7 +270,7 @@ vws_init(void)
 
 	ALLOC_OBJ_NOTNULL(vws, VWS_MAGIC);
 	VTAILQ_INIT(&vws->sesshead);
-	AZ(pthread_create(&vws->ports_thread, NULL, vws_thread, vws));
+	XXXAZ(pthread_create(&vws->ports_thread, NULL, vws_thread, vws));
 	return (vws);
 }
 

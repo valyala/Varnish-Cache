@@ -130,7 +130,7 @@ read_file(const char *fn)
 		FREE_NOTNULL(buf);
 		return (NULL);
 	}
-	AZ(close (fd));
+	XXXAZ(close(fd));
 	assert(s < sz);		/* XXX: increase MAX_FILESIZE */
 	buf[s] = '\0';
 	REALLOC_ARRAY_NOTNULL(buf, s + 1);
@@ -181,7 +181,7 @@ tst_cb(const struct vev *ve, int what)
 	// printf("%p %s %d\n", ve, jp->tst->filename, what);
 	if (what == 0) {
 		/* XXX: Timeout */
-		AZ(kill(jp->child, SIGKILL));
+		XXXAZ(kill(jp->child, SIGKILL));
 		jp->evt = NULL;
 		return (1);
 	}
@@ -198,7 +198,7 @@ tst_cb(const struct vev *ve, int what)
 		px = wait4(jp->child, &stx, 0, NULL);
 		assert(px == jp->child);
 		t = VTIM_mono() - jp->t0;
-		AZ(close(ve->fd));
+		XXXAZ(close(ve->fd));
 
 		if (stx && vtc_verbosity)
 			printf("%s\n", jp->buf);
@@ -212,13 +212,13 @@ tst_cb(const struct vev *ve, int what)
 
 		if (leave_temp == 0 || (leave_temp == 1 && !stx)) {
 			bprintf(buf, "rm -rf %s", jp->tmpdir);
-			AZ(system(buf));
+			XXXAZ(system(buf));
 		} else {
 			bprintf(buf, "%s/LOG", jp->tmpdir);
 			f = fopen(buf, "w");
-			AN(f);
+			XXXAN(f);
 			(void)fprintf(f, "%s\n", jp->buf);
-			AZ(fclose(f));
+			XXXAZ(fclose(f));
 		}
 		FREE_NOTNULL(jp->tmpdir);
 
@@ -236,7 +236,7 @@ tst_cb(const struct vev *ve, int what)
 			printf("#     top  TEST %s passed (%.3f)\n",
 			    jp->tst->filename, t);
 		}
-		AZ(munmap(jp->buf, jp->bufsiz));
+		XXXAZ(munmap(jp->buf, jp->bufsiz));
 		if (jp->evt != NULL)
 			vev_del(vb, jp->evt);
 
@@ -268,7 +268,7 @@ start_test(void)
 
 	srandomdev();
 	bprintf(tmpdir, "/tmp/vtc.%d.%08x", (int)getpid(), (unsigned)random());
-	AZ(mkdir(tmpdir, 0711));
+	XXXAZ(mkdir(tmpdir, 0711));
 
 	tp = VTAILQ_FIRST(&tst_head);
 	CHECK_OBJ_NOTNULL(tp, TST_MAGIC);
@@ -281,24 +281,24 @@ start_test(void)
 	jp->tst = tp;
 	jp->tmpdir = strdup_notnull(tmpdir);
 
-	AZ(pipe(p));
+	XXXAZ(pipe(p));
 	assert(p[0] > STDERR_FILENO);
 	assert(p[1] > STDERR_FILENO);
 	jp->t0 = VTIM_mono();
 	jp->child = fork();
 	assert(jp->child >= 0);
 	if (jp->child == 0) {
-		AZ(close(STDIN_FILENO));
-		assert(open("/dev/null", O_RDONLY) == STDIN_FILENO);
-		assert(dup2(p[1], STDOUT_FILENO) == STDOUT_FILENO);
-		assert(dup2(p[1], STDERR_FILENO) == STDERR_FILENO);
+		XXXAZ(close(STDIN_FILENO));
+		xxxassert(open("/dev/null", O_RDONLY) == STDIN_FILENO);
+		xxxassert(dup2(p[1], STDOUT_FILENO) == STDOUT_FILENO);
+		xxxassert(dup2(p[1], STDERR_FILENO) == STDERR_FILENO);
 		for (sfd = STDERR_FILENO + 1; sfd < 100; sfd++)
 			(void)close(sfd);
 		retval = exec_file(jp->tst->filename, jp->tst->script,
 		    jp->tmpdir, jp->buf, jp->bufsiz);
 		_exit(retval);
 	}
-	AZ(close(p[1]));
+	XXXAZ(close(p[1]));
 
 	jp->ev = vev_new();
 	AN(jp->ev);

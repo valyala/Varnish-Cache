@@ -162,7 +162,7 @@ mcf_askchild(struct cli *cli, const char * const *av, void *priv)
 		VSB_putc(vsb, ' ');
 	}
 	VSB_putc(vsb, '\n');
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 	i = write(cli_o, VSB_data(vsb), VSB_len(vsb));
 	if (i != VSB_len(vsb)) {
 		VSB_delete(vsb);
@@ -294,7 +294,7 @@ mcf_auth(struct cli *cli, const char *const *av, void *priv)
 	}
 	mgt_got_fd(fd);
 	VCLI_AuthResponse(fd, cli->challenge, buf);
-	AZ(close(fd));
+	XXXAZ(close(fd));
 	if (strcasecmp(buf, av[2])) {
 		mgt_cli_challenge(cli);
 		return;
@@ -339,11 +339,11 @@ mgt_cli_init_cls(void)
 
 	cls = VCLS_New(mgt_cli_cb_before, mgt_cli_cb_after, params->cli_buffer);
 	AN(cls);
-	AZ(VCLS_AddFunc(cls, MCF_NOAUTH, cli_auth));
-	AZ(VCLS_AddFunc(cls, MCF_AUTH, cli_proto));
-	AZ(VCLS_AddFunc(cls, MCF_AUTH, cli_debug));
-	AZ(VCLS_AddFunc(cls, MCF_AUTH, cli_stv));
-	AZ(VCLS_AddFunc(cls, MCF_AUTH, cli_askchild));
+	VCLS_AddFunc(cls, MCF_NOAUTH, cli_auth);
+	VCLS_AddFunc(cls, MCF_AUTH, cli_proto);
+	VCLS_AddFunc(cls, MCF_AUTH, cli_debug);
+	VCLS_AddFunc(cls, MCF_AUTH, cli_stv);
+	VCLS_AddFunc(cls, MCF_AUTH, cli_askchild);
 }
 
 /*--------------------------------------------------------------------
@@ -399,7 +399,7 @@ mgt_cli_setup(int fdi, int fdo, int verbose, const char *ident, mgt_cli_close_f 
 		cli->auth = MCF_AUTH;
 		mcf_banner(cli, NULL, NULL);
 	}
-	AZ(VSB_finish(cli->sb));
+	VSB_finish(cli->sb);
 	(void)VCLI_WriteResult(fdo, cli->result, VSB_data(cli->sb));
 
 
@@ -428,7 +428,7 @@ sock_id(const char *pfx, int fd)
 	VTCP_myname(fd, abuf1, sizeof abuf1, pbuf1, sizeof pbuf1);
 	VTCP_hisname(fd, abuf2, sizeof abuf2, pbuf2, sizeof pbuf2);
 	VSB_printf(vsb, "%s %s %s %s %s", pfx, abuf2, pbuf2, abuf1, pbuf1);
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 	return (vsb);
 }
 
@@ -516,7 +516,7 @@ mgt_cli_secret(const char *S_arg)
 		fprintf(stderr, "Can not read secret-file \"%s\"\n", S_arg);
 		exit (2);
 	}
-	AZ(close(fd));
+	XXXAZ(close(fd));
 	secret_file = S_arg;
 }
 
@@ -563,7 +563,7 @@ mgt_cli_telnet(const char *T_arg)
 		REPORT(LOG_ERR, "-T %s could not be listened on.", T_arg);
 		exit(2);
 	}
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 	/* Save in shmem */
 	p = VSM_Alloc(VSB_len(vsb) + 1, "Arg", "-T", "");
 	AN(p);
@@ -600,7 +600,7 @@ Marg_poker(const struct vev *e, int what)
 	if (e == M_conn) {
 		/* Our connect(2) returned, check result */
 		l = sizeof k;
-		AZ(getsockopt(M_fd, SOL_SOCKET, SO_ERROR, &k, &l));
+		XXXAZ(getsockopt(M_fd, SOL_SOCKET, SO_ERROR, &k, &l));
 		if (k) {
 			errno = k;
 			syslog(LOG_INFO, "Could not connect to CLI-master: %m");

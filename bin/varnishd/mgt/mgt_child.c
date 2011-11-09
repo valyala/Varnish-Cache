@@ -126,7 +126,7 @@ closex(int *fd)
 {
 
 	assert(*fd >= 0);
-	AZ(close(*fd));
+	XXXAZ(close(*fd));
 	*fd = -1;
 }
 
@@ -297,13 +297,13 @@ start_child(struct cli *cli)
 	child_state = CH_STARTING;
 
 	/* Open pipe for mgr->child CLI */
-	AZ(pipe(cp));
+	XXXAZ(pipe(cp));
 	heritage.cli_in = cp[0];
 	mgt_child_inherit(heritage.cli_in, "cli_in");
 	child_VCLI_Out = cp[1];
 
 	/* Open pipe for child->mgr CLI */
-	AZ(pipe(cp));
+	XXXAZ(pipe(cp));
 	heritage.VCLI_Out = cp[1];
 	mgt_child_inherit(heritage.VCLI_Out, "VCLI_Out");
 	child_cli_in = cp[0];
@@ -312,7 +312,7 @@ start_child(struct cli *cli)
 	 * Open pipe for child stdout/err
 	 * NB: not inherited, because we dup2() it to stdout/stderr in child
 	 */
-	AZ(pipe(cp));
+	XXXAZ(pipe(cp));
 	heritage.std_fd = cp[1];
 	child_output = cp[0];
 
@@ -324,10 +324,10 @@ start_child(struct cli *cli)
 	if (pid == 0) {
 
 		/* Redirect stdin/out/err */
-		AZ(close(STDIN_FILENO));
-		assert(open("/dev/null", O_RDONLY) == STDIN_FILENO);
-		assert(dup2(heritage.std_fd, STDOUT_FILENO) == STDOUT_FILENO);
-		assert(dup2(heritage.std_fd, STDERR_FILENO) == STDERR_FILENO);
+		XXXAZ(close(STDIN_FILENO));
+		xxxassert(open("/dev/null", O_RDONLY) == STDIN_FILENO);
+		xxxassert(dup2(heritage.std_fd, STDOUT_FILENO) == STDOUT_FILENO);
+		xxxassert(dup2(heritage.std_fd, STDERR_FILENO) == STDERR_FILENO);
 
 		/* Close anything we shouldn't know about */
 		closelog();
@@ -435,6 +435,7 @@ static void
 mgt_save_panic(void)
 {
 	char time_str[30];
+
 	if (VSM_head->panicstr[0] == '\0')
 		return;
 
@@ -445,7 +446,7 @@ mgt_save_panic(void)
 	VTIM_format(VTIM_real(), time_str);
 	VSB_printf(child_panic, "Last panic at: %s\n", time_str);
 	VSB_cat(child_panic, VSM_head->panicstr);
-	AZ(VSB_finish(child_panic));
+	VSB_finish(child_panic);
 }
 
 static void
@@ -492,7 +493,7 @@ mgt_sigchld(const struct vev *e, int what)
 		exit_status |= 0x80;
 	}
 #endif
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 	REPORT(LOG_INFO, "%s", VSB_data(vsb));
 	VSB_delete(vsb);
 
@@ -586,8 +587,8 @@ MGT_Run(void)
 	sac.sa_handler = SIG_IGN;
 	sac.sa_flags = SA_RESTART;
 
-	AZ(sigaction(SIGPIPE, &sac, NULL));
-	AZ(sigaction(SIGHUP, &sac, NULL));
+	XXXAZ(sigaction(SIGPIPE, &sac, NULL));
+	XXXAZ(sigaction(SIGHUP, &sac, NULL));
 
 	if (!d_flag && !mgt_has_vcl())
 		REPORT0(LOG_ERR, "No VCL loaded yet");

@@ -71,12 +71,12 @@ free_frfile(void *ptr)
 
 	CAST_OBJ_NOTNULL(frf, ptr, CACHED_FILE_MAGIC);
 
-	AZ(pthread_mutex_lock(&frmtx));
+	XXXAZ(pthread_mutex_lock(&frmtx));
 	if (--frf->refcount > 0)
 		frf = NULL;
 	else
 		VTAILQ_REMOVE(&frlist, frf, list);
-	AZ(pthread_mutex_unlock(&frmtx));
+	XXXAZ(pthread_mutex_unlock(&frmtx));
 	if (frf != NULL) {
 		CHECK_OBJ_NOTNULL(frf, CACHED_FILE_MAGIC);
 		FREE_NOTNULL(frf->contents);
@@ -98,14 +98,14 @@ vmod_fileread(struct sess *sp, struct vmod_priv *priv, const char *file_name)
 		return (frf->contents);
 	}
 
-	AZ(pthread_mutex_lock(&frmtx));
+	XXXAZ(pthread_mutex_lock(&frmtx));
 	VTAILQ_FOREACH(frf, &frlist, list) {
 		if (!strcmp(file_name, frf->file_name)) {
 			frf->refcount++;
 			break;
 		}
 	}
-	AZ(pthread_mutex_unlock(&frmtx));
+	XXXAZ(pthread_mutex_unlock(&frmtx));
 	if (frf != NULL) {
 		priv->free = free_frfile;
 		priv->priv = frf;
@@ -120,9 +120,9 @@ vmod_fileread(struct sess *sp, struct vmod_priv *priv, const char *file_name)
 		frf->contents = s;
 		priv->free = free_frfile;
 		priv->priv = frf;
-		AZ(pthread_mutex_lock(&frmtx));
+		XXXAZ(pthread_mutex_lock(&frmtx));
 		VTAILQ_INSERT_HEAD(&frlist, frf, list);
-		AZ(pthread_mutex_unlock(&frmtx));
+		XXXAZ(pthread_mutex_unlock(&frmtx));
 	}
 	return (s);
 }

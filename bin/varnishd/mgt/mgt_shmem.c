@@ -134,7 +134,7 @@ vsl_n_check(int fd)
 	struct stat st;
 	pid_t pid;
 
-	AZ(fstat(fd, &st));
+	XXXAZ(fstat(fd, &st));
 	if (!S_ISREG(st.st_mode))
 		ARGV_ERR("\tshmlog: Not a file\n");
 
@@ -189,7 +189,7 @@ vsl_buildnew(const char *fn, unsigned size, int fill)
 	flags = fcntl(vsl_fd, F_GETFL);
 	assert(flags != -1);
 	flags &= ~O_NONBLOCK;
-	AZ(fcntl(vsl_fd, F_SETFL, flags));
+	XXXAZ(fcntl(vsl_fd, F_SETFL, flags));
 
 	INIT_OBJ(&slh, VSM_HEAD_MAGIC);
 	slh.hdrsize = sizeof slh;
@@ -210,7 +210,7 @@ vsl_buildnew(const char *fn, unsigned size, int fill)
 		}
 	}
 
-	AZ(ftruncate(vsl_fd, (off_t)size));
+	XXXAZ(ftruncate(vsl_fd, (off_t)size));
 }
 
 /*--------------------------------------------------------------------
@@ -304,7 +304,7 @@ mgt_SHM_Init(const char *l_arg)
 	    MAP_HASSEMAPHORE | MAP_NOSYNC | MAP_SHARED,
 	    vsl_fd, 0);
 	VSM_head->master_pid = getpid();
-	AZ(atexit(mgt_shm_atexit));
+	XXXAZ(atexit(mgt_shm_atexit));
 	xxxassert(VSM_head != MAP_FAILED);
 	(void)mlock((void*)VSM_head, size);
 

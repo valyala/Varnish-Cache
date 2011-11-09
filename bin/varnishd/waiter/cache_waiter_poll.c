@@ -205,7 +205,7 @@ vwp_poll_pass(void *priv, const struct sess *sp)
 
 	CAST_OBJ_NOTNULL(vwp, priv, VWP_MAGIC);
 
-	assert(sizeof sp == write(vwp->pipes[1], &sp, sizeof sp));
+	xxxassert(sizeof sp == write(vwp->pipes[1], &sp, sizeof sp));
 }
 
 /*--------------------------------------------------------------------*/
@@ -217,9 +217,9 @@ vwp_poll_init(void)
 
 	ALLOC_OBJ_NOTNULL(vwp, VWP_MAGIC);
 	VTAILQ_INIT(&vwp->sesshead);
-	AZ(pipe(vwp->pipes));
+	XXXAZ(pipe(vwp->pipes));
 	vwp_pollspace(vwp, 256);
-	AZ(pthread_create(&vwp->poll_thread, NULL, vwp_main, vwp));
+	XXXAZ(pthread_create(&vwp->poll_thread, NULL, vwp_main, vwp));
 	return (vwp);
 }
 

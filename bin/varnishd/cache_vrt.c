@@ -307,8 +307,9 @@ VRT_IP_string(const struct sess *sp, const struct sockaddr_storage *sa)
 		INCOMPL();
 	}
 	XXXAN(len);
-	AN(p = WS_Alloc(sp->http->ws, len));
-	AN(inet_ntop(sa->ss_family, addr, p, len));
+	p = WS_Alloc(sp->http->ws, len);
+	XXXAN(p);
+	XXXAN(inet_ntop(sa->ss_family, addr, p, len));
 	return (p);
 }
 
@@ -319,8 +320,9 @@ VRT_int_string(const struct sess *sp, int num)
 	int size;
 
 	size = snprintf(NULL, 0, "%d", num) + 1;
-	AN(p = WS_Alloc(sp->http->ws, size));
-	assert(snprintf(p, size, "%d", num) < size);
+	p = WS_Alloc(sp->http->ws, size);
+	XXXAN(p);
+	xxxassert(snprintf(p, size, "%d", num) < size);
 	return (p);
 }
 
@@ -331,8 +333,9 @@ VRT_double_string(const struct sess *sp, double num)
 	int size;
 
 	size = snprintf(NULL, 0, "%.3f", num) + 1;
-	AN(p = WS_Alloc(sp->http->ws, size));
-	assert(snprintf(p, size, "%.3f", num) < size);
+	p = WS_Alloc(sp->http->ws, size);
+	XXXAN(p);
+	xxxassert(snprintf(p, size, "%.3f", num) < size);
 	return (p);
 }
 
@@ -341,7 +344,8 @@ VRT_time_string(const struct sess *sp, double t)
 {
 	char *p;
 
-	AN(p = WS_Alloc(sp->http->ws, VTIM_FORMAT_SIZE));
+	p = WS_Alloc(sp->http->ws, VTIM_FORMAT_SIZE);
+	XXXAN(p);
 	VTIM_format(t, p);
 	return p;
 }

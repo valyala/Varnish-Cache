@@ -158,7 +158,7 @@ client_start(struct client *c)
 
 	CHECK_OBJ_NOTNULL(c, CLIENT_MAGIC);
 	vtc_log(c->vl, 2, "Starting client");
-	AZ(pthread_create(&c->tp, NULL, client_thread, c));
+	XXXAZ(pthread_create(&c->tp, NULL, client_thread, c));
 	c->running = 1;
 }
 
@@ -173,7 +173,7 @@ client_wait(struct client *c)
 
 	CHECK_OBJ_NOTNULL(c, CLIENT_MAGIC);
 	vtc_log(c->vl, 2, "Waiting for client");
-	AZ(pthread_join(c->tp, &res));
+	XXXAZ(pthread_join(c->tp, &res));
 	if (res != NULL)
 		vtc_log(c->vl, 0, "Client returned \"%s\"", (char *)res);
 	c->tp = 0;

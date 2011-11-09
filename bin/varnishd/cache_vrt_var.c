@@ -428,8 +428,9 @@ VRT_r_req_xid(struct sess *sp)
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 
 	size = snprintf(NULL, 0, "%u", sp->xid) + 1;
-	AN(p = WS_Alloc(sp->http->ws, size));
-	assert(snprintf(p, size, "%u", sp->xid) < size);
+	p = WS_Alloc(sp->http->ws, size);
+	XXXAN(p);
+	xxxassert(snprintf(p, size, "%u", sp->xid) < size);
 	return (p);
 }
 
@@ -496,7 +497,7 @@ VRT_r_server_hostname(struct sess *sp)
 	(void)sp;
 
 	if (vrt_hostname[0] == '\0')
-		AZ(gethostname(vrt_hostname, sizeof(vrt_hostname)));
+		XXXAZ(gethostname(vrt_hostname, sizeof(vrt_hostname)));
 
 	return (vrt_hostname);
 }

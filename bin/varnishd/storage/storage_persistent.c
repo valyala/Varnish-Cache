@@ -318,17 +318,17 @@ smp_open(const struct stevedore *st)
 	/* We trust the parent to give us a valid silo, for good measure: */
 	AZ(smp_valid_silo(sc));
 
-	AZ(mprotect(sc->base, 4096, PROT_READ));
+	XXXAZ(mprotect(sc->base, 4096, PROT_READ));
 
 	sc->ident = SIGN_DATA(&sc->idn);
 
 	/* We attempt ban1 first, and if that fails, try ban2 */
 	if (smp_open_bans(sc, &sc->ban1))
-		AZ(smp_open_bans(sc, &sc->ban2));
+		XXXAZ(smp_open_bans(sc, &sc->ban2));
 
 	/* We attempt seg1 first, and if that fails, try seg2 */
 	if (smp_open_segs(sc, &sc->seg1))
-		AZ(smp_open_segs(sc, &sc->seg2));
+		XXXAZ(smp_open_segs(sc, &sc->seg2));
 
 	/*
 	 * Grap a reference to the tail of the ban list, until the thread

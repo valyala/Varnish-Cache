@@ -78,13 +78,13 @@ vwe_modadd(struct vwe *vwe, int fd, void *data, short arm)
 		struct epoll_event ev = {
 		    EPOLLIN | EPOLLPRI , { data }
 		};
-		AZ(epoll_ctl(vwe->epfd, arm, fd, &ev));
+		XXXAZ(epoll_ctl(vwe->epfd, arm, fd, &ev));
 	} else {
 		struct sess *sp = (struct sess *)data;
 		CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 		sp->ev.data.ptr = data;
 		sp->ev.events = EPOLLIN | EPOLLPRI | EPOLLONESHOT | EPOLLRDHUP;
-		AZ(epoll_ctl(vwe->epfd, arm, fd, &sp->ev));
+		XXXAZ(epoll_ctl(vwe->epfd, arm, fd, &sp->ev));
 	}
 }
 
@@ -96,11 +96,11 @@ vwe_cond_modadd(struct vwe *vwe, int fd, void *data)
 	assert(fd >= 0);
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
 	if (sp->ev.data.ptr)
-		AZ(epoll_ctl(vwe->epfd, EPOLL_CTL_MOD, fd, &sp->ev));
+		XXXAZ(epoll_ctl(vwe->epfd, EPOLL_CTL_MOD, fd, &sp->ev));
 	else {
 		sp->ev.data.ptr = data;
 		sp->ev.events = EPOLLIN | EPOLLPRI | EPOLLONESHOT | EPOLLRDHUP;
-		AZ(epoll_ctl(vwe->epfd, EPOLL_CTL_ADD, fd, &sp->ev));
+		XXXAZ(epoll_ctl(vwe->epfd, EPOLL_CTL_ADD, fd, &sp->ev));
 	}
 }
 
@@ -168,7 +168,7 @@ vwe_thread(void *priv)
 	THR_SetName("cache-epoll");
 
 	vwe->epfd = epoll_create(1);
-	assert(vwe->epfd >= 0);
+	xxxassert(vwe->epfd >= 0);
 
 	vwe_modadd(vwe, vwe->pipes[0], vwe->pipes, EPOLL_CTL_ADD);
 	vwe_modadd(vwe, vwe->timer_pipes[0], vwe->timer_pipes, EPOLL_CTL_ADD);
@@ -180,7 +180,7 @@ vwe_thread(void *priv)
 			if (ep->data.ptr == vwe->timer_pipes &&
 			    (ep->events == EPOLLIN || ep->events == EPOLLPRI))
 			{
-				assert(read(vwe->timer_pipes[0], &junk, 1));
+				xxxassert(read(vwe->timer_pipes[0], &junk, 1));
 				dotimer = 1;
 			} else
 				vwe_eev(vwe, ep);
@@ -217,7 +217,7 @@ vwe_sess_timeout_ticker(void *priv)
 
 	while (1) {
 		/* ticking */
-		assert(write(vwe->timer_pipes[1], &ticker, 1));
+		xxxassert(write(vwe->timer_pipes[1], &ticker, 1));
 		VTIM_sleep(100 * 1e-3);
 	}
 	return NULL;
@@ -231,7 +231,7 @@ vwe_pass(void *priv, const struct sess *sp)
 	struct vwe *vwe;
 
 	CAST_OBJ_NOTNULL(vwe, priv, VWE_MAGIC);
-	assert(sizeof sp == write(vwe->pipes[1], &sp, sizeof sp));
+	xxxassert(sizeof sp == write(vwe->pipes[1], &sp, sizeof sp));
 }
 
 /*--------------------------------------------------------------------*/
@@ -244,24 +244,24 @@ vwe_init(void)
 
 	ALLOC_OBJ_NOTNULL(vwe, VWE_MAGIC);
 	VTAILQ_INIT(&vwe->sesshead);
-	AZ(pipe(vwe->pipes));
-	AZ(pipe(vwe->timer_pipes));
+	XXXAZ(pipe(vwe->pipes));
+	XXXAZ(pipe(vwe->timer_pipes));
 
 	i = fcntl(vwe->pipes[0], F_GETFL);
-	assert(i != -1);
+	xxxassert(i != -1);
 	i |= O_NONBLOCK;
 	i = fcntl(vwe->pipes[0], F_SETFL, i);
-	assert(i != -1);
+	xxxassert(i != -1);
 
 	i = fcntl(vwe->timer_pipes[0], F_GETFL);
-	assert(i != -1);
+	xxxassert(i != -1);
 	i |= O_NONBLOCK;
 	i = fcntl(vwe->timer_pipes[0], F_SETFL, i);
-	assert(i != -1);
+	xxxassert(i != -1);
 
-	AZ(pthread_create(&vwe->timer_thread,
+	XXXAZ(pthread_create(&vwe->timer_thread,
 	    NULL, vwe_sess_timeout_ticker, vwe));
-	AZ(pthread_create(&vwe->epoll_thread, NULL, vwe_thread, vwe));
+	XXXAZ(pthread_create(&vwe->epoll_thread, NULL, vwe_thread, vwe));
 	return(vwe);
 }
 

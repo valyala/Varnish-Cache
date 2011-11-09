@@ -309,9 +309,9 @@ pan_ic(const char *func, const char *file, int line, const char *cond,
 	const char *q;
 	const struct sess *sp;
 
-	AZ(pthread_mutex_lock(&panicstr_mtx)); /* Won't be released,
-						  we're going to die
-						  anyway */
+	XXXAZ(pthread_mutex_lock(&panicstr_mtx)); /* Won't be released,
+						     we're going to die
+						     anyway */
 	switch(xxx) {
 	case 3:
 		VSB_printf(vsp,

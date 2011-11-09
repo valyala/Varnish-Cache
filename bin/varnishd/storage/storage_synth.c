@@ -106,7 +106,7 @@ SMS_Finish(struct object *obj)
 	CHECK_OBJ_NOTNULL(sto, STORAGE_MAGIC);
 	assert(sto->stevedore == &sms_stevedore);
 	vsb = sto->priv;
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 
 	sto->ptr = (void*)VSB_data(vsb);
 	sto->len = VSB_len(vsb);

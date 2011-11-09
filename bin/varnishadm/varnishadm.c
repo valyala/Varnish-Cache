@@ -105,18 +105,18 @@ cli_sock(const char *T_arg, const char *S_arg)
 	if (status == CLIS_AUTH) {
 		if (S_arg == NULL) {
 			fprintf(stderr, "Authentication required\n");
-			AZ(close(sock));
+			XXXAZ(close(sock));
 			return(-1);
 		}
 		fd = open(S_arg, O_RDONLY);
 		if (fd < 0) {
 			fprintf(stderr, "Cannot open \"%s\": %s\n",
 			    S_arg, strerror(errno));
-			AZ(close(sock));
+			XXXAZ(close(sock));
 			return (-1);
 		}
 		VCLI_AuthResponse(fd, answer, buf);
-		AZ(close(fd));
+		XXXAZ(close(fd));
 		FREE_NOTNULL(answer);
 
 		cli_write(sock, "auth ");
@@ -126,7 +126,7 @@ cli_sock(const char *T_arg, const char *S_arg)
 	}
 	if (status != CLIS_OK) {
 		fprintf(stderr, "Rejected %u\n%s\n", status, answer);
-		AZ(close(sock));
+		XXXAZ(close(sock));
 		return (-1);
 	}
 	FREE_ORNULL(answer);
@@ -135,7 +135,7 @@ cli_sock(const char *T_arg, const char *S_arg)
 	(void)VCLI_ReadResult(sock, &status, &answer, timeout);
 	if (status != CLIS_OK || strstr(answer, "PONG") == NULL) {
 		fprintf(stderr, "No pong received from server\n");
-		AZ(close(sock));
+		XXXAZ(close(sock));
 		return(-1);
 	}
 	FREE_ORNULL(answer);
@@ -252,7 +252,7 @@ pass(int sock)
 #else
 			n = read(fds[1].fd, buf, sizeof buf);
 			if (n == 0) {
-				AZ(shutdown(sock, SHUT_WR));
+				XXXAZ(shutdown(sock, SHUT_WR));
 				fds[1].fd = -1;
 			} else if (n < 0) {
 				RL_EXIT(0);
@@ -285,7 +285,7 @@ n_arg_sock(const char *n_arg)
 	int sock;
 
 	vsd = VSM_New();
-	assert(VSL_Arg(vsd, 'n', n_arg));
+	xxxassert(VSL_Arg(vsd, 'n', n_arg));
 	if (VSM_Open(vsd, 1)) {
 		fprintf(stderr, "Could not open shared memory\n");
 		return (-1);

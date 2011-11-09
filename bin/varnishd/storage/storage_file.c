@@ -106,7 +106,7 @@ smf_initfile(struct smf_sc *sc, const char *size)
 {
 	sc->filesize = STV_FileSize(sc->fd, size, &sc->pagesize, "-sfile");
 
-	AZ(ftruncate(sc->fd, (off_t)sc->filesize));
+	XXXAZ(ftruncate(sc->fd, (off_t)sc->filesize));
 
 	/* XXX: force block allocation here or in open ? */
 }
@@ -436,6 +436,7 @@ smf_open(const struct stevedore *st)
 	CAST_OBJ_NOTNULL(sc, st->priv, SMF_SC_MAGIC);
 	sc->stats = VSM_Alloc(sizeof *sc->stats,
 	    VSC_CLASS, VSC_TYPE_SMF, st->ident);
+	AN(sc->stats);
 	Lck_New(&sc->mtx, lck_smf);
 	Lck_Lock(&sc->mtx);
 	smf_open_chunk(sc, sc->filesize, 0, &fail, &sum);

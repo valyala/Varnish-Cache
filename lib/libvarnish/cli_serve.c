@@ -292,7 +292,7 @@ cls_vlu2(void *priv, char * const *av)
 		}
 	} while (0);
 
-	AZ(VSB_finish(cli->sb));
+	VSB_finish(cli->sb);
 
 	if (cs->after != NULL)
 		cs->after(cli);
@@ -362,7 +362,7 @@ cls_vlu(void *priv, const char *p)
 			VSB_cat(cfd->last_arg, "\n");
 			return (0);
 		}
-		AZ(VSB_finish(cfd->last_arg));
+		VSB_finish(cfd->last_arg);
 		FREE_NOTNULL(cfd->argv[cfd->last_idx]);
 		cfd->argv[cfd->last_idx] = NULL;
 		FREE_NOTNULL(cfd->argv[cfd->last_idx + 1]);
@@ -443,7 +443,7 @@ cls_close_fd(struct VCLS *cs, struct VCLS_fd *cfd)
 }
 
 
-int
+void
 VCLS_AddFunc(struct VCLS *cs, unsigned auth, struct cli_proto *clp)
 {
 	struct VCLS_func *cfn;
@@ -453,7 +453,6 @@ VCLS_AddFunc(struct VCLS *cs, unsigned auth, struct cli_proto *clp)
 	cfn->clp = clp;
 	cfn->auth = auth;
 	VTAILQ_INSERT_TAIL(&cs->funcs, cfn, list);
-	return (0);
 }
 
 int

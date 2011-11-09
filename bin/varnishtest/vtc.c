@@ -79,7 +79,7 @@ static pthread_mutex_t		macro_mtx;
 static void
 init_macro(void)
 {
-	AZ(pthread_mutex_init(&macro_mtx, NULL));
+	XXXAZ(pthread_mutex_init(&macro_mtx, NULL));
 }
 
 void
@@ -96,7 +96,7 @@ macro_def(struct vtclog *vl, const char *instance, const char *name,
 		name = buf1;
 	}
 
-	AZ(pthread_mutex_lock(&macro_mtx));
+	XXXAZ(pthread_mutex_lock(&macro_mtx));
 	VTAILQ_FOREACH(m, &macro_list, list) {
 		CHECK_OBJ_NOTNULL(m, MACRO_MAGIC);
 		if (!strcmp(name, m->name))
@@ -123,7 +123,7 @@ macro_def(struct vtclog *vl, const char *instance, const char *name,
 		FREE_ORNULL(m->val);
 		FREE_OBJ_NOTNULL(m, MACRO_MAGIC);
 	}
-	AZ(pthread_mutex_unlock(&macro_mtx));
+	XXXAZ(pthread_mutex_unlock(&macro_mtx));
 }
 
 static char *
@@ -142,13 +142,13 @@ macro_get(const char *b, const char *e)
 		return (retval);
 	}
 
-	AZ(pthread_mutex_lock(&macro_mtx));
+	XXXAZ(pthread_mutex_lock(&macro_mtx));
 	VTAILQ_FOREACH(m, &macro_list, list)
 		if (!memcmp(b, m->name, l) && m->name[l] == '\0')
 			break;
 	if (m != NULL)
 		retval = strdup_notnull(m->val);
-	AZ(pthread_mutex_unlock(&macro_mtx));
+	XXXAZ(pthread_mutex_unlock(&macro_mtx));
 	return (retval);
 }
 
@@ -186,7 +186,7 @@ macro_expand(struct vtclog *vl, const char *text)
 		VSB_printf(vsb, "%s", m);
 		text = q + 1;
 	}
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 	return (vsb);
 }
 
@@ -553,14 +553,14 @@ exec_file(const char *fn, const char *script, const char *tmpdir,
 	macro_def(vltop, NULL, "bad_ip", "10.255.255.255");
 
 	/* Move into our tmpdir */
-	AZ(chdir(tmpdir));
+	XXXAZ(chdir(tmpdir));
 	macro_def(vltop, NULL, "tmpdir", tmpdir);
 
 	/* Drop file to tell what was going on here */
 	f = fopen("INFO", "w");
-	AN(f);
+	XXXAN(f);
 	fprintf(f, "Test case: %s\n", fn);
-	AZ(fclose(f));
+	XXXAZ(fclose(f));
 
 	vtc_stop = 0;
 	vtc_desc = NULL;

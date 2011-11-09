@@ -171,7 +171,7 @@ Emit_Sockaddr(struct vcc *tl, const struct token *t_host, const char *port)
 				error = getnameinfo(res1->ai_addr,
 				    res1->ai_addrlen, hbuf, sizeof hbuf,
 				    NULL, 0, NI_NUMERICHOST);
-				AZ(error);
+				XXXAZ(error);
 				VSB_printf(tl->sb, "\t%s\n", hbuf);
 			}
 			vcc_ErrWhere(tl, t_host);
@@ -183,7 +183,7 @@ Emit_Sockaddr(struct vcc *tl, const struct token *t_host, const char *port)
 		error = getnameinfo(res->ai_addr,
 		    res->ai_addrlen, hbuf, sizeof hbuf,
 		    NULL, 0, NI_NUMERICHOST);
-		AZ(error);
+		XXXAZ(error);
 		Fb(tl, 0, "\t.%s_addr = \"%s\",\n", emit, hbuf);
 		retval++;
 	}
@@ -191,7 +191,7 @@ Emit_Sockaddr(struct vcc *tl, const struct token *t_host, const char *port)
 		error = getnameinfo(res0->ai_addr,
 		    res0->ai_addrlen, NULL, 0, hbuf, sizeof hbuf,
 		    NI_NUMERICSERV);
-		AZ(error);
+		XXXAZ(error);
 		Fb(tl, 0, "\t.port = \"%s\",\n", hbuf);
 	}
 	freeaddrinfo(res0);
@@ -561,7 +561,7 @@ vcc_ParseHostDef(struct vcc *tl, int serial, const char *vgcname)
 	vcc_NextToken(tl);
 
 	tl->fb = NULL;
-	AZ(VSB_finish(vsb));
+	VSB_finish(vsb);
 	Fh(tl, 0, "%s", VSB_data(vsb));
 	VSB_delete(vsb);
 

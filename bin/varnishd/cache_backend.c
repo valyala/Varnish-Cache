@@ -131,7 +131,7 @@ vbe_TryConnect(const struct sess *sp, int pf, const struct sockaddr_storage *sa,
 	i = VTCP_connect(s, sa, salen, tmo);
 
 	if (i != 0) {
-		AZ(close(s));
+		XXXAZ(close(s));
 		return (-1);
 	}
 

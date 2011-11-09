@@ -137,7 +137,7 @@ http_write(const struct http *hp, int lvl, const char *pfx)
 {
 	int l;
 
-	AZ(VSB_finish(hp->vsb));
+	VSB_finish(hp->vsb);
 	vtc_dump(hp->vl, lvl, pfx, VSB_data(hp->vsb), VSB_len(hp->vsb));
 	l = write(hp->fd, VSB_data(hp->vsb), VSB_len(hp->vsb));
 	if (l != VSB_len(hp->vsb))
@@ -217,7 +217,7 @@ cmd_http_expect(CMD_ARGS)
 	(void)cmd;
 	(void)vl;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
-	assert(!strcmp(av[0], "expect"));
+	xxxassert(!strcmp(av[0], "expect"));
 	av++;
 
 	AN(av[0]);
@@ -502,7 +502,7 @@ cmd_http_rxresp(CMD_ARGS)
 	(void)vl;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	ONLY_CLIENT(hp, av);
-	assert(!strcmp(av[0], "rxresp"));
+	xxxassert(!strcmp(av[0], "rxresp"));
 	av++;
 
 	for(; *av != NULL; av++)
@@ -560,7 +560,7 @@ cmd_http_gunzip_body(CMD_ARGS)
 	vz.next_out = TRUST_ME(p);
 	vz.avail_out = l;
 
-	assert(Z_OK == inflateInit2(&vz, 31));
+	xxxassert(Z_OK == inflateInit2(&vz, 31));
 	i = inflate(&vz, Z_FINISH);
 	hp->bodyl = vz.total_out;
 	memcpy(hp->body, p, hp->bodyl);
@@ -581,7 +581,7 @@ cmd_http_gunzip_body(CMD_ARGS)
 		vtc_log(hp->vl, hp->fatal,
 		    "Gunzip error = %d (%s) in:%jd out:%jd",
 		    i, vz.msg, (intmax_t)vz.total_in, (intmax_t)vz.total_out);
-	assert(Z_OK == inflateEnd(&vz));
+	xxxassert(Z_OK == inflateEnd(&vz));
 }
 
 /**********************************************************************
@@ -605,9 +605,9 @@ gzip_body(const struct http *hp, const char *txt, char **body, int *bodylen)
 	vz.next_out = TRUST_ME(*body);
 	vz.avail_out = l + OVERHEAD;
 
-	assert(Z_OK == deflateInit2(&vz,
+	xxxassert(Z_OK == deflateInit2(&vz,
 	    hp->gziplevel, Z_DEFLATED, 31, 9, Z_DEFAULT_STRATEGY));
-	assert(Z_STREAM_END == deflate(&vz, Z_FINISH));
+	xxxassert(Z_STREAM_END == deflate(&vz, Z_FINISH));
 	i = vz.stop_bit & 7;
 	if (hp->gzipresidual >= 0 && hp->gzipresidual != i)
 		vtc_log(hp->vl, hp->fatal,
@@ -623,7 +623,7 @@ gzip_body(const struct http *hp, const char *txt, char **body, int *bodylen)
 	vtc_log(hp->vl, 4, "stopbit = %ju %ju/%ju",
 	    (uintmax_t)vz.stop_bit,
 	    (uintmax_t)vz.stop_bit >> 3, (uintmax_t)vz.stop_bit & 7);
-	assert(Z_OK == deflateEnd(&vz));
+	xxxassert(Z_OK == deflateEnd(&vz));
 }
 
 /**********************************************************************
@@ -647,7 +647,7 @@ cmd_http_txresp(CMD_ARGS)
 	(void)vl;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	ONLY_SERVER(hp, av);
-	assert(!strcmp(av[0], "txresp"));
+	xxxassert(!strcmp(av[0], "txresp"));
 	av++;
 
 	VSB_clear(hp->vsb);
@@ -750,7 +750,7 @@ cmd_http_rxreq(CMD_ARGS)
 	(void)vl;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	ONLY_SERVER(hp, av);
-	assert(!strcmp(av[0], "rxreq"));
+	xxxassert(!strcmp(av[0], "rxreq"));
 	av++;
 
 	for(; *av != NULL; av++)
@@ -770,7 +770,7 @@ cmd_http_rxhdrs(CMD_ARGS)
 	(void)vl;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	ONLY_SERVER(hp, av);
-	assert(!strcmp(av[0], "rxhdrs"));
+	xxxassert(!strcmp(av[0], "rxhdrs"));
 	av++;
 
 	for(; *av != NULL; av++)
@@ -788,7 +788,7 @@ cmd_http_rxbody(CMD_ARGS)
 	(void)vl;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	ONLY_SERVER(hp, av);
-	assert(!strcmp(av[0], "rxbody"));
+	xxxassert(!strcmp(av[0], "rxbody"));
 	av++;
 
 	for(; *av != NULL; av++)
@@ -834,7 +834,7 @@ cmd_http_txreq(CMD_ARGS)
 	(void)vl;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	ONLY_CLIENT(hp, av);
-	assert(!strcmp(av[0], "txreq"));
+	xxxassert(!strcmp(av[0], "txreq"));
 	av++;
 
 	VSB_clear(hp->vsb);
@@ -942,7 +942,7 @@ cmd_http_sendhex(CMD_ARGS)
 	}
 	vtc_hexdump(hp->vl, 4, "sendhex", (void*)p, i);
 	j = write(hp->fd, p, i);
-	assert(j == i);
+	xxxassert(j == i);
 	FREE_NOTNULL(p);
 
 }
@@ -1257,15 +1257,15 @@ xxx(void)
 			vz.avail_in = strlen(ibuf);
 			vz.next_out = TRUST_ME(obuf);
 			vz.avail_out = sizeof obuf;
-			assert(Z_OK == deflateInit2(&vz,
+			xxxassert(Z_OK == deflateInit2(&vz,
 			    9, Z_DEFLATED, 31, 9, Z_DEFAULT_STRATEGY));
-			assert(Z_STREAM_END == deflate(&vz, Z_FINISH));
+			xxxassert(Z_STREAM_END == deflate(&vz, Z_FINISH));
 			i = vz.stop_bit & 7;
 			if (fl[i] > strlen(ibuf)) {
 				printf("%d %jd <%s>\n", i, vz.stop_bit, ibuf);
 				fl[i] = strlen(ibuf);
 			}
-			assert(Z_OK == deflateEnd(&vz));
+			xxxassert(Z_OK == deflateEnd(&vz));
 		}
 	}
 

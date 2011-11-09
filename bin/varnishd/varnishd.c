@@ -206,11 +206,12 @@ tackle_warg(const char *argv)
 static void
 cli_check(const struct cli *cli)
 {
+
 	if (cli->result == CLIS_OK) {
 		VSB_clear(cli->sb);
 		return;
 	}
-	AZ(VSB_finish(cli->sb));
+	VSB_finish(cli->sb);
 	fprintf(stderr, "Error:\n%s\n", VSB_data(cli->sb));
 	exit (2);
 }
@@ -308,9 +309,9 @@ cli_stdin_close(void *priv)
 	(void)close(0);
 	(void)close(1);
 	(void)close(2);
-	assert(open("/dev/null", O_RDONLY) == 0);
-	assert(open("/dev/null", O_WRONLY) == 1);
-	assert(open("/dev/null", O_WRONLY) == 2);
+	xxxassert(open("/dev/null", O_RDONLY) == 0);
+	xxxassert(open("/dev/null", O_WRONLY) == 1);
+	xxxassert(open("/dev/null", O_WRONLY) == 2);
 
 	if (d_flag) {
 		mgt_stop_child();
@@ -370,7 +371,7 @@ main(int argc, char * const *argv)
 	 * timestamps on the local timescale.
 	 * See lib/libvarnish/time.c
 	 */
-	AZ(setenv("TZ", "UTC", 1));
+	XXXAZ(setenv("TZ", "UTC", 1));
 	tzset();
 	assert(VTIM_parse("Sun, 06 Nov 1994 08:49:37 GMT") == 784111777);
 	assert(VTIM_parse("Sunday, 06-Nov-94 08:49:37 GMT") == 784111777);
@@ -512,7 +513,7 @@ main(int argc, char * const *argv)
 	/* XXX: we can have multiple CLI actions above, is this enough ? */
 	if (cli[0].result != CLIS_OK) {
 		fprintf(stderr, "Parameter errors:\n");
-		AZ(VSB_finish(cli[0].sb));
+		VSB_finish(cli[0].sb);
 		fprintf(stderr, "%s\n", VSB_data(cli[0].sb));
 		exit(1);
 	}
@@ -597,10 +598,10 @@ main(int argc, char * const *argv)
 
 	mgt_SHM_Init(l_arg);
 
-	AZ(VSB_finish(vident));
+	VSB_finish(vident);
 
 	if (!d_flag && !F_flag)
-		AZ(varnish_daemon(1, 0));
+		XXXAZ(varnish_daemon(1, 0));
 
 	mgt_SHM_Pid();
 
@@ -626,7 +627,8 @@ main(int argc, char * const *argv)
 	if (T_arg != NULL)
 		mgt_cli_telnet(T_arg);
 
-	AN(VSM_Alloc(0, VSM_CLASS_MARK, "", ""));
+	p = VSM_Alloc(0, VSM_CLASS_MARK, "", "");
+	AN(p);
 
 	MGT_Run();
 

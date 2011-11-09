@@ -64,8 +64,8 @@ vtc_loginit(char *buf, unsigned buflen)
 	t0 = VTIM_mono();
 	vtclog_buf = buf;
 	vtclog_left = buflen;
-	AZ(pthread_mutex_init(&vtclog_mtx, NULL));
-	AZ(pthread_key_create(&log_key, NULL));
+	XXXAZ(pthread_mutex_init(&vtclog_mtx, NULL));
+	XXXAZ(pthread_key_create(&log_key, NULL));
 }
 
 /**********************************************************************/
@@ -80,8 +80,8 @@ vtc_logopen(const char *id)
 	vl->id = id;
 	vl->vsb = VSB_new_auto();
 	AN(vl->vsb);
-	AZ(pthread_mutex_init(&vl->mtx, NULL));
-	AZ(pthread_setspecific(log_key, vl));
+	XXXAZ(pthread_mutex_init(&vl->mtx, NULL));
+	XXXAZ(pthread_setspecific(log_key, vl));
 	return (vl);
 }
 
@@ -91,7 +91,7 @@ vtc_logclose(struct vtclog *vl)
 
 	CHECK_OBJ_NOTNULL(vl, VTCLOG_MAGIC);
 	VSB_delete(vl->vsb);
-	AZ(pthread_mutex_destroy(&vl->mtx));
+	XXXAZ(pthread_mutex_destroy(&vl->mtx));
 	FREE_OBJ_NOTNULL(vl, VTCLOG_MAGIC);
 }
 
@@ -115,13 +115,13 @@ vtc_log_emit(const struct vtclog *vl, int lvl)
 	if (vtc_stop && lvl == 0)
 		return;
 	l = VSB_len(vl->vsb);
-	AZ(pthread_mutex_lock(&vtclog_mtx));
+	XXXAZ(pthread_mutex_lock(&vtclog_mtx));
 	assert(vtclog_left > l);
 	memcpy(vtclog_buf,VSB_data(vl->vsb), l);
 	vtclog_buf += l;
 	*vtclog_buf = '\0';
 	vtclog_left -= l;
-	AZ(pthread_mutex_unlock(&vtclog_mtx));
+	XXXAZ(pthread_mutex_unlock(&vtclog_mtx));
 }
 
 //lint -e{818}
@@ -132,7 +132,7 @@ vtc_log(struct vtclog *vl, int lvl, const char *fmt, ...)
 
 	CHECK_OBJ_NOTNULL(vl, VTCLOG_MAGIC);
 	tx = VTIM_mono() - t0;
-	AZ(pthread_mutex_lock(&vl->mtx));
+	XXXAZ(pthread_mutex_lock(&vl->mtx));
 	vl->act = 1;
 	assert(lvl < (int)NLEAD);
 	VSB_clear(vl->vsb);
@@ -143,13 +143,13 @@ vtc_log(struct vtclog *vl, int lvl, const char *fmt, ...)
 	(void)VSB_vprintf(vl->vsb, fmt, ap);
 	va_end(ap);
 	VSB_putc(vl->vsb, '\n');
-	AZ(VSB_finish(vl->vsb));
+	VSB_finish(vl->vsb);
 
 	vtc_log_emit(vl, lvl);
 
 	VSB_clear(vl->vsb);
 	vl->act = 0;
-	AZ(pthread_mutex_unlock(&vl->mtx));
+	XXXAZ(pthread_mutex_unlock(&vl->mtx));
 	if (lvl > 0)
 		return;
 	if (lvl == 0) 
@@ -174,7 +174,7 @@ vtc_dump(struct vtclog *vl, int lvl, const char *pfx, const char *str, int len)
 	tx = VTIM_mono() - t0;
 	assert(lvl >= 0);
 	assert(lvl < NLEAD);
-	AZ(pthread_mutex_lock(&vl->mtx));
+	XXXAZ(pthread_mutex_lock(&vl->mtx));
 	vl->act = 1;
 	VSB_clear(vl->vsb);
 	if (pfx == NULL)
@@ -211,13 +211,13 @@ vtc_dump(struct vtclog *vl, int lvl, const char *pfx, const char *str, int len)
 	}
 	if (!nl)
 		VSB_printf(vl->vsb, "\n");
-	AZ(VSB_finish(vl->vsb));
+	VSB_finish(vl->vsb);
 
 	vtc_log_emit(vl, lvl);
 
 	VSB_clear(vl->vsb);
 	vl->act = 0;
-	AZ(pthread_mutex_unlock(&vl->mtx));
+	XXXAZ(pthread_mutex_unlock(&vl->mtx));
 	if (lvl == 0) {
 		vtc_error = 1;
 		if (pthread_self() != vtc_thread)
@@ -242,7 +242,7 @@ vtc_hexdump(struct vtclog *vl, int lvl, const char *pfx, const unsigned char *st
 	assert(len >= 0);
 	assert(lvl >= 0);
 	assert(lvl < NLEAD);
-	AZ(pthread_mutex_lock(&vl->mtx));
+	XXXAZ(pthread_mutex_lock(&vl->mtx));
 	vl->act = 1;
 	VSB_clear(vl->vsb);
 	if (pfx == NULL)
@@ -270,13 +270,13 @@ vtc_hexdump(struct vtclog *vl, int lvl, const char *pfx, const unsigned char *st
 	}
 	if (!nl)
 		VSB_printf(vl->vsb, "\n");
-	AZ(VSB_finish(vl->vsb));
+	VSB_finish(vl->vsb);
 
 	vtc_log_emit(vl, lvl);
 
 	VSB_clear(vl->vsb);
 	vl->act = 0;
-	AZ(pthread_mutex_unlock(&vl->mtx));
+	XXXAZ(pthread_mutex_unlock(&vl->mtx));
 	if (lvl == 0) {
 		vtc_error = 1;
 		if (pthread_self() != vtc_thread)

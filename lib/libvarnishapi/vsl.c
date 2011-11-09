@@ -185,14 +185,14 @@ vsl_nextlog(struct vsl *vsl, uint32_t **pp)
 			if (vsl->flags & F_NON_BLOCKING)
 				return (-1);
 			w += SLEEP_USEC;
-			assert(usleep(SLEEP_USEC) == 0 || errno == EINTR);
+			xxxassert(usleep(SLEEP_USEC) == 0 || errno == EINTR);
 			VRMB();
 			continue;
 		}
 		if (t == 0) {
 			/* Zero-initialized VSL */
 			w += SLEEP_USEC;
-			assert(usleep(SLEEP_USEC) == 0 || errno == EINTR);
+			xxxassert(usleep(SLEEP_USEC) == 0 || errno == EINTR);
 			VRMB();
 			continue;
 		}
