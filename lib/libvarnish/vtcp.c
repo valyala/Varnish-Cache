@@ -174,7 +174,7 @@ VTCP_blocking(int sock)
 
 	i = 0;
 	j = ioctl(sock, FIONBIO, &i);
-	VTCP_Assert(j);
+	VTCP_Check(j);
 	return (j);
 }
 
@@ -185,7 +185,7 @@ VTCP_nonblocking(int sock)
 
 	i = 1;
 	j = ioctl(sock, FIONBIO, &i);
-	VTCP_Assert(j);
+	VTCP_Check(j);
 	return (j);
 }
 
@@ -255,7 +255,7 @@ VTCP_close(int *s)
 
 	i = close(*s);
 
-	assert (VTCP_Check(i));
+	VTCP_Check(i);
 	*s = -1;
 }
 
@@ -272,7 +272,8 @@ VTCP_set_read_timeout(int s, double seconds)
 	 * timeout does not get set. Needs to be fixed in Solaris, there is
 	 * nothing we can do about this.
 	 */
-	VTCP_Assert(setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout));
+	VTCP_Check(setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+		   sizeof timeout));
 #else
 	(void)s;
 #endif
@@ -291,6 +292,6 @@ VTCP_linger(int sock, int linger)
 	ZERO_OBJ(&lin);
 	lin.l_onoff = linger;
 	i = setsockopt(sock, SOL_SOCKET, SO_LINGER, &lin, sizeof lin);
-	VTCP_Assert(i);
+	VTCP_Check(i);
 	return (i);
 }

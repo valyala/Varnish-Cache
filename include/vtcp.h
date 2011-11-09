@@ -33,13 +33,13 @@
 #define VTCP_ADDRBUFSIZE		64
 #define VTCP_PORTBUFSIZE		16
 
-static inline int
+static inline void
 VTCP_Check(int a)
 {
 	if (a == 0)
-		return (1);
+		return;
 	if (errno == ECONNRESET || errno == ENOTCONN)
-		return (1);
+		return;
 #if (defined (__SVR4) && defined (__sun)) || defined (__NetBSD__)
 	/*
 	 * Solaris returns EINVAL if the other end unexepectedly reset the
@@ -47,12 +47,10 @@ VTCP_Check(int a)
 	 * This is a bug in Solaris and documented behaviour on NetBSD.
 	 */
 	if (errno == EINVAL || errno == ETIMEDOUT)
-		return (1);
+		return;
 #endif
-	return (0);
+	WRONG("Unexpected VTCP error");
 }
-
-#define VTCP_Assert(a) assert(VTCP_Check(a))
 
 void VTCP_myname(int sock, char *abuf, unsigned alen, char *pbuf, unsigned plen);
 void VTCP_hisname(int sock, char *abuf, unsigned alen, char *pbuf, unsigned plen);

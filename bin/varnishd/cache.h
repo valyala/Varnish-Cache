@@ -1012,7 +1012,7 @@ pdiff(const void *b, const void *e)
 static inline void
 Tcheck(const txt t)
 {
-
+	(void)t;
 	AN(t.b);
 	AN(t.e);
 	assert(t.b <= t.e);
@@ -1047,6 +1047,7 @@ Tadd(txt *t, const char *p, int l)
 static inline void
 AssertObjBusy(const struct object *o)
 {
+	(void)o;
 	AN(o->objcore);
 	AN(o->objcore->flags & OC_F_BUSY);
 }

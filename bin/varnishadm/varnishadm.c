@@ -73,7 +73,7 @@ cli_write(int sock, const char *s)
 	int i, l;
 
 	i = strlen(s);
-	l = write (sock, s, i);
+	l = write(sock, s, i);
 	if (i == l)
 		return;
 	perror("Write error CLI socket");
@@ -221,7 +221,7 @@ pass(int sock)
 	fds[1].events = POLLIN;
 	while (1) {
 		i = poll(fds, 2, -1);
-		assert(i > 0);
+		xxxassert(i > 0);
 		if (fds[0].revents & POLLIN) {
 			/* Get rid of the prompt, kinda hackish */
 			u = write(1, "\r           \r", 13);

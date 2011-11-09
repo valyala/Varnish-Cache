@@ -277,15 +277,13 @@ VSL_NextLog(const struct VSM_data *vd, uint32_t **pp, uint64_t *bits)
 int
 VSL_Dispatch(struct VSM_data *vd, VSL_handler_f *func, void *priv)
 {
-	struct vsl *vsl;
 	int i;
 	unsigned u, l, s;
 	uint32_t *p;
 	uint64_t bitmap;
 
 	CHECK_OBJ_NOTNULL(vd, VSM_MAGIC);
-	vsl = vd->vsl;
-	CHECK_OBJ_NOTNULL(vsl, VSL_MAGIC);
+	CHECK_OBJ_NOTNULL(vd->vsl, VSL_MAGIC);
 
 	while (1) {
 		bitmap = 0;

@@ -196,7 +196,7 @@ tst_cb(const struct vev *ve, int what)
 	if (i == 0) {
 		njob--;
 		px = wait4(jp->child, &stx, 0, NULL);
-		assert(px == jp->child);
+		xxxassert(px == jp->child);
 		t = VTIM_mono() - jp->t0;
 		XXXAZ(close(ve->fd));
 

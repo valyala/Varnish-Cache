@@ -490,7 +490,7 @@ vcc_Eval_BoolConst(struct vcc *tl, struct expr **e, const struct symbol *sym)
 void
 vcc_Eval_Backend(struct vcc *tl, struct expr **e, const struct symbol *sym)
 {
-
+	(void)sym;
 	assert(sym->kind == SYM_BACKEND);
 
 	vcc_ExpectCid(tl);

@@ -315,7 +315,7 @@ ban_parse_regexp(struct cli *cli, const struct ban *b, const char *a3)
 		return (-1);
 	}
 	rc = pcre_fullinfo(re, NULL, PCRE_INFO_SIZE, &sz);
-	AZ(rc);
+	XXXAZ(rc);
 	ban_add_lump(b, re, sz);
 	return (0);
 }
@@ -530,11 +530,13 @@ BAN_Reload(const uint8_t *ban, unsigned len)
 
 	ASSERT_CLI();
 
+	(void)t2;
 	t0 = ban_time(ban);
 	assert(len == ban_len(ban));
 	VTAILQ_FOREACH(b, &ban_head, list) {
+		CHECK_OBJ_NOTNULL(b, BAN_MAGIC);
 		t1 = ban_time(b->spec);
-		assert (t1 < t2);
+		assert(t1 < t2);
 		t2 = t1;
 		if (t1 == t0)
 			return;

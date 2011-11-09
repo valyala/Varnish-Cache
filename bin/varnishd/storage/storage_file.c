@@ -182,7 +182,9 @@ insfree(struct smf_sc *sc, struct smf *sp)
 	}
 	sp->flist = &sc->free[b];
 	ns = b * sc->pagesize;
+	(void)ns;
 	VTAILQ_FOREACH(sp2, sp->flist, status) {
+		CHECK_OBJ_NOTNULL(sp2, SMF_MAGIC);
 		assert(sp2->size >= ns);
 		assert(sp2->alloc == 0);
 		assert(sp2->flist == sp->flist);

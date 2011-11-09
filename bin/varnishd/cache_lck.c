@@ -131,6 +131,7 @@ Lck__Assert(const struct lock *lck, int held)
 {
 	struct ilck *ilck;
 
+	(void)ilck;
 	CAST_OBJ_NOTNULL(ilck, lck->priv, ILCK_MAGIC);
 	if (held)
 		assert(ilck->held &&

@@ -214,6 +214,10 @@ static inline uint64_t
 smp_spaceleft(const struct smp_sc *sc, const struct smp_seg *sg)
 {
 
+	CHECK_OBJ_NOTNULL(sc, SMP_SC_MAGIC);
+	CHECK_OBJ_NOTNULL(sg, SMP_SEG_MAGIC);
+
+	(void)sg;
 	IASSERTALIGN(sc, sc->next_bot);
 	assert(sc->next_bot <= sc->next_top - IRNUP(sc, SMP_SIGN_SPACE));
 	assert(sc->next_bot >= sg->p.offset);

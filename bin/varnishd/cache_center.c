@@ -541,6 +541,7 @@ cnt_fetch(struct sess *sp)
 	AZ(sp->wrk->do_close);
 	AZ(sp->wrk->storage_hint);
 
+	(void)rv;
 	http_Setup(sp->wrk->beresp, sp->wrk->ws);
 
 	i = FetchHdr(sp);
@@ -1182,6 +1183,8 @@ cnt_miss(struct sess *sp)
 
 	AZ(sp->obj);
 	AN(sp->objcore);
+
+	(void)rv;
 	WS_Reset(sp->wrk->ws, NULL);
 	http_Setup(sp->wrk->bereq, sp->wrk->ws);
 	http_FilterHeader(sp, HTTPH_R_FETCH);

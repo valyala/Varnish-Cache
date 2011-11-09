@@ -655,6 +655,7 @@ cmd_http_txresp(CMD_ARGS)
 	/* send a "Content-Length: 0" header unless something else happens */
 	REPLACE(body, "");
 	nullbody = body;
+	(void)nullbody;
 
 	for(; *av != NULL; av++) {
 		if (!strcmp(*av, "-proto")) {
@@ -1033,6 +1034,7 @@ cmd_http_expect_close(CMD_ARGS)
 
 	(void)cmd;
 	(void)vl;
+	(void)av;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	AZ(av[1]);
 	assert(hp->sfd != NULL);
@@ -1071,6 +1073,7 @@ cmd_http_close(CMD_ARGS)
 
 	(void)cmd;
 	(void)vl;
+	(void)av;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	AZ(av[1]);
 	assert(hp->sfd != NULL);
@@ -1090,6 +1093,7 @@ cmd_http_accept(CMD_ARGS)
 
 	(void)cmd;
 	(void)vl;
+	(void)av;
 	CAST_OBJ_NOTNULL(hp, priv, HTTP_MAGIC);
 	AZ(av[1]);
 	assert(hp->sfd != NULL);
@@ -1202,7 +1206,7 @@ http_process(struct vtclog *vl, const char *spec, int sock, int *sfd)
 
 	s = strdup_notnull(spec);
 	q = strchr(s, '\0');
-	assert(q > s);
+	xxxassert(q > s);
 	parse_string(s, http_cmds, hp, vl);
 	retval = hp->fd;
 	VSB_delete(hp->vsb);

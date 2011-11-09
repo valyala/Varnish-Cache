@@ -64,7 +64,7 @@ sock_test(int fd)
 	l = sizeof lin;
 	i = getsockopt(fd, SOL_SOCKET, SO_LINGER, &lin, &l);
 	if (i) {
-		VTCP_Assert(i);
+		VTCP_Check(i);
 		return;
 	}
 	assert(l == sizeof lin);
@@ -75,7 +75,7 @@ sock_test(int fd)
 	l = sizeof tv;
 	i = getsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, &l);
 	if (i) {
-		VTCP_Assert(i);
+		VTCP_Check(i);
 		return;
 	}
 	assert(l == sizeof tv);
@@ -91,7 +91,7 @@ sock_test(int fd)
 	l = sizeof tv;
 	i = getsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, &l);
 	if (i) {
-		VTCP_Assert(i);
+		VTCP_Check(i);
 		return;
 	}
 	assert(l == sizeof tv);
@@ -135,16 +135,16 @@ VCA_Prep(struct sess *sp)
 	if (need_test)
 		sock_test(sp->fd);
 	if (need_linger)
-		VTCP_Assert(setsockopt(sp->fd, SOL_SOCKET, SO_LINGER,
+		VTCP_Check(setsockopt(sp->fd, SOL_SOCKET, SO_LINGER,
 		    &linger, sizeof linger));
 #ifdef SO_SNDTIMEO_WORKS
 	if (need_sndtimeo)
-		VTCP_Assert(setsockopt(sp->fd, SOL_SOCKET, SO_SNDTIMEO,
+		VTCP_Check(setsockopt(sp->fd, SOL_SOCKET, SO_SNDTIMEO,
 		    &tv_sndtimeo, sizeof tv_sndtimeo));
 #endif
 #ifdef SO_RCVTIMEO_WORKS
 	if (need_rcvtimeo)
-		VTCP_Assert(setsockopt(sp->fd, SOL_SOCKET, SO_RCVTIMEO,
+		VTCP_Check(setsockopt(sp->fd, SOL_SOCKET, SO_RCVTIMEO,
 		    &tv_rcvtimeo, sizeof tv_rcvtimeo));
 #endif
 }

@@ -329,10 +329,10 @@ RES_WriteObj(struct sess *sp)
 void
 RES_StreamStart(struct sess *sp)
 {
-	struct stream_ctx *sctx;
 
-	sctx = sp->wrk->sctx;
-	CHECK_OBJ_NOTNULL(sctx, STREAM_CTX_MAGIC);
+	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
+	CHECK_OBJ_NOTNULL(sp->wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(sp->wrk->sctx, STREAM_CTX_MAGIC);
 
 	AZ(sp->wrk->res_mode & RES_ESI_CHILD);
 	AN(sp->wantbody);

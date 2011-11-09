@@ -100,8 +100,7 @@ server_thread(void *priv)
 		fd = http_process(vl, s->spec, fd, &s->sock);
 		vtc_log(vl, 3, "shutting fd %d", fd);
 		j = shutdown(fd, SHUT_WR);
-		if (!VTCP_Check(j))
-			vtc_log(vl, 0, "Shutdown failed: %s", strerror(errno));
+		VTCP_Check(j);
 		VTCP_close(&fd);
 	}
 	vtc_log(vl, 2, "Ending");

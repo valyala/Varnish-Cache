@@ -404,7 +404,7 @@ cmd_shell(CMD_ARGS)
 	AZ(av[2]);
 	vtc_dump(vl, 4, "shell", av[1], -1);
 	r = system(av[1]);
-	assert(WEXITSTATUS(r) == 0);
+	xxxassert(WEXITSTATUS(r) == 0);
 }
 
 /**********************************************************************

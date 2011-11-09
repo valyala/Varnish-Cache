@@ -208,6 +208,8 @@ HSH_Lookup(struct sess *sp, struct objhead **poh)
 	CHECK_OBJ_NOTNULL(sp->wrk, WORKER_MAGIC);
 	CHECK_OBJ_NOTNULL(sp->http, HTTP_MAGIC);
 	AN(sp->director);
+
+	(void)i;
 	w = sp->wrk;
 
 	HSH_Prealloc(sp);

@@ -49,7 +49,7 @@ void __match_proto__()
 vmod_set_ip_tos(struct sess *sp, int tos)
 {
 
-	VTCP_Assert(setsockopt(sp->fd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)));
+	VTCP_Check(setsockopt(sp->fd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)));
 }
 
 static const char * __match_proto__()
@@ -113,7 +113,9 @@ vmod_tolower(struct sess *sp, struct vmod_priv *priv, const char *s, ...)
 	const char *p;
 	va_list ap;
 
+	(void)priv;
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
+	AN(priv);
 	assert(!strcmp(priv->priv, "FOO"));
 	va_start(ap, s);
 	p = vmod_updown(sp, 0, s, ap);

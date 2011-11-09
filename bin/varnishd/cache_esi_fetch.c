@@ -199,9 +199,9 @@ vfp_vep_callback(struct worker *w, ssize_t l, enum vgz_flag flg)
 		}
 	} while (l > 0);
 	if (flg == VGZ_FINISH)
-		assert(i == 1);			/* XXX */
+		xxxassert(i == 1);			/* XXX */
 	else
-		assert(i == 0);			/* XXX */
+		xxxassert(i == 0);			/* XXX */
 	return (vef->tot);
 }
 
@@ -270,8 +270,7 @@ vfp_esi_bytes_gg(struct worker *w, struct http_conn *htc, size_t bytes)
 		do {
 			VGZ_Obuf(w->vgz_rx, ibuf2, sizeof ibuf2);
 			i = VGZ_Gunzip(w->vgz_rx, &dp, &dl);
-			/* XXX: check i */
-			assert(i >= VGZ_OK);
+			xxxassert(i >= VGZ_OK);
 			vef->bufp = ibuf2;
 			if (dl > 0)
 				VEP_Parse(w, ibuf2, dl);

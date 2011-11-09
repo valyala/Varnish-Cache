@@ -171,7 +171,7 @@ VCLI_ReadResult(int fd, unsigned *status, char **ptr, double tmo)
 	assert(res[CLI_LINE0_LEN - 1] == '\n');
 	res[CLI_LINE0_LEN - 1] = '\0';
 	j = sscanf(res, "%u %u\n", &u, &v);
-	assert(j == 2);
+	xxxassert(j == 2);
 	*status = u;
 	MALLOC_NOTNULL(p, v + 1L);
 	i = read_tmo(fd, p, v + 1, tmo);

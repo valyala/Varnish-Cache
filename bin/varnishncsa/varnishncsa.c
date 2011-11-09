@@ -290,6 +290,8 @@ collect_backend(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 	const char *end, *next, *split;
 
 	CHECK_OBJ_NOTNULL(lp, LOGLINE_MAGIC);
+
+	(void)spec;
 	assert(spec & VSL_S_BACKEND);
 	end = ptr + len;
 
@@ -412,6 +414,8 @@ collect_client(struct logline *lp, enum VSL_tag_e tag, unsigned spec,
 	time_t t;
 
 	CHECK_OBJ_NOTNULL(lp, LOGLINE_MAGIC);
+
+	(void)spec;
 	assert(spec & VSL_S_CLIENT);
 	end = ptr + len;
 

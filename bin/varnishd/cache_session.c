@@ -109,6 +109,7 @@ ses_sm_alloc(void)
 	 * cache them locally, to make sure we get a consistent
 	 * view of the value.
 	 */
+	(void)q;
 	nws = params->sess_workspace;
 	nhttp = (uint16_t)params->http_max_hdr;
 
@@ -298,7 +299,7 @@ SES_Close(struct sess *sp, const char *reason)
 	assert(sp->fd >= 0);
 	VSL(SLT_SessionClose, sp->vsl_id, "%s", reason);
 	i = close(sp->fd);
-	assert(i == 0 || errno != EBADF); /* XXX EINVAL seen */
+	xxxassert(i == 0 || errno != EBADF); /* XXX EINVAL seen */
 	sp->fd = -1;
 }
 

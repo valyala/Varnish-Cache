@@ -121,7 +121,7 @@ VRT_Vmod_Init(void **hdl, void *ptr, int len, const char *nm,
 		v->idptr = w;
 	}
 
-	assert(len == v->funclen);
+	xxxassert(len == v->funclen);
 	memcpy(ptr, v->funcs, v->funclen);
 	v->ref++;
 

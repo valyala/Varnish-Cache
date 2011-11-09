@@ -110,7 +110,9 @@ vgz_free(voidpf opaque, voidpf address)
 {
 	struct vgz *vg;
 
+	(void)vg;
 	CAST_OBJ_NOTNULL(vg, opaque, VGZ_MAGIC);
+	/* XXX: WS_Free()? */
 	(void)address;
 }
 
@@ -203,7 +205,7 @@ VGZ_NewGzip(struct worker *wrk, const char *id)
 	    16 + params->gzip_window,	/* Window bits (16=gzip + 15) */
 	    params->gzip_memlevel,	/* memLevel */
 	    Z_DEFAULT_STRATEGY);
-	assert(Z_OK == i);
+	xxxassert(Z_OK == i);
 	return (vg);
 }
 
@@ -569,7 +571,7 @@ vfp_gzip_bytes(struct worker *w, struct http_conn *htc, ssize_t bytes)
 		if (VGZ_ObufStorage(w, vg)) 
 			return(-1);
 		i = VGZ_Gzip(vg, &dp, &dl, VGZ_NORMAL);
-		assert(i == Z_OK);
+		xxxassert(i == Z_OK);
 		w->fetch_obj->len += dl;
 		if (w->do_stream)
 			RES_StreamPoll(w);

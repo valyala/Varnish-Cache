@@ -240,6 +240,7 @@ STV_MkObject(struct sess *sp, void *ptr, unsigned ltot,
 	INIT_OBJ(o, OBJECT_MAGIC);
 
 	l = PRNDDN(ltot - (sizeof *o + soc->lhttp));
+	(void)l;
 	assert(l >= soc->wsl);
 
 	o->http = HTTP_create(o + 1, soc->nhttp);

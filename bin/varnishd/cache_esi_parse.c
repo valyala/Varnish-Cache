@@ -406,6 +406,7 @@ vep_mark_pending(struct vep_state *vep, const char *p)
 static void __match_proto__()
 vep_do_comment(struct vep_state *vep, enum dowhat what)
 {
+	(void)what;
 	Debug("DO_COMMENT(%d)\n", what);
 	assert(what == DO_TAG);
 	if (!vep->emptytag)
@@ -418,6 +419,7 @@ vep_do_comment(struct vep_state *vep, enum dowhat what)
 static void __match_proto__()
 vep_do_remove(struct vep_state *vep, enum dowhat what)
 {
+	(void)what;
 	Debug("DO_REMOVE(%d, end %d empty %d remove %d)\n",
 	    what, vep->endtag, vep->emptytag, vep->remove);
 	assert(what == DO_TAG);

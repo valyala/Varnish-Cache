@@ -473,7 +473,7 @@ VRT_r_server_ip(struct sess *sp)
 	if (sp->mysockaddr.ss_family == AF_UNSPEC) {
 		i = getsockname(sp->fd,
 		    (void*)&sp->mysockaddr, &sp->mysockaddrlen);
-		assert(VTCP_Check(i));
+		VTCP_Check(i);
 	}
 
 	return (&sp->mysockaddr);
@@ -514,7 +514,7 @@ VRT_r_server_port(struct sess *sp)
 	if (sp->mysockaddr.ss_family == AF_UNSPEC) {
 		i = getsockname(sp->fd,
 		    (void*)&sp->mysockaddr, &sp->mysockaddrlen);
-		assert(VTCP_Check(i));
+		VTCP_Check(i);
 	}
 	return (VTCP_port(&sp->mysockaddr));
 }
