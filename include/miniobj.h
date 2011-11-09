@@ -14,7 +14,7 @@
 
 #include "vas.h"
 
-#ifndef DISABLE_MAGIC
+#ifndef WITHOUT_MAGIC
 
 #define MAGIC_INITIALIZER(type_magic)	.magic = (type_magic),
 
