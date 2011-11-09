@@ -14,7 +14,7 @@
 
 #include "vas.h"
 
-#define MAGIC_HERE			unsigned magic
+#ifndef DISABLE_MAGIC
 
 #define MAGIC_INITIALIZER(type_magic)	.magic = (type_magic),
 
@@ -25,6 +25,16 @@
 	do {								\
 		(ptr)->magic = (type_magic);				\
 	} while (0)
+
+#else
+
+#define MAGIC_INITIALIZER(type_magic)	/* nothing */
+#define CMP_MAGIC(ptr, type_magic)	1	/* always true */
+#define SET_MAGIC(ptr, type_magic)	do { /* nothing */ } while (0)
+
+#endif	/* USE_MAGIC */
+
+#define MAGIC_HERE			unsigned magic
 
 #define MALLOC_NOTNULL(to, size)					\
 	do {								\

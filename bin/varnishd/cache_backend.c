@@ -409,11 +409,8 @@ struct backend *
 vdi_get_backend_if_simple(const struct director *d)
 {
 	CHECK_OBJ_NOTNULL(d, DIRECTOR_MAGIC);
-	struct vdi_simple *vs, *vs2;
+	struct vdi_simple *vs;
 
-	vs2 = d->priv;
-	if (!CMP_MAGIC(vs2, VDI_SIMPLE_MAGIC))
-		return NULL;
 	CAST_OBJ_NOTNULL(vs, d->priv, VDI_SIMPLE_MAGIC);
 	return (vs->backend);
 }
