@@ -44,6 +44,7 @@ struct bucket {
 };
 
 static struct bucket		*buckets;
+static unsigned buckets_count;
 
 /*--------------------------------------------------------------------
  * This method is called during cache process start and allows
@@ -53,14 +54,14 @@ static struct bucket		*buckets;
 void
 HTB_Init(void)
 {
-	unsigned hashtable_buckets, u;
+	unsigned u;
 
-	hashtable_buckets = params->hashtable_buckets;
-	assert(hashtable_buckets > 0);
-	buckets = calloc(hashtable_buckets, sizeof(*buckets));
+	buckets_count = params->hashtable_buckets;
+	assert(buckets_count > 0);
+	buckets = calloc(buckets_count, sizeof(*buckets));
 	XXXAN(buckets);
 
-	for (u = 0; u < hashtable_buckets; u++) {
+	for (u = 0; u < buckets_count; u++) {
 		VSLIST_INIT(&buckets[u].head);
 		Lck_New(&buckets[u].mtx, lck_htb_bucket);
 	}
@@ -75,8 +76,8 @@ get_bucket(const struct objhead *oh)
 	CHECK_OBJ_NOTNULL(oh, OBJHEAD_MAGIC);
 	assert(sizeof(oh->digest) >= sizeof(digest));
 	memcpy(&digest, oh->digest, sizeof(digest));
-	assert(params->hashtable_buckets > 0);
-	u = digest % params->hashtable_buckets;
+	assert(buckets_count > 0);
+	u = digest % buckets_count;
 	AN(buckets);
 	b = &buckets[u];
 	return (b);
