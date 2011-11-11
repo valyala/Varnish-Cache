@@ -316,7 +316,7 @@ smp_open(const struct stevedore *st)
 	sc->stevedore = st;
 
 	/* We trust the parent to give us a valid silo, for good measure: */
-	AZ(smp_valid_silo(sc));
+	XXXAZ(smp_valid_silo(sc));
 
 	XXXAZ(mprotect(sc->base, 4096, PROT_READ));
 

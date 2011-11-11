@@ -193,7 +193,7 @@ smp_mgt_init(struct stevedore *parent, int ac, char * const *av)
 		    sc->filename, i);
 		smp_newsilo(sc);
 	}
-	AZ(smp_valid_silo(sc));
+	XXXAZ(smp_valid_silo(sc));
 
 	smp_metrics(sc);
 
