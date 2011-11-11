@@ -41,6 +41,10 @@
  *    e - Explantion:	Short explanation of field (for screen use)
  *    d - Description:	Long explanation of field (for doc use)
  *
+ * Please describe Gauge variables as "Number of..." to indicate that
+ * this is a snapshot, and Counter variables as "Count of" to indicate
+ * accumulative count.
+ *
  * -----------------------
  * NB: Cleanup in progress
  * -----------------------
@@ -81,48 +85,48 @@ VSC_F(sess_fail,		uint64_t, 1, 'c',
 
 /*---------------------------------------------------------------------*/
 
-VSC_F(client_req,		uint64_t, 1, 'a', 
-      "Client requests received", 
+VSC_F(client_req,		uint64_t, 1, 'a',
+      "Client requests received",
       "")
 
-VSC_F(cache_hit,		uint64_t, 1, 'a', 
-      "Cache hits", 
+VSC_F(cache_hit,		uint64_t, 1, 'a',
+      "Cache hits",
       "Count of cache hits. "
       "  A cache hit indicates that an object has been delivered to a"
       "  client without fetching it from a backend server."
 )
 
-VSC_F(cache_hitpass,	uint64_t, 1, 'a', 
-      "Cache hits for pass", 
+VSC_F(cache_hitpass,	uint64_t, 1, 'a',
+      "Cache hits for pass",
       "Count of hits for pass"
       "  A cache hit for pass indicates that Varnish is going to"
       "  pass the request to the backend and this decision has been "
       "  cached in it self. This counts how many times the cached "
       "  decision is being used."
 )
-VSC_F(cache_miss,		uint64_t, 1, 'a', 
-      "Cache misses", 
+VSC_F(cache_miss,		uint64_t, 1, 'a',
+      "Cache misses",
       "Count of misses"
       "  A cache miss indicates the object was fetched from the"
       "  backend before delivering it to the backend.")
 
-VSC_F(backend_conn,	uint64_t, 0, 'a', 
-      "Backend conn. success", 
+VSC_F(backend_conn,	uint64_t, 0, 'a',
+      "Backend conn. success",
       "")
 
-VSC_F(backend_unhealthy,	uint64_t, 0, 'a', 
-      "Backend conn. not attempted", 
+VSC_F(backend_unhealthy,	uint64_t, 0, 'a',
+      "Backend conn. not attempted",
       ""
 )
 VSC_F(backend_busy,	uint64_t, 0, 'a', "Backend conn. too many", "")
 VSC_F(backend_fail,	uint64_t, 0, 'a', "Backend conn. failures", "")
-VSC_F(backend_reuse,	uint64_t, 0, 'a', 
-      "Backend conn. reuses", 
+VSC_F(backend_reuse,	uint64_t, 0, 'a',
+      "Backend conn. reuses",
       "Count of backend connection reuses"
       "  This counter is increased whenever we reuse a recycled connection.")
 VSC_F(backend_toolate,	uint64_t, 0, 'a', "Backend conn. was closed", "")
-VSC_F(backend_recycle,	uint64_t, 0, 'a', 
-      "Backend conn. recycles", 
+VSC_F(backend_recycle,	uint64_t, 0, 'a',
+      "Backend conn. recycles",
       "Count of backend connection recycles"
       "  This counter is increased whenever we have a keep-alive"
       "  connection that is put back into the pool of connections."
@@ -255,10 +259,10 @@ VSC_F(n_lru_moved,		uint64_t, 0, 'i', "N LRU moved objects", "")
 
 VSC_F(losthdr,		uint64_t, 0, 'a', "HTTP header overflows", "")
 
-VSC_F(n_objsendfile,	uint64_t, 0, 'a', "Objects sent with sendfile", 
+VSC_F(n_objsendfile,	uint64_t, 0, 'a', "Objects sent with sendfile",
       "The number of objects sent with the sendfile system call. If enabled "
       "sendfile will be used on object larger than a certain size.")
-VSC_F(n_objwrite,		uint64_t, 0, 'a', "Objects sent with write", 
+VSC_F(n_objwrite,		uint64_t, 0, 'a', "Objects sent with write",
       "The number of objects sent with regular write calls."
       "Writes are used when the objects are too small for sendfile "
       "or if the sendfile call has been disabled")
@@ -297,12 +301,49 @@ VSC_F(n_vcl,		uint64_t, 0, 'a', "N vcl total", "")
 VSC_F(n_vcl_avail,		uint64_t, 0, 'a', "N vcl available", "")
 VSC_F(n_vcl_discard,	uint64_t, 0, 'a', "N vcl discarded", "")
 
-VSC_F(n_ban,		uint64_t, 0, 'i', "N total active bans", "")
-VSC_F(n_ban_add,		uint64_t, 0, 'a', "N new bans added", "")
-VSC_F(n_ban_retire,	uint64_t, 0, 'a', "N old bans deleted", "")
-VSC_F(n_ban_obj_test,	uint64_t, 0, 'a', "N objects tested", "")
-VSC_F(n_ban_re_test,	uint64_t, 0, 'a', "N regexps tested against", "")
-VSC_F(n_ban_dups,	uint64_t, 0, 'a', "N duplicate bans removed", "")
+/**********************************************************************/
+
+VSC_F(bans,			uint64_t, 0, 'g',
+   "Count of bans",
+	"Number of all bans in system, including bans superseded"
+	" by newer bans and bans already checked by the ban-lurker."
+)
+VSC_F(bans_gone,		uint64_t, 0, 'g',
+    "Number of bans marked 'gone'",
+	"Number of bans which are no longer active, either because they"
+	" got checked by the ban-lurker or superseded by newer identical bans."
+)
+VSC_F(bans_req,			uint64_t, 0, 'g',
+    "Number of bans using req.*",
+	"Number of bans which use req.* variables.  These bans can not"
+	" be washed by the ban-lurker."
+)
+VSC_F(bans_added,		uint64_t, 0, 'c',
+    "Bans added",
+	"Counter of bans added to ban list."
+)
+VSC_F(bans_deleted,		uint64_t, 0, 'c',
+    "Bans deleted",
+	"Counter of bans deleted from ban list."
+)
+
+VSC_F(bans_tested,		uint64_t, 0, 'c',
+    "Bans tested against objects",
+	"Count of how many bans and objects have been tested against"
+	" each other."
+)
+VSC_F(bans_tests_tested,	uint64_t, 0, 'c',
+    "Ban tests tested against objects",
+	"Count of how many tests and objects have been tested against"
+	" each other.  'ban req.url == foo && req.http.host == bar'"
+	" counts as one in 'bans_tested' and as two in 'bans_tests_tested'"
+)
+VSC_F(bans_dups,		uint64_t, 0, 'c',
+    "Bans superseded by other bans",
+	"Count of bans replaced by later identical bans."
+)
+
+/**********************************************************************/
 
 VSC_F(hcb_nolock,		uint64_t, 0, 'a', "HCB Lookups without lock", "")
 VSC_F(hcb_lock,		uint64_t, 0, 'a', "HCB Lookups with lock", "")
