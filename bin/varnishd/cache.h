@@ -453,6 +453,7 @@ struct objcore {
 #define OC_F_PASS		(1<<2)
 #define OC_F_LRUDONTMOVE	(1<<4)
 #define OC_F_PRIV		(1<<5)		/* Stevedore private flag */
+#define OC_F_LURK		(3<<6)		/* Ban-lurker-color */
 	unsigned		timer_idx;
 	VSLIST_ENTRY(objcore)	hsh_list;
 	VTAILQ_ENTRY(objcore)	lru_list;
@@ -880,7 +881,7 @@ void WSL_Flush(struct worker *w, int overflow);
 
 #define DSL(flag, tag, id, ...)					\
 	do {							\
-		if (params->diag_bitmap & (flag))		\
+		if (cache_param->diag_bitmap & (flag))		\
 			VSL((tag), (id), __VA_ARGS__);		\
 	} while (0)
 

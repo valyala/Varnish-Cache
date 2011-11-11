@@ -208,10 +208,9 @@ struct params {
 	unsigned		gzip_window;
 	unsigned		gzip_memlevel;
 
-	double			shortlived;
+	double			critbit_cooloff;
 
-	/* The number of buckets in lookup hashtable */
-	unsigned		hashtable_buckets;
+	double			shortlived;
 
 	struct vre_limits	vre_limits;
 };
