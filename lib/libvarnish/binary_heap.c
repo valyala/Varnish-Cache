@@ -32,8 +32,8 @@
  *	http://portal.acm.org/citation.cfm?doid=1785414.1785434
  *	(or: http://queue.acm.org/detail.cfm?id=1814327)
  *
- * Test driver can be built and started using the following commands:
- * $ cc -DTEST_DRIVER -I../.. -I../../include -lrt -lm binary_heap.c
+ * Test driver can be built and run using the following commands:
+ * $ cc -DTEST_DRIVER -I../.. -I../../include binary_heap.c -lrt -lm
  * $ ./a.out
  */
 
