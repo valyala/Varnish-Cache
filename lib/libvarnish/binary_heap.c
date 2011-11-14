@@ -415,7 +415,7 @@ check_consistency(const struct binheap *bh)
 static void
 check_parent_child_range(unsigned n_min, unsigned n_max)
 {
-	unsigned n, u, v, i;
+	unsigned n, u, v;
 
 	assert(n_min > ROOT_IDX);
 	for (n = n_min; n < n_max; n++) {
@@ -771,6 +771,8 @@ main(int argc, char **argv)
 	struct binheap *bh;
 	unsigned u;
 
+	(void)argc;
+	(void)argv;
 	check_parent_child(PARENT_CHILD_TESTS_COUNT);
 	fprintf(stderr, "%u parent-child tests OK\n", PARENT_CHILD_TESTS_COUNT);
 
