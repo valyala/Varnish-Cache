@@ -58,7 +58,7 @@
 
 #include "cache.h"
 #include "cache_hash.h"
-#include "hash_table.h"
+#include "cache_hashtable.h"
 #include "vsha256.h"
 
 /*---------------------------------------------------------------------*/

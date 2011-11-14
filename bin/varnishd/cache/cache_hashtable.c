@@ -33,8 +33,8 @@
 
 #include <stdlib.h>
 
-#include "cache/cache.h"
-#include "hash_table.h"
+#include "cache.h"
+#include "cache_hashtable.h"
 
 /*--------------------------------------------------------------------*/
 
