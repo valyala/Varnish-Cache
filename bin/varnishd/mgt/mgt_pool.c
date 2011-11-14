@@ -48,9 +48,10 @@
 #include <unistd.h>
 
 #include "mgt/mgt.h"
+#include "common/heritage.h"
+#include "common/params.h"
 
-#include "heritage.h"
-#include "vparam.h"
+#include "mgt/mgt_param.h"
 
 /*--------------------------------------------------------------------*/
 

@@ -40,7 +40,6 @@
 #include <limits.h>
 #include <math.h>		// for testcase
 #include <stdint.h>
-#include <stdio.h>		// for testcase
 #include <stdlib.h>
 #include <time.h>		// for testcase
 #include <unistd.h>
@@ -386,6 +385,9 @@ binheap_root(const struct binheap *bh)
 }
 
 #ifdef TEST_DRIVER
+
+#include <stdio.h>
+
 /* Test driver -------------------------------------------------------*/
 
 static void
