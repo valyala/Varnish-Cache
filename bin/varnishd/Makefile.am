@@ -50,7 +50,7 @@ varnishd_SOURCES = \
 	cache/cache_wrw.c \
 	cache/cache_ws.c \
 	common/common_vsm.c \
-	hash_table.c
+	hash_table.c \
 	mgt/mgt_child.c \
 	mgt/mgt_cli.c \
 	mgt/mgt_main.c \

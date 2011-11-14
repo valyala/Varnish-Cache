@@ -33,7 +33,7 @@
 
 #include <stdlib.h>
 
-#include "cache.h"
+#include "cache/cache.h"
 #include "hash_table.h"
 #include "miniobj.h"
 
