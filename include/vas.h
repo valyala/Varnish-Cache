@@ -26,11 +26,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * assert(), AN() and AZ() are static checks that should not happen.
+ * assert(), AN() and AZ() are usual asserts that should not happen.
  *	In general asserts should be cheap, such as checking return
- *	values and similar.
- * diagnostic() are asserts which are so expensive that we may want
- *	to compile them out for performance at a later date.
+ *	values and similar. These asserts are compiled out if
+ *	WITHOUT_ASSERTS is defined.
  * xxxassert(), XXXAN() and XXXAZ() marks conditions we ought to
  *	handle gracefully, such as malloc failure.
  */
@@ -65,7 +64,6 @@ do {									\
 #define AN(foo)		do { assert((foo) != 0); } while (0)
 #define XXXAZ(foo)	do { xxxassert((foo) == 0); } while (0)
 #define XXXAN(foo)	do { xxxassert((foo) != 0); } while (0)
-#define diagnostic(foo)	assert(foo)
 #define WRONG(expl)							\
 do {									\
 	VAS_Fail(__func__, __FILE__, __LINE__, expl, errno, 3);		\
