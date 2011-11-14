@@ -805,8 +805,6 @@ binheap_entry_unpack(const struct binheap *bh, const struct binheap_entry *be,
 
 #include <stdio.h>
 
-#include "miniobj.h"
-
 /* Test driver -------------------------------------------------------*/
 
 static void
