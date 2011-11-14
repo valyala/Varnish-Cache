@@ -156,6 +156,12 @@ struct params {
 	/* Expiry pacer parameters */
 	double			expiry_sleep;
 
+	/*
+	 * The number of items, which can be expired at once before
+	 * flushing stats.
+	 */
+	unsigned		expiry_batch_size;
+
 	/* Acceptor pacer parameters */
 	double			acceptor_sleep_max;
 	double			acceptor_sleep_incr;
