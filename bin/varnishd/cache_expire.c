@@ -115,7 +115,7 @@ EXP_Keep(const struct sess *sp, const struct object *o)
 {
 	double r;
 
-	r = (double)params->default_keep;
+	r = (double)cache_param->default_keep;
 	if (o->exp.keep > 0.)
 		r = o->exp.keep;
 	if (sp != NULL && sp->exp.keep > 0. && sp->exp.keep < r)
@@ -128,7 +128,7 @@ EXP_Grace(const struct sess *sp, const struct object *o)
 {
 	double r;
 
-	r = (double)params->default_grace;
+	r = (double)cache_param->default_grace;
 	if (o->exp.grace >= 0.)
 		r = o->exp.grace;
 	if (sp != NULL && sp->exp.grace > 0. && sp->exp.grace < r)
@@ -441,13 +441,13 @@ exp_timer_thread(struct sess *sp, void *priv)
 
 	while (1) {
 		Lck_Lock(&exp_list_mtx);
-		assert(params->expiry_batch_size > 0);
-		if (exp_list == NULL || n >= params->expiry_batch_size) {
+		assert(cache_param->expiry_batch_size > 0);
+		if (exp_list == NULL || n >= cache_param->expiry_batch_size) {
 			Lck_Unlock(&exp_list_mtx);
 			WSL_Flush(w, 0);
 			WRK_SumStat(w);
-			if (n < params->expiry_batch_size)
-				VTIM_sleep(params->expiry_sleep);
+			if (n < cache_param->expiry_batch_size)
+				VTIM_sleep(cache_param->expiry_sleep);
 			n = 0;
 			continue;
 		}
