@@ -43,8 +43,9 @@
 #include <unistd.h>
 
 #include "mgt/mgt.h"
+#include "common/heritage.h"
+#include "common/params.h"
 
-#include "heritage.h"
 #include "miniobj.h"
 #include "vcli.h"
 #include "vcli_common.h"
@@ -172,7 +173,8 @@ mcf_askchild(struct cli *cli, const char * const *av, void *priv)
 		return;
 	}
 	VSB_delete(vsb);
-	(void)VCLI_ReadResult(cli_i, &u, &q, mgt_param.cli_timeout);
+	if (VCLI_ReadResult(cli_i, &u, &q, mgt_param.cli_timeout))
+		MGT_Child_Cli_Fail();
 	VCLI_SetResult(cli, u);
 	VCLI_Out(cli, "%s", q);
 	FREE_NOTNULL(q);
@@ -221,11 +223,10 @@ mgt_cli_askchild(unsigned *status, char **resp, const char *fmt, ...) {
 		return (CLIS_COMMS);
 	}
 
-	(void)VCLI_ReadResult(cli_i, &u, resp, mgt_param.cli_timeout);
+	if (VCLI_ReadResult(cli_i, &u, resp, mgt_param.cli_timeout))
+		MGT_Child_Cli_Fail();
 	if (status != NULL)
 		*status = u;
-	if (u == CLIS_COMMS)
-		MGT_Child_Cli_Fail();
 	return (u == CLIS_OK ? 0 : u);
 }
 
@@ -337,7 +338,8 @@ static void
 mgt_cli_init_cls(void)
 {
 
-	cls = VCLS_New(mgt_cli_cb_before, mgt_cli_cb_after, mgt_param.cli_buffer);
+	cls = VCLS_New(mgt_cli_cb_before, mgt_cli_cb_after,
+	    &mgt_param.cli_buffer, &mgt_param.cli_limit);
 	AN(cls);
 	VCLS_AddFunc(cls, MCF_NOAUTH, cli_auth);
 	VCLS_AddFunc(cls, MCF_AUTH, cli_proto);

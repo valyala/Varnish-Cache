@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <umem.h>
 
-#include "cache.h"
+#include "cache/cache.h"
 #include "miniobj.h"
 #include "storage/storage.h"
 

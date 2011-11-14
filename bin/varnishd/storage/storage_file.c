@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cache.h"
+#include "cache/cache.h"
 #include "miniobj.h"
 #include "storage/storage.h"
 
@@ -232,7 +232,8 @@ alloc_smf(struct smf_sc *sc, size_t bytes)
 	b = bytes / sc->pagesize;
 	if (b >= NBUCKET)
 		b = NBUCKET - 1;
-	for (sp = NULL; b < NBUCKET - 1; b++) {
+	sp = NULL;
+	for (; b < NBUCKET - 1; b++) {
 		sp = VTAILQ_FIRST(&sc->free[b]);
 		if (sp != NULL)
 			break;

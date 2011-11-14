@@ -44,8 +44,9 @@
 #include <unistd.h>
 
 #include "mgt/mgt.h"
+#include "common/heritage.h"
+#include "common/params.h"
 
-#include "heritage.h"
 #include "miniobj.h"
 #include "vapi/vsm_int.h"
 #include "vbm.h"

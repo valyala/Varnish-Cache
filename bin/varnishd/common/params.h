@@ -30,36 +30,6 @@
  */
 
 #include "vre.h"
-#include "miniobj.h"
-
-struct listen_sock {
-	MAGIC_HERE;
-#define LISTEN_SOCK_MAGIC		0x999e4b57U
-
-	VTAILQ_ENTRY(listen_sock)	list;
-	int				sock;
-	char				*name;
-	struct vss_addr			*addr;
-};
-
-VTAILQ_HEAD(listen_sock_head, listen_sock);
-
-struct heritage {
-
-	/* Two pipe(2)'s for CLI connection between cache and mgt.  */
-	int				cli_in;
-	int				cli_out;
-
-	/* File descriptor for stdout/stderr */
-	int				std_fd;
-
-	/* Sockets from which to accept connections */
-	struct listen_sock_head		socks;
-	unsigned			nsocks;
-
-	char				*name;
-	char                            identity[1024];
-};
 
 struct params {
 
@@ -137,6 +107,7 @@ struct params {
 
 	/* CLI related */
 	unsigned		cli_timeout;
+	unsigned		cli_limit;
 	unsigned		ping_interval;
 
 	/* LRU list ordering interval */
@@ -185,12 +156,6 @@ struct params {
 	/* Expiry pacer parameters */
 	double			expiry_sleep;
 
-	/*
-	 * The number of items, which can be expired at once before
-	 * flushing stats.
-	 */
-	unsigned		expiry_batch_size;
-
 	/* Acceptor pacer parameters */
 	double			acceptor_sleep_max;
 	double			acceptor_sleep_incr;
@@ -216,10 +181,9 @@ struct params {
 	unsigned		gzip_window;
 	unsigned		gzip_memlevel;
 
-	double			shortlived;
+	double			critbit_cooloff;
 
-	/* The number of buckets in lookup hashtable */
-	unsigned		hashtable_buckets;
+	double			shortlived;
 
 	struct vre_limits	vre_limits;
 };
@@ -229,6 +193,3 @@ struct params {
  * become atomic, leaving the CLI thread lattitude to change the values
  */
 extern volatile struct params * cache_param;
-extern struct heritage heritage;
-
-void child_main(void);

@@ -46,6 +46,7 @@
 #include <stdlib.h>
 
 #include "cache.h"
+#include "common/heritage.h"
 
 #include "miniobj.h"
 #include "waiter/cache_waiter.h"
@@ -571,6 +572,8 @@ pool_poolherder(void *priv)
 			}
 		}
 		/* XXX: remove pools */
+		if (0)
+			SES_DeletePool(NULL, NULL);
 		(void)sleep(1);
 		u = 0;
 		VTAILQ_FOREACH(pp, &pools, list)

@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cache.h"
+#include "cache/cache.h"
 #include "storage/storage.h"
 
 #include "miniobj.h"

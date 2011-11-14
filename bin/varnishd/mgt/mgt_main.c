@@ -44,8 +44,9 @@
 #include <unistd.h>
 
 #include "mgt/mgt.h"
+#include "common/heritage.h"
+#include "common/params.h"
 
-#include "heritage.h"
 #include "miniobj.h"
 #include "vav.h"
 #include "vcli.h"
@@ -339,9 +340,10 @@ main(int argc, char * const *argv)
 	int s_arg_given = 0;
 	const char *T_arg = NULL;
 	char *p, *vcl = NULL;
-	struct cli cli[1];
+	struct cli c, *cli;
 	struct vpf_fh *pfh = NULL;
 	char *dirname;
+	unsigned clilim;
 
 	/*
 	 * Start out by closing all unwanted file descriptors we might
@@ -381,10 +383,13 @@ main(int argc, char * const *argv)
 	 */
 	SHA256_Test();
 
-	ZERO_OBJ(&cli);
-	cli[0].sb = VSB_new_auto();
-	AN(cli[0].sb);
-	cli[0].result = CLIS_OK;
+	cli = &c;
+	INIT_OBJ(cli, CLI_MAGIC);
+	cli->sb = VSB_new_auto();
+	AN(cli->sb);
+	cli->result = CLIS_OK;
+	clilim = 32768;
+	cli->limit = &clilim;
 
 	VTAILQ_INIT(&heritage.socks);
 
@@ -510,10 +515,10 @@ main(int argc, char * const *argv)
 	}
 
 	/* XXX: we can have multiple CLI actions above, is this enough ? */
-	if (cli[0].result != CLIS_OK) {
+	if (cli->result != CLIS_OK) {
 		fprintf(stderr, "Parameter errors:\n");
-		VSB_finish(cli[0].sb);
-		fprintf(stderr, "%s\n", VSB_data(cli[0].sb));
+		VSB_finish(cli->sb);
+		fprintf(stderr, "%s\n", VSB_data(cli->sb));
 		exit(1);
 	}
 

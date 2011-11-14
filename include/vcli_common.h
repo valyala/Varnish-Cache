@@ -45,4 +45,5 @@ struct cli {
 	char			*ident;
 	struct vlu		*vlu;
 	struct VCLS		*cls;
+	volatile unsigned	*limit;
 };

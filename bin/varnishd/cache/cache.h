@@ -28,7 +28,7 @@
  *
  */
 
-#include "common.h"
+#include "common/common.h"
 
 #include "vapi/vsc_int.h"
 #include "vapi/vsl_int.h"
@@ -48,8 +48,6 @@
 #include <sys/epoll.h>
 #endif
 
-
-#include "heritage.h"
 #include "miniobj.h"
 
 enum body_status {
@@ -931,6 +929,7 @@ void VCL_Init(void);
 void VCL_Refresh(struct VCL_conf **vcc);
 void VCL_Rel(struct VCL_conf **vcc);
 void VCL_Poll(void);
+const char *VCL_Return_Name(unsigned method);
 
 #define VCL_MET_MAC(l,u,b) void VCL_##l##_method(struct sess *);
 #include "tbl/vcl_returns.h"
