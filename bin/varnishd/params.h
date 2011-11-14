@@ -30,12 +30,10 @@
  */
 
 #include "vre.h"
-#include "miniobj.h"
 
 struct listen_sock {
-	MAGIC_HERE;
-#define LISTEN_SOCK_MAGIC		0x999e4b57U
-
+	unsigned			magic;
+#define LISTEN_SOCK_MAGIC		0x999e4b57
 	VTAILQ_ENTRY(listen_sock)	list;
 	int				sock;
 	char				*name;
@@ -185,12 +183,6 @@ struct params {
 	/* Expiry pacer parameters */
 	double			expiry_sleep;
 
-	/*
-	 * The number of items, which can be expired at once before
-	 * flushing stats.
-	 */
-	unsigned		expiry_batch_size;
-
 	/* Acceptor pacer parameters */
 	double			acceptor_sleep_max;
 	double			acceptor_sleep_incr;
@@ -216,10 +208,9 @@ struct params {
 	unsigned		gzip_window;
 	unsigned		gzip_memlevel;
 
-	double			shortlived;
+	double			critbit_cooloff;
 
-	/* The number of buckets in lookup hashtable */
-	unsigned		hashtable_buckets;
+	double			shortlived;
 
 	struct vre_limits	vre_limits;
 };

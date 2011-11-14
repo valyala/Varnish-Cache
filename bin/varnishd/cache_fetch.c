@@ -188,7 +188,7 @@ FetchStorage(struct worker *w, ssize_t sz)
 	if (l == 0)
 		l = sz;
 	if (l == 0)
-		l = params->fetch_chunksize * 1024LL;
+		l = cache_param->fetch_chunksize * 1024LL;
 	st = STV_alloc(w, l);
 	if (st == NULL) {
 		(void)FetchError(w, "Could not get storage");
@@ -277,7 +277,7 @@ fetch_chunked(struct worker *w, struct http_conn *htc)
 				break;
 		}
 
-		if (u >= sizeof buf) 
+		if (u >= sizeof buf)
 			return (FetchError(w,"chunked header too long"));
 
 		/* Skip trailing white space */
@@ -285,7 +285,7 @@ fetch_chunked(struct worker *w, struct http_conn *htc)
 			if (HTC_Read(w, htc, buf + u, 1) <= 0)
 				return (-1);
 
-		if (buf[u] != '\n') 
+		if (buf[u] != '\n')
 			return (FetchError(w,"chunked header no NL"));
 
 		buf[u] = '\0';
@@ -316,7 +316,7 @@ fetch_eof(struct worker *w, struct http_conn *htc)
 
 	assert(w->body_status == BS_EOF);
 	i = w->vfp->bytes(w, htc, SSIZE_MAX);
-	if (i < 0) 
+	if (i < 0)
 		return (-1);
 	return (0);
 }
@@ -437,8 +437,8 @@ FetchHdr(struct sess *sp)
 
 	/* Receive response */
 
-	HTC_Init(w->htc, w->ws, vc->fd, vc->vsl_id, params->http_resp_size,
-	    params->http_resp_hdr_len);
+	HTC_Init(w->htc, w->ws, vc->fd, vc->vsl_id, cache_param->http_resp_size,
+	    cache_param->http_resp_hdr_len);
 
 	VTCP_set_read_timeout(vc->fd, vc->first_byte_timeout);
 

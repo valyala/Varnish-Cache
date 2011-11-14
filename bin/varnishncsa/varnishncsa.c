@@ -207,11 +207,11 @@ req_header(struct logline *l, const char *name)
 	VTAILQ_FOREACH(h, &l->req_headers, list) {
 		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		if (strcasecmp(h->key, name) == 0) {
-			return h->value;
+			return (h->value);
 			break;
 		}
 	}
-	return NULL;
+	return (NULL);
 }
 
 static char *
@@ -222,11 +222,11 @@ resp_header(struct logline *l, const char *name)
 	VTAILQ_FOREACH(h, &l->resp_headers, list) {
 		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		if (strcasecmp(h->key, name) == 0) {
-			return h->value;
+			return (h->value);
 			break;
 		}
 	}
-	return NULL;
+	return (NULL);
 }
 
 static char *
@@ -237,11 +237,11 @@ vcl_log(struct logline *l, const char *name)
 	VTAILQ_FOREACH(h, &l->vcl_log, list) {
 		CHECK_OBJ_NOTNULL(h, HDR_MAGIC);
 		if (strcasecmp(h->key, name) == 0) {
-			return h->value;
+			return (h->value);
 			break;
 		}
 	}
-	return NULL;
+	return (NULL);
 }
 
 static void

@@ -140,7 +140,7 @@ vbp_poke(struct vbp_target *vt)
 	tmo = (int)round((t_end - t_now) * 1e3);
 
 	s = -1;
-	if (params->prefer_ipv6 && bp->ipv6 != NULL) {
+	if (cache_param->prefer_ipv6 && bp->ipv6 != NULL) {
 		s = vbp_connect(PF_INET6, bp->ipv6, bp->ipv6len, tmo);
 		t_now = VTIM_real();
 		tmo = (int)round((t_end - t_now) * 1e3);
@@ -363,6 +363,14 @@ vbp_wrk_poll_backend(void *priv)
 /*--------------------------------------------------------------------
  * Cli functions
  */
+
+void
+VBP_Summary(struct cli *cli, const struct vbp_target *vt)
+{
+
+	CHECK_OBJ_NOTNULL(vt, VBP_TARGET_MAGIC);
+	VCLI_Out(cli, "%d/%d", vt->good, vt->probe.window);
+}
 
 static void
 vbp_bitmap(struct cli *cli, char c, uint64_t map, const char *lbl)

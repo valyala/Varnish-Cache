@@ -52,7 +52,7 @@ vef_read(struct worker *w, struct http_conn *htc, void *buf, ssize_t buflen,
 
 	if (buflen < bytes)
 		bytes = buflen;
-	if (params->esi_syntax & 0x8) {
+	if (cache_param->esi_syntax & 0x8) {
 		d = (random() & 3) + 1;
 		if (d < bytes)
 			bytes = d;
@@ -97,7 +97,7 @@ vfp_esi_bytes_gu(struct worker *w, struct http_conn *htc, ssize_t bytes)
 {
 	struct vgz *vg;
 	ssize_t wl;
-	uint8_t	ibuf[params->gzip_stack_buffer];
+	uint8_t	ibuf[cache_param->gzip_stack_buffer];
 	int i;
 	size_t dl;
 	const void *dp;
@@ -209,7 +209,7 @@ static int
 vfp_esi_bytes_ug(struct worker *w, struct http_conn *htc, ssize_t bytes)
 {
 	ssize_t wl;
-	char ibuf[params->gzip_stack_buffer];
+	char ibuf[cache_param->gzip_stack_buffer];
 	struct vef_priv *vef;
 
 	CHECK_OBJ_NOTNULL(w, WORKER_MAGIC);
@@ -242,12 +242,12 @@ vfp_esi_bytes_ug(struct worker *w, struct http_conn *htc, ssize_t bytes)
  * We receive a gzip'ed object, and want to store it gzip'ed.
  */
 
-static int 
+static int
 vfp_esi_bytes_gg(struct worker *w, struct http_conn *htc, size_t bytes)
 {
 	ssize_t wl;
-	char ibuf[params->gzip_stack_buffer];
-	char ibuf2[params->gzip_stack_buffer];
+	char ibuf[cache_param->gzip_stack_buffer];
+	char ibuf2[cache_param->gzip_stack_buffer];
 	struct vef_priv *vef;
 	size_t dl;
 	const void *dp;
@@ -390,7 +390,7 @@ vfp_esi_end(struct worker *w)
 		w->vef_priv = NULL;
 		VGZ_UpdateObj(vef->vgz, w->fetch_obj);
 		if (VGZ_Destroy(&vef->vgz,  -1) != VGZ_END)
-			retval = FetchError(w, 
+			retval = FetchError(w,
 			    "ESI+Gzip Failed at the very end");
 		FREE_OBJ_NOTNULL(vef, VEF_MAGIC);
 	}

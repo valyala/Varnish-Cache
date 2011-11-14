@@ -135,7 +135,7 @@ vgz_alloc_vgz(struct worker *wrk, const char *id)
 	vg->wrk = wrk;
 	vg->id = id;
 
-	switch (params->gzip_tmp_space) {
+	switch (cache_param->gzip_tmp_space) {
 	case 0:
 	case 1:
 		/* malloc, the default */
@@ -200,10 +200,10 @@ VGZ_NewGzip(struct worker *wrk, const char *id)
 	 * XXX: too many worker threads grow the stacks.
 	 */
 	i = deflateInit2(&vg->vz,
-	    params->gzip_level,		/* Level */
+	    cache_param->gzip_level,		/* Level */
 	    Z_DEFLATED,			/* Method */
-	    16 + params->gzip_window,	/* Window bits (16=gzip + 15) */
-	    params->gzip_memlevel,	/* memLevel */
+	    16 + cache_param->gzip_window,	/* Window bits (16=gzip + 15) */
+	    cache_param->gzip_memlevel,	/* memLevel */
 	    Z_DEFAULT_STRATEGY);
 	xxxassert(Z_OK == i);
 	return (vg);
@@ -261,7 +261,7 @@ VGZ_ObufStorage(struct worker *w, struct vgz *vg)
 	struct storage *st;
 
 	st = FetchStorage(w, 0);
-	if (st == NULL) 
+	if (st == NULL)
 		return (-1);
 
 	vg->obuf = st;
@@ -471,7 +471,7 @@ vfp_gunzip_bytes(struct worker *w, struct http_conn *htc, ssize_t bytes)
 	struct vgz *vg;
 	ssize_t l, wl;
 	int i = -100;
-	uint8_t	ibuf[params->gzip_stack_buffer];
+	uint8_t	ibuf[cache_param->gzip_stack_buffer];
 	size_t dl;
 	const void *dp;
 
@@ -491,10 +491,10 @@ vfp_gunzip_bytes(struct worker *w, struct http_conn *htc, ssize_t bytes)
 			bytes -= wl;
 		}
 
-		if (VGZ_ObufStorage(w, vg)) 
+		if (VGZ_ObufStorage(w, vg))
 			return(-1);
 		i = VGZ_Gunzip(vg, &dp, &dl);
-		if (i != VGZ_OK && i != VGZ_END) 
+		if (i != VGZ_OK && i != VGZ_END)
 			return(FetchError(w, "Gunzip data error"));
 		w->fetch_obj->len += dl;
 		if (w->do_stream)
@@ -549,7 +549,7 @@ vfp_gzip_bytes(struct worker *w, struct http_conn *htc, ssize_t bytes)
 	struct vgz *vg;
 	ssize_t l, wl;
 	int i = -100;
-	uint8_t ibuf[params->gzip_stack_buffer];
+	uint8_t ibuf[cache_param->gzip_stack_buffer];
 	size_t dl;
 	const void *dp;
 
@@ -568,7 +568,7 @@ vfp_gzip_bytes(struct worker *w, struct http_conn *htc, ssize_t bytes)
 			VGZ_Ibuf(vg, ibuf, wl);
 			bytes -= wl;
 		}
-		if (VGZ_ObufStorage(w, vg)) 
+		if (VGZ_ObufStorage(w, vg))
 			return(-1);
 		i = VGZ_Gzip(vg, &dp, &dl, VGZ_NORMAL);
 		xxxassert(i == Z_OK);
@@ -636,7 +636,7 @@ vfp_testgzip_bytes(struct worker *w, struct http_conn *htc, ssize_t bytes)
 	struct vgz *vg;
 	ssize_t l, wl;
 	int i = -100;
-	uint8_t	obuf[params->gzip_stack_buffer];
+	uint8_t	obuf[cache_param->gzip_stack_buffer];
 	size_t dl;
 	const void *dp;
 	struct storage *st;
@@ -665,7 +665,7 @@ vfp_testgzip_bytes(struct worker *w, struct http_conn *htc, ssize_t bytes)
 		while (!VGZ_IbufEmpty(vg)) {
 			VGZ_Obuf(vg, obuf, sizeof obuf);
 			i = VGZ_Gunzip(vg, &dp, &dl);
-			if (i == VGZ_END && !VGZ_IbufEmpty(vg)) 
+			if (i == VGZ_END && !VGZ_IbufEmpty(vg))
 				return(FetchError(w, "Junk after gzip data"));
 			if (i != VGZ_OK && i != VGZ_END)
 				return(FetchError2(w,

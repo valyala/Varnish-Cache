@@ -189,7 +189,7 @@ vwe_thread(void *priv)
 			continue;
 
 		/* check for timeouts */
-		deadline = VTIM_real() - params->sess_timeout;
+		deadline = VTIM_real() - cache_param->sess_timeout;
 		for (;;) {
 			sp = VTAILQ_FIRST(&vwe->sesshead);
 			if (sp == NULL)
@@ -201,7 +201,7 @@ vwe_thread(void *priv)
 			SES_Delete(sp, "timeout");
 		}
 	}
-	return NULL;
+	return (NULL);
 }
 
 /*--------------------------------------------------------------------*/
@@ -220,7 +220,7 @@ vwe_sess_timeout_ticker(void *priv)
 		xxxassert(write(vwe->timer_pipes[1], &ticker, 1));
 		VTIM_sleep(100 * 1e-3);
 	}
-	return NULL;
+	return (NULL);
 }
 
 /*--------------------------------------------------------------------*/

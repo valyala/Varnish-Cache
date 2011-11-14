@@ -74,7 +74,7 @@ VRT_count(const struct sess *sp, unsigned u)
 	if (sp == NULL)
 		return;
 	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
-	if (params->vcl_trace)
+	if (cache_param->vcl_trace)
 		WSP(sp, SLT_VCL_trace, "%u %d.%d", u,
 		    sp->vcl->ref[u].line, sp->vcl->ref[u].pos);
 }
@@ -347,7 +347,7 @@ VRT_time_string(const struct sess *sp, double t)
 	p = WS_Alloc(sp->http->ws, VTIM_FORMAT_SIZE);
 	XXXAN(p);
 	VTIM_format(t, p);
-	return p;
+	return (p);
 }
 
 const char *

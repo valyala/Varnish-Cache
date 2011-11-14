@@ -57,7 +57,7 @@ HTB_Init(void)
 {
 	unsigned u;
 
-	buckets_count = params->hashtable_buckets;
+	buckets_count = cache_param->hashtable_buckets;
 	assert(buckets_count > 0);
 	CALLOC_NOTNULL(buckets, buckets_count);
 
