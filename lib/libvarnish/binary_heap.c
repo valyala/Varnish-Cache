@@ -29,7 +29,7 @@
  * Implementation of a binary heap API
  *
  * Test driver can be built and run using the following commands:
- * $ cc -DTEST_DRIVER -I../.. -I../../include -lrt -lm binary_heap.c
+ * $ cc -DTEST_DRIVER -I../.. -I../../include binary_heap.c -lrt -lm
  * $ ./a.out
  *
  */
