@@ -44,8 +44,9 @@
 #include <unistd.h>
 
 #include "mgt/mgt.h"
+#include "common/heritage.h"
+#include "common/params.h"
 
-#include "heritage.h"
 #include "vav.h"
 #include "vcli.h"
 #include "vcli_common.h"
@@ -341,6 +342,7 @@ main(int argc, char * const *argv)
 	struct cli cli[1];
 	struct vpf_fh *pfh = NULL;
 	char *dirname;
+	unsigned clilim;
 
 	/*
 	 * Start out by closing all unwanted file descriptors we might
@@ -381,9 +383,12 @@ main(int argc, char * const *argv)
 	SHA256_Test();
 
 	memset(cli, 0, sizeof cli);
+	cli[0].magic = CLI_MAGIC;
 	cli[0].sb = VSB_new_auto();
 	XXXAN(cli[0].sb);
 	cli[0].result = CLIS_OK;
+	clilim = 32768;
+	cli[0].limit = &clilim;
 
 	VTAILQ_INIT(&heritage.socks);
 
