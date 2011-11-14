@@ -33,9 +33,9 @@
 
 #include <stdlib.h>
 
-#include "cache/cache.h"
+#include "cache.h"
+#include "cache_hashtable.h"
 #include "common/params.h"
-#include "hash_table.h"
 #include "miniobj.h"
 
 /*--------------------------------------------------------------------*/

@@ -29,6 +29,7 @@ varnishd_SOURCES = \
 	cache/cache_fetch.c \
 	cache/cache_gzip.c \
 	cache/cache_hash.c \
+	cache/cache_hashtable.c \
 	cache/cache_http.c \
 	cache/cache_httpconn.c \
 	cache/cache_lck.c \
@@ -50,7 +51,6 @@ varnishd_SOURCES = \
 	cache/cache_wrw.c \
 	cache/cache_ws.c \
 	common/common_vsm.c \
-	hash_table.c \
 	mgt/mgt_child.c \
 	mgt/mgt_cli.c \
 	mgt/mgt_main.c \

@@ -300,7 +300,7 @@ struct objhead {
 	struct sess		*waitinglist;
 
 	/*
-	 * This field is for the sole private use of the hash_table.c .
+	 * This field is for the sole private use of the hashtable.c .
 	 */
 	VSLIST_ENTRY(objhead)	htb_list;
 };
