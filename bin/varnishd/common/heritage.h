@@ -1,8 +1,9 @@
 /*-
- * Copyright (c) 2010-2011 Varnish Software AS
+ * Copyright (c) 2006 Verdens Gang AS
+ * Copyright (c) 2006-2011 Varnish Software AS
  * All rights reserved.
  *
- * Author: Poul-Henning Kamp <phk@FreeBSD.org>
+ * Author: Poul-Henning Kamp <phk@phk.freebsd.dk>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,95 +26,40 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * This file contains the heritage passed when mgt forks cache
  */
 
-#include "config.h"
+struct listen_sock {
+	unsigned			magic;
+#define LISTEN_SOCK_MAGIC		0x999e4b57
+	VTAILQ_ENTRY(listen_sock)	list;
+	int				sock;
+	char				*name;
+	struct vss_addr			*addr;
+};
 
-#include <ctype.h>
-#include <math.h>
-#include <stdlib.h>
+VTAILQ_HEAD(listen_sock_head, listen_sock);
 
-#include "cache/cache.h"
+struct heritage {
 
-#include "vrt.h"
-#include "vcc_if.h"
+	/* Two pipe(2)'s for CLI connection between cache and mgt.  */
+	int				cli_in;
+	int				cli_out;
 
-double __match_proto__()
-vmod_duration(struct sess *sp, const char *p, double d)
-{
-	char *e;
-	double r;
+	/* File descriptor for stdout/stderr */
+	int				std_fd;
 
-	(void)sp;
+	/* Sockets from which to accept connections */
+	struct listen_sock_head		socks;
+	unsigned			nsocks;
 
-	if (p == NULL)
-		return (d);
+	/* Hash method */
+	const struct hash_slinger	*hash;
 
-	while(isspace(*p))
-		p++;
+	char				*name;
+	char                            identity[1024];
+};
 
-	if (*p != '+' && *p != '-' && !isdigit(*p))
-		return (d);
+extern struct heritage heritage;
 
-	e = NULL;
-
-	r = strtod(p, &e);
-
-	if (!isfinite(r))
-		return (d);
-
-	if (e == NULL)
-		return (d);
-
-	while(isspace(*e))
-		e++;
-
-	/* NB: Keep this list synchronized with VCC */
-	switch (*e++) {
-	case 's': break;
-	case 'm': r *= 60.; break;
-	case 'h': r *= 60.*60.; break;
-	case 'd': r *= 60.*60.*24.; break;
-	case 'w': r *= 60.*60.*24.*7.; break;
-	default:
-		return (d);
-	}
-
-	while(isspace(*e))
-		e++;
-
-	if (*e != '\0')
-		return (d);
-
-	return (r);
-}
-
-int __match_proto__()
-vmod_integer(struct sess *sp, const char *p, int i)
-{
-	char *e;
-	int r;
-
-	(void)sp;
-
-	if (p == NULL)
-		return (i);
-
-	while(isspace(*p))
-		p++;
-
-	if (*p != '+' && *p != '-' && !isdigit(*p))
-		return (i);
-
-	e = NULL;
-
-	r = strtol(p, &e, 0);
-
-	if (e == NULL)
-		return (i);
-
-	if (*e != '\0')
-		return (i);
-
-	return (r);
-}
+void child_main(void);
