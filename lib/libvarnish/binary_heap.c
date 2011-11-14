@@ -66,7 +66,6 @@
 #include <limits.h>
 #include <math.h>		// for testcase
 #include <stdint.h>
-#include <stdio.h>		// for testcase
 #include <stdlib.h>
 #include <time.h>		// for testcase
 #include <unistd.h>
@@ -803,6 +802,11 @@ binheap_entry_unpack(const struct binheap *bh, const struct binheap_entry *be,
 }
 
 #ifdef TEST_DRIVER
+
+#include <stdio.h>
+
+#include "miniobj.h"
+
 /* Test driver -------------------------------------------------------*/
 
 static void
