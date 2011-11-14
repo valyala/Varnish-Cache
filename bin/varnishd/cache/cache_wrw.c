@@ -51,9 +51,9 @@
 #include <stdio.h>
 
 #include "cache.h"
-#include "vtim.h"
-
+#include "common/params.h"
 #include "miniobj.h"
+#include "vtim.h"
 
 /*--------------------------------------------------------------------
  */

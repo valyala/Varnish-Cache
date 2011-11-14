@@ -32,6 +32,7 @@
 
 #include "cache.h"
 #include "common/heritage.h"
+#include "common/params.h"
 
 #include "vcli.h"
 #include "vcli_priv.h"

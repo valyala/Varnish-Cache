@@ -34,8 +34,8 @@
 #include <stdlib.h>
 
 #include "cache.h"
-
 #include "cache_esi.h"
+#include "common/params.h"
 #include "miniobj.h"
 #include "vas.h"
 #include "vct.h"

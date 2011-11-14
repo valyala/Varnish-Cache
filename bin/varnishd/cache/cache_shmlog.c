@@ -34,7 +34,7 @@
 #include "cache.h"
 
 #include "cache_backend.h"	// For w->vbc
-
+#include "common/params.h"
 #include "miniobj.h"
 #include "vapi/vsm_int.h"
 #include "vmb.h"

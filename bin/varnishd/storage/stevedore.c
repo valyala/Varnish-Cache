@@ -37,7 +37,7 @@
 #include <stdlib.h>
 
 #include "cache/cache.h"
-
+#include "common/params.h"
 #include "miniobj.h"
 #include "storage/storage.h"
 #include "vav.h"

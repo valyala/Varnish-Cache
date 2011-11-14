@@ -47,7 +47,7 @@
 
 #include "cache.h"
 #include "common/heritage.h"
-
+#include "common/params.h"
 #include "miniobj.h"
 #include "waiter/cache_waiter.h"
 #include "vtcp.h"

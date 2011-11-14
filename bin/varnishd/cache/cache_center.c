@@ -64,6 +64,7 @@ DOT acceptor -> start [style=bold,color=green]
 
 #include "cache.h"
 #include "cache_hash.h"
+#include "common/params.h"
 #include "vcl.h"
 #include "vcli_priv.h"
 #include "vsha256.h"

@@ -57,6 +57,7 @@
 
 #include "cache.h"
 #include "cache_hash.h"
+#include "common/params.h"
 #include "vtim.h"
 
 static pthread_t exp_thread;

@@ -39,9 +39,9 @@
 #include <stddef.h>			// offsetof
 
 #include "cache.h"
-#include "common/heritage.h"
-
 #include "cache_backend.h"		// struct vbc
+#include "common/heritage.h"
+#include "common/params.h"
 #include "vcli.h"
 #include "vcli_common.h"
 #include "vcli_priv.h"

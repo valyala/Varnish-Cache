@@ -34,7 +34,7 @@
 #include <ctype.h>
 
 #include "cache.h"
-
+#include "common/params.h"
 #include "miniobj.h"
 #include "vre.h"
 #include "vrt.h"

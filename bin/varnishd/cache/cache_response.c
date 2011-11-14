@@ -30,7 +30,7 @@
 #include "config.h"
 
 #include "cache.h"
-
+#include "common/params.h"
 #include "vct.h"
 #include "vtim.h"
 

@@ -43,8 +43,8 @@
 #include <stdlib.h>
 
 #include "cache.h"
-
 #include "cache_backend.h"
+#include "common/params.h"
 #include "miniobj.h"
 #include "vas.h"
 #include "vcli_priv.h"

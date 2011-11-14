@@ -43,6 +43,7 @@
 #include "vapi/vsm_int.h"
 
 #include "cache_backend.h"
+#include "common/params.h"
 #include "waiter/cache_waiter.h"
 #include "vas.h"
 #include "vcl.h"

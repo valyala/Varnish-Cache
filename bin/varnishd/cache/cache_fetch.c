@@ -34,8 +34,8 @@
 #include <stdlib.h>
 
 #include "cache.h"
-
 #include "cache_backend.h"
+#include "common/params.h"
 #include "vcli_priv.h"
 #include "vct.h"
 #include "vtcp.h"

@@ -33,7 +33,7 @@
 #include <stdlib.h>
 
 #include "cache.h"
-
+#include "common/params.h"
 #include "vtim.h"
 
 /*--------------------------------------------------------------------

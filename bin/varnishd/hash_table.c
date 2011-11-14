@@ -34,6 +34,7 @@
 #include <stdlib.h>
 
 #include "cache/cache.h"
+#include "common/params.h"
 #include "hash_table.h"
 #include "miniobj.h"
 

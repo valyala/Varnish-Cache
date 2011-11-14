@@ -41,6 +41,7 @@
 
 #include "cache_backend.h"
 #include "cache_hash.h"
+#include "common/params.h"
 #include "vas.h"
 #include "vav.h"
 #include "vcl.h"

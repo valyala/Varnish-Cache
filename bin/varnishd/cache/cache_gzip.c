@@ -70,7 +70,7 @@
 #include <stdlib.h>
 
 #include "cache.h"
-
+#include "common/params.h"
 #include "miniobj.h"
 #include "vgz.h"
 

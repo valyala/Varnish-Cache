@@ -67,6 +67,7 @@
 
 #include "cache.h"
 #include "cache_hash.h"
+#include "common/params.h"
 #include "miniobj.h"
 #include "vcli.h"
 #include "vcli_priv.h"

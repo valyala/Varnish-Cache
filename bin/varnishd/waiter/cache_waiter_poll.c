@@ -34,7 +34,7 @@
 #include <stdlib.h>
 
 #include "cache/cache.h"
-
+#include "common/params.h"
 #include "miniobj.h"
 #include "waiter/cache_waiter.h"
 #include "vtim.h"
